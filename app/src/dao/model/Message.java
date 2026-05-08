@@ -10,7 +10,7 @@ public class Message {
 	private final long timestamp;
 	private final String message;
 	private boolean hidden;
-//构造结构
+
 	public Message(UUID id, UUID poster, UUID thread, long timestamp, String message) {
 		this(id, poster, thread, timestamp, message, false);
 	}
@@ -51,7 +51,7 @@ public class Message {
 	public void setHidden(boolean hidden) {
 		this.hidden = hidden;
 	}
-//泛类-是否同一类
+
 	@Override
 	public boolean equals(Object object) {
 		if (this == object) return true;
@@ -63,7 +63,7 @@ public class Message {
 				&& Objects.equals(thread, other.thread)
 				&& Objects.equals(message, other.message);
 	}
-//hashcode
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(id, poster, thread, timestamp, message, hidden);
