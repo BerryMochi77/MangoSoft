@@ -2,6 +2,7 @@ package moderation;
 
 import java.util.UUID;
 
+
 /**
  * 一条活跃举报记录，表示某个用户在某个时间举报了某条消息。
  *
