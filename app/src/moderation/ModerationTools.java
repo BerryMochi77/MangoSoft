@@ -59,10 +59,13 @@ public class ModerationTools {
 		return true;
 	}
 
-	
+
 	public static Iterator<Message> getReportedMessages(String strategy, int amount) {
-		// TODO: task 4
-		return null;
+		return ReportedMessageIteratorFactory.create(
+				strategy,
+				amount,
+				ReportRegistry.getInstance()
+		);
 	}
 
 	/**
