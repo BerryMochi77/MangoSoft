@@ -8,15 +8,30 @@ import java.io.Reader;
 public class CSVReader implements FormattedReader<String[]> {
 	private final CSVFormat format;
 	private final Reader reader;
+	private Integer nextChar;
 
 	public CSVReader(CSVFormat format, Reader reader) {
 		this.format = format;
 		this.reader = reader;
 	}
-	
+
 	private boolean eof = false;
 	public boolean hasNext() {
-		return true;
+		if (eof) return false;
+		if (nextChar != null) return true;
+
+		try {
+			int character = reader.read();
+			if (character == -1) {
+				eof = true;
+				reader.close();
+				return false;
+			}
+			nextChar = character;
+			return true;
+		} catch (IOException e) {
+			throw new CSVIOException(e.getMessage());
+		}
 	}
 
 	// These format strings are provided to give you some ideas about what error cases might be encountered,
@@ -32,7 +47,7 @@ public class CSVReader implements FormattedReader<String[]> {
 			throw new CSVIOException(LINE_TOO_LONG_MESSAGE.formatted(0));
 		}
 
-		if (eof) {
+		if (!hasNext()) {
 			throw new CSVIOException(REACHED_EOF_MESSAGE);
 		}
 
@@ -43,22 +58,21 @@ public class CSVReader implements FormattedReader<String[]> {
 		int fieldIndex = 0;
 		boolean ignoredFirstQuote = false;
 		while (true) {
-			char c = format.LINE_SEPARATOR;
-			try {
-				int i = reader.read();
-				if (i == -1) {
-					if (inSpecialField) {
-						throw new CSVIOException(IMPROPER_ESCAPE_MESSAGE);
-					}
-					eof = true;
-					reader.close();
-				} else {
-					c = (char) i;
+			int i = readNextCharacter();
+
+			if (i == -1) {
+				if (inSpecialField) {
+					throw new CSVIOException(IMPROPER_ESCAPE_MESSAGE);
 				}
-			} catch (IOException e) {
-				throw new CSVIOException(e.getMessage());
+				fields[fieldIndex] = result.toString();
+				fieldIndex++;
+				if (fieldIndex < format.COLUMN_COUNT) {
+					throw new CSVIOException(LINE_TOO_SHORT_MESSAGE.formatted(format.COLUMN_COUNT, fieldIndex));
+				}
+				break;
 			}
 
+			char c = (char) i;
 			if (c == format.ESCAPE_MARKER) {
 				inSpecialField = !inSpecialField;
 				if (result.isEmpty() && !ignoredFirstQuote) {
@@ -92,6 +106,25 @@ public class CSVReader implements FormattedReader<String[]> {
 			}
 		}
 		return fields;
+	}
+
+	private int readNextCharacter() {
+		if (nextChar != null) {
+			int character = nextChar;
+			nextChar = null;
+			return character;
+		}
+
+		try {
+			int character = reader.read();
+			if (character == -1) {
+				eof = true;
+				reader.close();
+			}
+			return character;
+		} catch (IOException e) {
+			throw new CSVIOException(e.getMessage());
+		}
 	}
 
 	public static class CSVIOException extends PersistentDataException {

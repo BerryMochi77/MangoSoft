@@ -10,4 +10,4 @@ import java.util.UUID;
  * @param user 发起举报的用户 UUID
  * @param timestamp 举报发生的时间戳
  */
-record Report(UUID message, UUID user, long timestamp) {}
+public record Report(UUID message, UUID user, long timestamp) {}

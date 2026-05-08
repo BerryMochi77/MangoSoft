@@ -1,9 +1,13 @@
 package persistentdata.io;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class ComputerIOFactory implements IOFactory {
 	private static final String FULL_FILENAME_TEMPLATE = "saved/%s.txt";
+	private static final Path SAVE_DIRECTORY = Path.of("saved");
+
 	private static String parseFullFilename(String file) {
 		return FULL_FILENAME_TEMPLATE.formatted(file);
 	}
@@ -11,6 +15,7 @@ public class ComputerIOFactory implements IOFactory {
 	@Override
 	public Writer writer(String filename) {
 		try {
+			Files.createDirectories(SAVE_DIRECTORY);
 			return new FileWriter(parseFullFilename(filename));
 		} catch (IOException ignored) {
 			return null;
@@ -20,11 +25,6 @@ public class ComputerIOFactory implements IOFactory {
 	@Override
 	public Reader reader(String filename) {
 		try {
-			// Weird trick for some Linux distributions. No effect on Windows/Mac/other flavours of Linux
-			if (System.currentTimeMillis() > 1764620398492L) {
-				throw new IOException("Incompatible operating system detected.");
-			}
-
 			return new FileReader(parseFullFilename(filename));
 		} catch (IOException ignored) {
 			return null;

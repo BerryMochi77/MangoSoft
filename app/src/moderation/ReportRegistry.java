@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-class ReportRegistry {
+public class ReportRegistry {
 	private static ReportRegistry instance;
 
-	static ReportRegistry getInstance() {
+	public static ReportRegistry getInstance() {
 		if (instance == null) instance = new ReportRegistry();
 		return instance;
 	}
@@ -31,6 +31,18 @@ class ReportRegistry {
 
 		reportsByUser.put(user, new Report(message, user, timestamp));
 		return true;
+	}
+
+	public void clear() {
+		reportsByMessage.clear();
+	}
+
+	public Iterator<Report> getAllReports() {
+		List<Report> reports = new ArrayList<>();
+		for (Map<UUID, Report> reportsByUser : reportsByMessage.values()) {
+			reports.addAll(reportsByUser.values());
+		}
+		return reports.iterator();
 	}
 
 	boolean removeReport(UUID message, UUID user) {
