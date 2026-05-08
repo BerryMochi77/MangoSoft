@@ -3,6 +3,7 @@ package moderation;
 import dao.PostDAO;
 import dao.UserDAO;
 import dao.model.Message;
+import dao.model.User;
 
 import java.util.Iterator;
 import java.util.UUID;
@@ -47,8 +48,13 @@ public class ModerationTools {
 	}
 	
 	public static boolean setHidden(UUID message, UUID user, boolean hidden) {
-		// TODO: task 2
-		return false;
+		Message targetMessage = getMessage(message);
+		User targetUser = getUser(user);
+
+		if (targetMessage == null || targetUser == null || targetUser.role() != User.Role.Admin) return false;
+
+		targetMessage.setHidden(hidden);
+		return true;
 	}
 	
 	public static Iterator<Message> getReportedMessages(String strategy, int amount) {
@@ -63,7 +69,7 @@ public class ModerationTools {
 	 * @return 用户存在时返回 true，否则返回 false
 	 */
 	private static boolean userExists(UUID user) {
-		return user != null && UserDAO.getInstance().getByUUID(user) != null;
+		return getUser(user) != null;
 	}
 
 	/**
@@ -74,12 +80,21 @@ public class ModerationTools {
 	 * @return 消息存在时返回 true，否则返回 false
 	 */
 	private static boolean messageExists(UUID message) {
-		if (message == null) return false;
+		return getMessage(message) != null;
+	}
+
+	private static User getUser(UUID user) {
+		return user == null ? null : UserDAO.getInstance().getByUUID(user);
+	}
+
+	private static Message getMessage(UUID message) {
+		if (message == null) return null;
 
 		Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
 		while (messages.hasNext()) {
-			if (message.equals(messages.next().id())) return true;
+			Message next = messages.next();
+			if (message.equals(next.id())) return next;
 		}
-		return false;
+		return null;
 	}
 }
