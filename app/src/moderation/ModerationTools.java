@@ -3,7 +3,6 @@ package moderation;
 import dao.PostDAO;
 import dao.UserDAO;
 import dao.model.Message;
-import dao.model.User;
 
 import java.util.Iterator;
 import java.util.UUID;
@@ -46,16 +45,19 @@ public class ModerationTools {
 		if (!messageExists(message) || !userExists(user)) return false;
 		return ReportRegistry.getInstance().hasReported(message, user);
 	}
-	
+	/**
+	 * 实现隐藏功能
+	 */
 	public static boolean setHidden(UUID message, UUID user, boolean hidden) {
-		Message targetMessage = getMessage(message);
-		User targetUser = getUser(user);
+	Message targetMessage = getMessage(message);
+	User targetUser = getUser(user);
 
-		if (targetMessage == null || targetUser == null || targetUser.role() != User.Role.Admin) return false;
+	if (targetMessage == null || targetUser == null || targetUser.role() != User.Role.Admin) return false;
 
-		targetMessage.setHidden(hidden);
-		return true;
-	}
+	targetMessage.setHidden(hidden);
+	return true;
+}
+
 	
 	public static Iterator<Message> getReportedMessages(String strategy, int amount) {
 		// TODO: task 4
@@ -69,7 +71,7 @@ public class ModerationTools {
 	 * @return 用户存在时返回 true，否则返回 false
 	 */
 	private static boolean userExists(UUID user) {
-		return getUser(user) != null;
+		return user != null && UserDAO.getInstance().getByUUID(user) != null;
 	}
 
 	/**
@@ -80,21 +82,12 @@ public class ModerationTools {
 	 * @return 消息存在时返回 true，否则返回 false
 	 */
 	private static boolean messageExists(UUID message) {
-		return getMessage(message) != null;
-	}
-
-	private static User getUser(UUID user) {
-		return user == null ? null : UserDAO.getInstance().getByUUID(user);
-	}
-
-	private static Message getMessage(UUID message) {
-		if (message == null) return null;
+		if (message == null) return false;
 
 		Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
 		while (messages.hasNext()) {
-			Message next = messages.next();
-			if (message.equals(next.id())) return next;
+			if (message.equals(messages.next().id())) return true;
 		}
-		return null;
+		return false;
 	}
 }

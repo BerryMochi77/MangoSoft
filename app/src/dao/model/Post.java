@@ -22,10 +22,16 @@ public class Post implements HasUUID {
 	public Post(UUID id) {
 		this(id, null, null);
 	}
-	
+
 	public SortedData<Message> getVisibleMessages(boolean isAdmin) {
-		// TODO: task 2
-		return null;
+		SortedData<Message> visibleMessages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
+
+		for (var iterator = messages.getAll(); iterator.hasNext(); ) {
+			Message message = iterator.next();
+			if (isAdmin || !message.isHidden()) visibleMessages.insert(message);
+		}
+
+		return visibleMessages;
 	}
 
 	public UUID getUUID() { return id; }
