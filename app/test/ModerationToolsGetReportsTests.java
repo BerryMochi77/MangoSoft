@@ -8,6 +8,8 @@ import moderation.ModerationTools;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -21,9 +23,12 @@ public class ModerationToolsGetReportsTests {
 	private User u1, u2, u3;
 
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
 		PostDAO.getInstance().clear();
 		UserDAO.getInstance().clear();
+		
+		// Reset ReportRegistry singleton to ensure clean state between tests
+		resetReportRegistry();
 
 		u1 = new User(UUID.randomUUID(), User.Role.Member, "u1", "p");
 		u2 = new User(UUID.randomUUID(), User.Role.Member, "u2", "p");
@@ -121,5 +126,63 @@ public class ModerationToolsGetReportsTests {
 			assertFalse("Message returned more than once", seen.contains(m));
 			seen.add(m);
 		}
+	}
+
+	@Test
+	public void negativAmountThrows() {
+		try {
+			ModerationTools.getReportedMessages("OLDEST", -1);
+			fail("Expected IllegalArgumentException for negative amount");
+		} catch (IllegalArgumentException e) {
+			// Expected
+		}
+	}
+
+	@Test
+	public void nullStrategyThrows() {
+		try {
+			ModerationTools.getReportedMessages(null, 1);
+			fail("Expected IllegalArgumentException for null strategy");
+		} catch (IllegalArgumentException e) {
+			// Expected
+		}
+	}
+
+	@Test
+	public void reportRemovedIsNotReturned() {
+		// Add a report and then remove it
+		User testUser = new User(UUID.randomUUID(), User.Role.Member, "testuser", "p");
+		Message testMsg = new Message(UUID.randomUUID(), u1.getUUID(), post.getUUID(), 100L, "test");
+		
+		assertTrue(UserDAO.getInstance().add(testUser));
+		assertTrue(post.messages.insert(testMsg));
+		
+		assertTrue(ModerationTools.addReport(testMsg.id(), testUser.getUUID(), 10L));
+		assertTrue(ModerationTools.removeReport(testMsg.id(), testUser.getUUID(), 0L));
+		
+		Iterator<Message> it = ModerationTools.getReportedMessages("OLDEST", 10);
+		Set<Message> results = new HashSet<>();
+		while (it.hasNext()) results.add(it.next());
+		
+		assertFalse(results.contains(testMsg));
+	}
+
+	private void resetReportRegistry() throws Exception {
+		Class<?> reportRegistryClass = Class.forName("moderation.ReportRegistry");
+		
+		// Call getInstance to ensure it exists
+		Method getInstanceMethod = reportRegistryClass.getDeclaredMethod("getInstance");
+		getInstanceMethod.setAccessible(true);
+		Object instance = getInstanceMethod.invoke(null);
+		
+		// Call clear() on the instance
+		Method clearMethod = reportRegistryClass.getDeclaredMethod("clear");
+		clearMethod.setAccessible(true);
+		clearMethod.invoke(instance);
+		
+		// Reset the singleton instance field to null
+		Field instanceField = reportRegistryClass.getDeclaredField("instance");
+		instanceField.setAccessible(true);
+		instanceField.set(null, null);
 	}
 }
