@@ -5,7 +5,6 @@ import sorteddata.SortedData;
 import sorteddata.SortedDataFactory;
 
 import java.util.UUID;
-
 public class Post implements HasUUID {
 	public final UUID id;
 	public final UUID poster;
@@ -35,4 +34,6 @@ public class Post implements HasUUID {
 	}
 
 	public UUID getUUID() { return id; }
+
+	
 }
