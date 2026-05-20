@@ -100,6 +100,7 @@ public class PostViewerActivity extends AppCompatActivity {
         if (!PostDAO.getInstance().getAll().hasNext()) {
             RandomContentGenerator.populateRandomData();
         }
+        RandomContentGenerator.repairSeededData();
 
         int postIndex = getIntent().getIntExtra("post_index", 0);
         post = PostDAO.getInstance().getAtIndex(postIndex);
