@@ -12,13 +12,24 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="12dp"
         android:text="@string/profile"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/buttonEditProfile"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/buttonEditProfile"
+        android:layout_width="wrap_content"
+        android:layout_height="42dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:text="@string/edit_profile"
+        android:textAllCaps="false"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
@@ -56,52 +67,12 @@
                     android:id="@+id/imageAvatar"
                     android:layout_width="96dp"
                     android:layout_height="96dp"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="14dp"
+                    android:layout_gravity="start"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="22dp"
                     android:contentDescription="@string/profile_avatar"
                     android:scaleType="centerCrop"
                     android:src="@drawable/avatar_default_1" />
-
-                <Button
-                    android:id="@+id/buttonChooseDefaultAvatar"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/choose_default_avatar"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/buttonChooseGalleryAvatar"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/choose_gallery_avatar"
-                    android:textAllCaps="false" />
-
-                <EditText
-                    android:id="@+id/inputDisplayName"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="10dp"
-                    android:hint="@string/display_name"
-                    android:singleLine="true" />
-
-                <EditText
-                    android:id="@+id/inputNewPassword"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="10dp"
-                    android:hint="@string/new_password"
-                    android:inputType="textPassword"
-                    android:singleLine="true" />
-
-                <Button
-                    android:id="@+id/buttonSaveProfile"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/save_profile"
-                    android:textAllCaps="false" />
             </LinearLayout>
 
             <TextView
