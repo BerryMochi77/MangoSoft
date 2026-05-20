@@ -156,12 +156,14 @@ Current options:
 
 - `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
 - `Add emoji`: inserts the selected emoji at the cursor.
+- Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery`.
 
 Architecture:
 
 - `ComposerFormatManager` owns the formatting tokens, image copy logic, and rendering helper.
 - `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
 - `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
+- Image saving uses Android `MediaStore`. On Android 10+ it writes to `Pictures/Social Moderation` using scoped storage; older devices use the manifest's `WRITE_EXTERNAL_STORAGE` permission limit.
 
 How to add another format option:
 
@@ -169,6 +171,15 @@ How to add another format option:
 2. Add a branch in `showComposerMenu(...)` for both `FeedFragment` and `PostViewerActivity`.
 3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
 4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
+
+## Demo content seeding
+
+`RandomContentGenerator` is only for demo feed data. It must never assign generated posts or replies to real registered users.
+
+- Demo authors are limited to the fixed usernames in `RandomContentGenerator.DEMO_USERNAMES`.
+- Do not replace this with "all member users" from `UserDAO`; that makes a newly registered user appear to have written seeded comments.
+- User-created posts/replies should only be created through explicit UI actions such as `FeedFragment.createPost(...)` and `PostViewerActivity.addReplyMessage(...)`.
+- Seeded posts and replies may include composer-format content such as emoji and `[[image:demo:*]]` image tokens. `ComposerFormatManager` resolves those demo image tokens to bundled drawable resources, so `social-core` still has no Android imports.
 
 当前已验证：
 

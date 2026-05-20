@@ -8,4 +8,5 @@ android/.idea/
 android/build/
 android/app/build/
 android/social-core/build/
+android/social-core/bin/
 android/local.properties

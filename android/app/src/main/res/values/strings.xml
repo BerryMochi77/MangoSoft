@@ -101,6 +101,10 @@
     <string name="attached_image">Attached image</string>
     <string name="image_attached">Image attached</string>
     <string name="image_attach_failed">Image could not be attached</string>
+    <string name="image_options">Image options</string>
+    <string name="save_image_to_gallery">Save image to gallery</string>
+    <string name="image_saved_to_gallery">Image saved to gallery</string>
+    <string name="image_save_failed">Image could not be saved</string>
     <string name="reply_sent">Reply sent</string>
     <string name="empty_content">Content cannot be empty</string>
     <string name="edit">Edit</string>
@@ -140,4 +144,6 @@
     <string name="write_reply_hint">Write a reply…</string>
     <string name="search">Search</string>
     <string name="search_posts_hint">Search posts…</string>
+    <string name="view_count">%1$d views</string>
+    <string name="view_count_icon_desc">View count</string>
 </resources>

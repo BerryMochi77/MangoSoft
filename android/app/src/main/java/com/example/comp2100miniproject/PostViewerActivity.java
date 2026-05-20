@@ -49,6 +49,7 @@ import dao.model.User;
 import hashtag.HashtagParser;
 import hashtag.HashtagService;
 import moderation.ModerationTools;
+import postview.PostViewService;
 
 public class PostViewerActivity extends AppCompatActivity {
     private AuthManager authManager;
@@ -60,6 +61,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
+    private TextView textViewCount;
     private ImageView imagePostAttachment;
     private ChipGroup chipGroupPostHashtags;
     private ImageView imagePostAuthorAvatar;
@@ -115,6 +117,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
+        textViewCount = findViewById(R.id.textViewCount);
         imagePostAttachment = findViewById(R.id.imagePostAttachment);
         chipGroupPostHashtags = findViewById(R.id.chipGroupPostHashtags);
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
@@ -148,6 +151,12 @@ public class PostViewerActivity extends AppCompatActivity {
         postOwnerActions.setVisibility(ownsPost ? View.VISIBLE : View.GONE);
         findViewById(R.id.buttonEditPost).setOnClickListener(v -> showEditPostDialog());
         findViewById(R.id.buttonDeletePost).setOnClickListener(v -> confirmDeletePost());
+
+        // Record one view per fresh open. savedInstanceState != null means the OS
+        // recreated the activity (e.g. screen rotation) — don't count that again.
+        if (savedInstanceState == null) {
+            PostViewService.getInstance().recordView(post.id);
+        }
 
         renderPost();
         loadMessages();
@@ -205,6 +214,9 @@ public class PostViewerActivity extends AppCompatActivity {
         }
         textPostAuthor.setText("Posted by " + authorName(poster));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
+        // View count — delegated entirely to PostViewService (separation of concerns).
+        int views = PostViewService.getInstance().getViewCount(post.id);
+        textViewCount.setText(getString(R.string.view_count, views));
         renderHashtagChips();
         String body = post.getBody();
         ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
