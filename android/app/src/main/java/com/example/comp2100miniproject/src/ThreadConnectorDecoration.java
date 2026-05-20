@@ -33,12 +33,13 @@ import messagestate.MessageThreadRegistry;
 public class ThreadConnectorDecoration extends RecyclerView.ItemDecoration {
 
     // Mirror fragment_message.xml geometry.
-    private static final float INDENT_PER_LEVEL_DP = 22f;
+    private static final float INDENT_PER_LEVEL_DP = 18f;
     private static final float LEADING_PAD_DP = 14f;
     private static final float AVATAR_SIZE_DP = 32f;
     private static final float AVATAR_TOP_DP = 10f;
     private static final float CORNER_RADIUS_DP = 8f;
     private static final float STROKE_DP = 2f;
+    private static final int MAX_VISUAL_DEPTH = 3;
 
     private final float indentPerLevelPx;
     private final float leadingPadPx;
@@ -100,7 +101,7 @@ public class ThreadConnectorDecoration extends RecyclerView.ItemDecoration {
             UUID parentId = threads.parentOf(id);
             if (parentId == null) continue;
 
-            int depth = threads.depthOf(id);
+            int depth = Math.min(threads.depthOf(id), MAX_VISUAL_DEPTH);
             if (depth <= 0) continue;
 
             float parentColumnX = (depth - 1) * indentPerLevelPx

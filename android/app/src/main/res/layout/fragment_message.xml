@@ -118,8 +118,8 @@
     <LinearLayout
         android:id="@+id/messageOwnerActions"
         android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="6dp"
+        android:layout_height="34dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="14dp"
         android:gravity="end"
         android:orientation="horizontal"
@@ -130,19 +130,27 @@
 
         <Button
             android:id="@+id/buttonEditMessage"
-            android:layout_width="72dp"
-            android:layout_height="30dp"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
             android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
             android:text="@string/edit"
             android:textAllCaps="false"
             android:textSize="11sp" />
 
         <Button
             android:id="@+id/buttonDeleteMessage"
-            android:layout_width="72dp"
-            android:layout_height="30dp"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
             android:layout_marginStart="6dp"
+            android:layout_weight="1"
             android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
             android:text="@string/delete"
             android:textAllCaps="false"
             android:textSize="11sp" />

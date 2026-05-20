@@ -33,7 +33,7 @@ import messagestate.MessageThreadRegistry;
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
 
     /** Cap visual nesting so deep threads do not slide off the screen on a phone. */
-    private static final int MAX_VISUAL_DEPTH = 5;
+    private static final int MAX_VISUAL_DEPTH = 3;
 
     public interface OnReportClick {
         void onReport(Message message);

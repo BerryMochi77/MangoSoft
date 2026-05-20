@@ -95,6 +95,7 @@
     <string name="create_post">Create post</string>
     <string name="post_created">Post created</string>
     <string name="write_reply">Write a reply</string>
+    <string name="replying_to_hint">Replying to %1$s...</string>
     <string name="send">Send</string>
     <string name="more_composer_options">More composer options</string>
     <string name="add_image">Add image</string>
@@ -144,8 +145,6 @@
     <string name="settings_row_logout">Log out</string>
     <string name="settings_logout_confirm">Log out of this account?</string>
     <string name="reply">Reply</string>
-    <string name="reply_to">Reply to %1$s</string>
-    <string name="write_reply_hint">Write a reply…</string>
     <string name="search">Search</string>
     <string name="search_posts_hint">Search posts…</string>
     <string name="view_count">%1$d views</string>

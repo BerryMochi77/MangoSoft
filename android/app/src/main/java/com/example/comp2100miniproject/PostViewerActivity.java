@@ -1,9 +1,13 @@
 package com.example.comp2100miniproject;
 
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -68,6 +72,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private RecyclerView recyclerMessages;
     private EditText inputReply;
     private EditText activeComposerInput;
+    private UUID activeReplyParentId;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
     private static final String[] QUICK_REACTION_EMOJIS = {
             "\uD83D\uDE00",
@@ -132,6 +137,11 @@ public class PostViewerActivity extends AppCompatActivity {
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
+        inputReply.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus && inputReply.getText().toString().trim().isEmpty()) {
+                clearReplyTarget();
+            }
+        });
 
         reactionChipGroup = findViewById(R.id.reactionChipGroup);
         emojiReactionTray = findViewById(R.id.emojiReactionTray);
@@ -173,6 +183,23 @@ public class PostViewerActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN && inputReply != null && inputReply.hasFocus()) {
+            View replyBar = findViewById(R.id.replyBar);
+            Rect replyBarBounds = new Rect();
+            replyBar.getGlobalVisibleRect(replyBarBounds);
+            if (!replyBarBounds.contains((int) event.getRawX(), (int) event.getRawY())) {
+                inputReply.clearFocus();
+                hideKeyboard();
+                if (inputReply.getText().toString().trim().isEmpty()) {
+                    clearReplyTarget();
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event);
     }
 
     private void setupReactionButtons() {
@@ -316,7 +343,7 @@ public class PostViewerActivity extends AppCompatActivity {
                 this::showReportDialog,
                 this::showEditReplyDialog,
                 this::confirmDeleteReply,
-                this::showReplyDialog
+                this::startReplyToMessage
         ));
     }
 
@@ -327,8 +354,10 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void addReply() {
-        addReplyMessage(inputReply.getText().toString(), null);
-        inputReply.setText("");
+        if (addReplyMessage(inputReply.getText().toString(), activeReplyParentId)) {
+            inputReply.setText("");
+            clearReplyTarget();
+        }
     }
 
     /**
@@ -336,11 +365,11 @@ public class PostViewerActivity extends AppCompatActivity {
      * parent/child relationship in {@link MessageThreadRegistry} so the
      * new message renders indented beneath the message it replies to.
      */
-    private void addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
+    private boolean addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
         String content = rawContent == null ? "" : rawContent.trim();
         if (content.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
 
         UUID newId = UUID.randomUUID();
@@ -356,49 +385,27 @@ public class PostViewerActivity extends AppCompatActivity {
         }
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
+        return true;
     }
 
-    private void showReplyDialog(Message parent) {
-        EditText input = new EditText(this);
-        input.setHint(R.string.write_reply_hint);
-        input.setMinLines(3);
-
-        int dp8 = (int) (8 * getResources().getDisplayMetrics().density);
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.addView(input, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        ImageButton moreButton = composerMoreButton();
-        LinearLayout toolRow = new LinearLayout(this);
-        toolRow.setGravity(android.view.Gravity.END);
-        toolRow.setPadding(0, dp8, 0, 0);
-        toolRow.addView(moreButton);
-        container.addView(toolRow);
-        moreButton.setOnClickListener(v -> showComposerMenu(input));
-
+    private void startReplyToMessage(Message parent) {
+        activeReplyParentId = parent.id();
         User author = UserDAO.getInstance().getByUUID(parent.poster());
         String authorName = author == null ? "Unknown user" : authManager.getDisplayName(author);
-
-        new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.reply_to, authorName))
-                .setView(container)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.send, (dialog, which) ->
-                        addReplyMessage(input.getText().toString(), parent.id()))
-                .show();
+        inputReply.setHint(getString(R.string.replying_to_hint, authorName));
+        inputReply.requestFocus();
     }
 
-    private ImageButton composerMoreButton() {
-        ImageButton button = new ImageButton(this);
-        int size = (int) (44 * getResources().getDisplayMetrics().density);
-        button.setLayoutParams(new LinearLayout.LayoutParams(size, size));
-        button.setBackgroundResource(R.drawable.bg_fab_circle);
-        button.setImageResource(R.drawable.ic_add_format);
-        button.setContentDescription(getString(R.string.more_composer_options));
-        button.setPadding(10, 10, 10, 10);
-        return button;
+    private void clearReplyTarget() {
+        activeReplyParentId = null;
+        inputReply.setHint(R.string.write_reply);
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(inputReply.getWindowToken(), 0);
+        }
     }
 
     private void showComposerMenu(EditText input) {

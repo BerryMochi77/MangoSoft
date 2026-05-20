@@ -384,3 +384,12 @@ Post reactions are per-post, per-user emoji toggles:
 - Selecting one emoji must not clear other selected emojis from the same user.
 - The `+` chip expands a quick emoji tray directly on the post detail page; avoid adding an extra submit dialog for quick reactions.
 - `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.
+
+Threaded replies use one composer:
+
+- Message reply buttons should not open a second dialog composer.
+- Tapping a message reply button sets the bottom reply field's parent message id and changes the hint to `Replying to <name>...`.
+- Tapping outside the bottom reply bar clears the reply target only when the input is empty; typed text keeps the target so accidental taps do not lose context.
+- Sending through the bottom reply bar records the parent in `MessageThreadRegistry`, then clears the reply target back to the post-level default.
+- Plain post replies keep the normal `Write a reply` hint and use a null parent id.
+- Thread indentation is visually capped at three levels with an 18dp step so nested replies keep enough width for content and owner action buttons.

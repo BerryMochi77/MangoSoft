@@ -93,11 +93,10 @@
     <string name="view_count_icon_desc">浏览量</string>
     <string name="post_not_found">帖子未找到</string>
     <string name="write_reply">写回复</string>
-    <string name="write_reply_hint">写回复…</string>
+    <string name="replying_to_hint">正在回复 %1$s...</string>
     <string name="send">发送</string>
     <string name="reply_sent">回复已发送</string>
     <string name="reply">回复</string>
-    <string name="reply_to">回复 %1$s</string>
     <string name="more_composer_options">更多选项</string>
     <string name="add_image">添加图片</string>
     <string name="add_emoji">添加表情</string>
