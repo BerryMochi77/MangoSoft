@@ -10,6 +10,10 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -19,6 +23,7 @@ import com.example.comp2100miniproject.auth.AuthManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
+import android.net.Uri;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,10 +42,15 @@ public class CreatePostActivity extends AppCompatActivity {
     private EditText inputBody;
     private EditText inputTags;
     private ChipGroup chipGroupTags;
+    private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        composerImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::insertSelectedImage
+        );
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_create_post);
 
@@ -66,14 +76,69 @@ public class CreatePostActivity extends AppCompatActivity {
 
         ImageButton buttonBack = findViewById(R.id.buttonBackCreatePost);
         Button buttonPublish = findViewById(R.id.buttonPublishPost);
+        ImageButton buttonComposerOptions = findViewById(R.id.buttonComposerOptions);
         buttonBack.setOnClickListener(v -> finish());
         buttonPublish.setOnClickListener(v -> publishPost());
+        buttonComposerOptions.setOnClickListener(v -> showComposerMenu());
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void showComposerMenu() {
+        String[] options = {
+                getString(R.string.add_image),
+                getString(R.string.add_emoji)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.more_composer_options)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        chooseComposerImage();
+                    } else if (which == 1) {
+                        showEmojiChooser();
+                    }
+                })
+                .show();
+    }
+
+    private void chooseComposerImage() {
+        composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void insertSelectedImage(Uri uri) {
+        if (uri == null) return;
+
+        Uri copied = ComposerFormatManager.copyImage(this, uri);
+        if (copied == null) {
+            Toast.makeText(this, R.string.image_attach_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ComposerFormatManager.insertImage(inputBody, copied);
+        Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showEmojiChooser() {
+        String[] emojis = {
+                "\uD83D\uDE42",
+                "\uD83D\uDE02",
+                "\uD83D\uDE0D",
+                "\uD83D\uDC4D",
+                "\uD83D\uDD25",
+                "\uD83C\uDF80"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_emoji)
+                .setItems(emojis, (dialog, which) ->
+                        ComposerFormatManager.insertEmoji(inputBody, emojis[which]))
+                .show();
     }
 
     private void publishPost() {
