@@ -10,4 +10,5 @@
     <color name="accent">#2563EB</color>
     <color name="warning">#B42318</color>
     <color name="warning_soft">#FEE4E2</color>
+    <color name="chip_hashtag_bg">#EEF2FF</color>
 </resources>

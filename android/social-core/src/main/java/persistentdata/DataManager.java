@@ -4,7 +4,9 @@ import dao.PostDAO;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.Post;
+import dao.model.PostHashtagEntry;
 import dao.model.User;
+import hashtag.HashtagService;
 import moderation.ModerationTools;
 import moderation.Report;
 import moderation.ReportRegistry;
@@ -14,6 +16,7 @@ import persistentdata.io.ComputerIOFactory;
 import persistentdata.io.IOFactory;
 import persistentdata.serialization.HiddenMessageSerializer;
 import persistentdata.serialization.MessageSerializer;
+import persistentdata.serialization.PostHashtagSerializer;
 import persistentdata.serialization.PostSerializer;
 import persistentdata.serialization.ReportSerializer;
 import persistentdata.serialization.UserSerializer;
@@ -51,6 +54,9 @@ public class DataManager {
 	private final DataPipeline<Report, String[]> reportPipeline = new DataPipeline<>(
 			IO, new CSVFormattedFactory(new CSVFormat(4)), new ReportSerializer(), "reports");
 
+	private final DataPipeline<PostHashtagEntry, String[]> postHashtagPipeline = new DataPipeline<>(
+			IO, new CSVFormattedFactory(new CSVFormat(2)), new PostHashtagSerializer(), "post_hashtags");
+
 	private final UserDAO users = UserDAO.getInstance();
 	private final PostDAO posts = PostDAO.getInstance();
 	private final ReportRegistry reports = ReportRegistry.getInstance();
@@ -59,6 +65,7 @@ public class DataManager {
 		users.clear();
 		posts.clear();
 		reports.clear();
+		HashtagService.getInstance().clear();
 		userPipeline.readTo(users::add);
 		postPipeline.readTo(posts::add);
 		messagePipeline.readTo(this::addMessageToPost);
@@ -66,6 +73,8 @@ public class DataManager {
 		reportPipeline.readTo((report) ->
 				ModerationTools.addReport(report.message(), report.user(), report.timestamp())
 		);
+		postHashtagPipeline.readTo(this::addHashtagToPost);
+		HashtagService.getInstance().rebuildIndex();
 	}
 
 	public void writeAll() {
@@ -74,6 +83,7 @@ public class DataManager {
 		messagePipeline.writeFrom(posts.getAllMessages());
 		hiddenMessagePipeline.writeFrom(getHiddenMessageIds());
 		reportPipeline.writeFrom(reports.getAllReports());
+		postHashtagPipeline.writeFrom(getAllHashtagEntries());
 	}
 
 	private void addMessageToPost(Message message) {
@@ -102,6 +112,23 @@ public class DataManager {
 		}
 
 		return hiddenMessageIds.iterator();
+	}
+
+	private void addHashtagToPost(PostHashtagEntry entry) {
+		Post post = posts.get(new Post(entry.postId()));
+		if (post != null) post.addHashtag(entry.tag());
+	}
+
+	private Iterator<PostHashtagEntry> getAllHashtagEntries() {
+		List<PostHashtagEntry> entries = new ArrayList<>();
+		Iterator<Post> it = posts.getAll();
+		while (it.hasNext()) {
+			Post post = it.next();
+			for (String tag : post.getHashtags()) {
+				entries.add(new PostHashtagEntry(post.id, tag));
+			}
+		}
+		return entries.iterator();
 	}
 
 	private Message findMessage(UUID messageId) {

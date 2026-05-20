@@ -3,6 +3,8 @@ package dao;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import hashtag.HashtagParser;
+import hashtag.HashtagService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,14 +13,14 @@ import java.util.UUID;
 
 public class RandomContentGenerator {
 	private static final String[] POST_TITLES = {
-			"How should we structure the moderation module?",
-			"Question about Android Studio layouts",
-			"Study session for data structures",
-			"How to implement modelling?",
-			"Tips for persistent data",
-			"Design patterns in the mini project",
-			"Debugging RecyclerView adapters",
-			"Factory pattern examples"
+			"How should we structure the moderation module? #moderation #help",
+			"Question about Android Studio layouts #help #android",
+			"Study session for data structures #study",
+			"How to implement modelling? #help",
+			"This post looks like spam to me #spam #moderation",
+			"Design patterns in the mini project #design",
+			"Debugging RecyclerView adapters #android #bug",
+			"Harassment report thread #harassment #abuse #moderation"
 	};
 
 	private static final String[] REPLIES = {
@@ -43,8 +45,11 @@ public class RandomContentGenerator {
 
 		for (int i = 0; i < POST_COUNT; i++) {
 			User poster = users.get(i % users.size());
-			Post post = new Post(UUID.randomUUID(), poster.getUUID(), POST_TITLES[i % POST_TITLES.length]);
+			String title = POST_TITLES[i % POST_TITLES.length];
+			Post post = new Post(UUID.randomUUID(), poster.getUUID(), title);
+			post.setHashtags(HashtagParser.extract(title));
 			PostDAO.getInstance().add(post);
+			HashtagService.getInstance().indexPost(post);
 			populateReplies(post, users, i);
 		}
 	}

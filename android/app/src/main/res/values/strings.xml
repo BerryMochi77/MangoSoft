@@ -74,4 +74,11 @@
     <string name="post_updated">Post updated</string>
     <string name="reply_updated">Reply updated</string>
     <string name="edited_label">\u005B\u5DF2\u7F16\u8F91\u005D</string>
+    <string name="trending">Trending</string>
+    <string name="trending_tags">Trending Tags</string>
+    <string name="trending_tags_title">Trending Tags</string>
+    <string name="posts_tagged_with">Posts tagged with %1$s</string>
+    <string name="results_header">Posts</string>
+    <string name="no_results">No posts found with this tag.</string>
+    <string name="no_trending_yet">No tags yet</string>
 </resources>

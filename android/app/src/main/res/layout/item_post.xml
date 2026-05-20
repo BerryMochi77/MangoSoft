@@ -47,6 +47,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textPostItemMeta" />
 
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupHashtags"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        app:chipSpacingHorizontal="4dp"
+        app:chipSpacingVertical="2dp"
+        app:layout_constraintEnd_toStartOf="@+id/textPostItemArrow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textPostEdited" />
+
     <TextView
         android:id="@+id/textPostItemArrow"
         android:layout_width="24dp"
@@ -58,4 +69,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

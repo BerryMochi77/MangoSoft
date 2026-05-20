@@ -4,7 +4,11 @@ import dao.MessageComparator;
 import sorteddata.SortedData;
 import sorteddata.SortedDataFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+
 public class Post implements HasUUID {
 	public final UUID id;
 	public final UUID poster;
@@ -12,12 +16,14 @@ public class Post implements HasUUID {
     public final SortedData<Message> messages;
 	private boolean edited;
 	private boolean deleted;
+	private List<String> hashtags;
 
 	public Post(UUID id, UUID poster, String topic) {
 		this.id = id;
 		this.poster = poster;
 		this.topic = topic;
 		this.messages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
+		this.hashtags = new ArrayList<>();
 	}
 
 	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
@@ -42,6 +48,21 @@ public class Post implements HasUUID {
 	}
 
 	public UUID getUUID() { return id; }
+
+	/** Returns an unmodifiable view of this post's hashtags (no leading '#', all lowercase). */
+	public List<String> getHashtags() {
+		return Collections.unmodifiableList(hashtags);
+	}
+
+	/** Replace the full hashtag list (defensive copy taken). */
+	public void setHashtags(List<String> hashtags) {
+		this.hashtags = new ArrayList<>(hashtags);
+	}
+
+	/** Add a single tag if not already present. */
+	public void addHashtag(String tag) {
+		if (!hashtags.contains(tag)) hashtags.add(tag);
+	}
 
 	public boolean isEdited() {
 		return edited;

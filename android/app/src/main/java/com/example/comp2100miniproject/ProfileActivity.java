@@ -177,7 +177,7 @@ public class ProfileActivity extends AppCompatActivity {
         postsPage = clampPage(postsPage, myPosts.size());
         textNoMyPosts.setVisibility(View.GONE);
         recyclerMyPosts.setVisibility(View.VISIBLE);
-        recyclerMyPosts.setAdapter(new PostAdapter(this, pagePosts(), (position, post) -> openPost(post.id)));
+        recyclerMyPosts.setAdapter(new PostAdapter(this, pagePosts(), (position, post) -> openPost(post.id), null));
         updatePager(postsPage, myPosts.size(), textPostsPage, buttonPrevPosts, buttonNextPosts);
     }
 

@@ -31,6 +31,8 @@ import dao.UserDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import hashtag.HashtagParser;
+import hashtag.HashtagService;
 import moderation.ModerationTools;
 
 public class PostViewerActivity extends AppCompatActivity {
@@ -210,8 +212,11 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
+        HashtagService.getInstance().removePost(post);
         post.topic = cleanTopic;
+        post.setHashtags(HashtagParser.extract(cleanTopic));
         post.setEdited(true);
+        HashtagService.getInstance().indexPost(post);
         renderPost();
         Toast.makeText(this, R.string.post_updated, Toast.LENGTH_SHORT).show();
     }

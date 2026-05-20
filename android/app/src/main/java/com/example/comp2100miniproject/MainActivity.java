@@ -28,6 +28,8 @@ import dao.PostDAO;
 import dao.RandomContentGenerator;
 import dao.model.Post;
 import dao.model.User;
+import hashtag.HashtagParser;
+import hashtag.HashtagService;
 
 public class MainActivity extends AppCompatActivity {
     private AuthManager authManager;
@@ -65,9 +67,11 @@ public class MainActivity extends AppCompatActivity {
         buttonNewPost.setOnClickListener(v -> showCreatePostDialog());
 
         Button navFeed = findViewById(R.id.navFeed);
+        Button navTrending = findViewById(R.id.navTrending);
         Button navProfile = findViewById(R.id.navProfile);
         Button navLogout = findViewById(R.id.navLogout);
         navFeed.setEnabled(false);
+        navTrending.setOnClickListener(v -> openHashtagSearch(null));
         navProfile.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
             putCurrentUser(intent);
@@ -102,7 +106,9 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView recycler = findViewById(R.id.recyclerPosts);
         recycler.setLayoutManager(new LinearLayoutManager(this));
-        recycler.setAdapter(new PostAdapter(this, posts, (position, post) -> openPost(post.id)));
+        recycler.setAdapter(new PostAdapter(this, posts,
+                (position, post) -> openPost(post.id),
+                tag -> openHashtagSearch(tag)));
     }
 
     private void showCreatePostDialog() {
@@ -125,9 +131,19 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        PostDAO.getInstance().add(new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTopic));
+        Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTopic);
+        post.setHashtags(HashtagParser.extract(cleanTopic));
+        PostDAO.getInstance().add(post);
+        HashtagService.getInstance().indexPost(post);
         Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();
         loadPosts();
+    }
+
+    private void openHashtagSearch(String tag) {
+        Intent intent = new Intent(this, HashtagSearchActivity.class);
+        if (tag != null) intent.putExtra(HashtagSearchActivity.EXTRA_HASHTAG, tag);
+        putCurrentUser(intent);
+        startActivity(intent);
     }
 
     private int postIndex(UUID postId) {
