@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -90,7 +91,7 @@ public class PostViewerActivity extends AppCompatActivity {
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
 
-        Button buttonBack = findViewById(R.id.buttonBack);
+        ImageButton buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
 
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
