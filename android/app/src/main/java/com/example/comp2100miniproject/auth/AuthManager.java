@@ -73,6 +73,39 @@ public class AuthManager {
         return displayName.isEmpty() ? user.username() : displayName;
     }
 
+    public Avatar getAvatar(User user) {
+        if (user == null) return Avatar.defaultAvatar();
+        JSONObject json = findStoredUserJson(user.getUUID());
+        if (json == null) return Avatar.defaultAvatar();
+
+        String source = json.optString("avatarSource", Avatar.SOURCE_DEFAULT);
+        String value = json.optString("avatarValue", Avatar.DEFAULT_VALUE);
+        if (source.trim().isEmpty() || value.trim().isEmpty()) return Avatar.defaultAvatar();
+        return new Avatar(source, value);
+    }
+
+    public boolean updateAvatar(UUID userId, String source, String value) {
+        if (userId == null || source == null || value == null || source.trim().isEmpty() || value.trim().isEmpty()) {
+            return false;
+        }
+
+        JSONArray users = readUsers();
+        for (int i = 0; i < users.length(); i++) {
+            JSONObject json = users.optJSONObject(i);
+            if (json == null || !userId.toString().equals(json.optString("id"))) continue;
+
+            try {
+                json.put("avatarSource", source);
+                json.put("avatarValue", value);
+                writeUsers(users);
+                return true;
+            } catch (JSONException ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     public boolean updateProfile(UUID userId, String displayName, String newPassword) {
         if (userId == null) return false;
 
@@ -211,6 +244,8 @@ public class AuthManager {
             json.put("username", user.username());
             json.put("displayName", displayName);
             json.put("password", user.password());
+            json.put("avatarSource", Avatar.SOURCE_DEFAULT);
+            json.put("avatarValue", Avatar.DEFAULT_VALUE);
         } catch (JSONException ignored) {
         }
         return json;
@@ -232,6 +267,15 @@ public class AuthManager {
             );
         } catch (IllegalArgumentException | JSONException ignored) {
             return null;
+        }
+    }
+
+    public record Avatar(String source, String value) {
+        public static final String SOURCE_DEFAULT = "default";
+        public static final String DEFAULT_VALUE = "avatar_default_1";
+
+        public static Avatar defaultAvatar() {
+            return new Avatar(SOURCE_DEFAULT, DEFAULT_VALUE);
         }
     }
 }
