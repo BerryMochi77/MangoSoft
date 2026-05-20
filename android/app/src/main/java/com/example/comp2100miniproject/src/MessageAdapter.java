@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.AvatarManager;
+import com.example.comp2100miniproject.ComposerFormatManager;
 import com.example.comp2100miniproject.ThreadIndentView;
 import com.example.comp2100miniproject.auth.AuthManager;
 
@@ -75,6 +76,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         private final TextView author;
         private final TextView timestamp;
         private final TextView content;
+        private final ImageView attachment;
         private final ImageButton replyButton;
         private final ImageButton reportButton;
         private final LinearLayout ownerActions;
@@ -88,6 +90,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             author = view.findViewById(R.id.textMessageAuthor);
             timestamp = view.findViewById(R.id.textMessageTimestamp);
             content = view.findViewById(R.id.textMessageContent);
+            attachment = view.findViewById(R.id.imageMessageAttachment);
             replyButton = view.findViewById(R.id.buttonReplyMessage);
             reportButton = view.findViewById(R.id.buttonReportMessage);
             ownerActions = view.findViewById(R.id.messageOwnerActions);
@@ -125,7 +128,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             if (message.isHidden()) time += " - hidden from members";
             timestamp.setText(time);
 
-            content.setText(edits.currentContent(message.id(), message.message()));
+            ComposerFormatManager.bindContent(
+                    edits.currentContent(message.id(), message.message()),
+                    content,
+                    attachment
+            );
             boolean mine = currentUserId != null && currentUserId.equals(message.poster());
             // Reply is available to everyone, including the author.
             replyButton.setVisibility(View.VISIBLE);

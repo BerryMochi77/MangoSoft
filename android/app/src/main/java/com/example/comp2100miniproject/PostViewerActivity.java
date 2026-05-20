@@ -1,15 +1,20 @@
 package com.example.comp2100miniproject;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,9 +58,12 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
+    private ImageView imagePostAttachment;
     private ChipGroup chipGroupPostHashtags;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
+    private EditText activeComposerInput;
+    private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
 
     /**
      * Threaded (depth-first) list of currently-visible messages. Updated on
@@ -72,6 +80,10 @@ public class PostViewerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        composerImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::insertSelectedImage
+        );
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_post_viewer);
 
@@ -99,6 +111,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
+        imagePostAttachment = findViewById(R.id.imagePostAttachment);
         chipGroupPostHashtags = findViewById(R.id.chipGroupPostHashtags);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
@@ -122,6 +135,8 @@ public class PostViewerActivity extends AppCompatActivity {
 
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
         buttonSendReply.setOnClickListener(v -> addReply());
+        ImageButton buttonReplyMore = findViewById(R.id.buttonReplyMore);
+        buttonReplyMore.setOnClickListener(v -> showComposerMenu(inputReply));
 
         LinearLayout postOwnerActions = findViewById(R.id.postOwnerActions);
         boolean ownsPost = currentUser.getUUID().equals(post.poster);
@@ -181,12 +196,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         renderHashtagChips();
         String body = post.getBody();
-        if (body.isEmpty()) {
-            textPostBody.setVisibility(View.GONE);
-        } else {
-            textPostBody.setVisibility(View.VISIBLE);
-            textPostBody.setText(body);
-        }
+        ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
     }
 
     private void renderHashtagChips() {
@@ -297,15 +307,88 @@ public class PostViewerActivity extends AppCompatActivity {
         input.setHint(R.string.write_reply_hint);
         input.setMinLines(3);
 
+        int dp8 = (int) (8 * getResources().getDisplayMetrics().density);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.addView(input, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        ImageButton moreButton = composerMoreButton();
+        LinearLayout toolRow = new LinearLayout(this);
+        toolRow.setGravity(android.view.Gravity.END);
+        toolRow.setPadding(0, dp8, 0, 0);
+        toolRow.addView(moreButton);
+        container.addView(toolRow);
+        moreButton.setOnClickListener(v -> showComposerMenu(input));
+
         User author = UserDAO.getInstance().getByUUID(parent.poster());
         String authorName = author == null ? "Unknown user" : authManager.getDisplayName(author);
 
         new AlertDialog.Builder(this)
                 .setTitle(getString(R.string.reply_to, authorName))
-                .setView(input)
+                .setView(container)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.send, (dialog, which) ->
                         addReplyMessage(input.getText().toString(), parent.id()))
+                .show();
+    }
+
+    private ImageButton composerMoreButton() {
+        ImageButton button = new ImageButton(this);
+        int size = (int) (44 * getResources().getDisplayMetrics().density);
+        button.setLayoutParams(new LinearLayout.LayoutParams(size, size));
+        button.setBackgroundResource(R.drawable.bg_fab_circle);
+        button.setImageResource(R.drawable.ic_add_format);
+        button.setContentDescription(getString(R.string.more_composer_options));
+        button.setPadding(10, 10, 10, 10);
+        return button;
+    }
+
+    private void showComposerMenu(EditText input) {
+        activeComposerInput = input;
+        String[] options = {
+                getString(R.string.add_image),
+                getString(R.string.add_emoji)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.more_composer_options)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        chooseComposerImage();
+                    } else if (which == 1) {
+                        showEmojiChooser(input);
+                    }
+                })
+                .show();
+    }
+
+    private void chooseComposerImage() {
+        composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void insertSelectedImage(Uri uri) {
+        if (activeComposerInput == null || uri == null) return;
+
+        Uri copied = ComposerFormatManager.copyImage(this, uri);
+        if (copied == null) {
+            Toast.makeText(this, R.string.image_attach_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ComposerFormatManager.insertImage(activeComposerInput, copied);
+        Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showEmojiChooser(EditText input) {
+        String[] emojis = {"🙂", "😂", "😍", "👍", "🔥", "🎉"};
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_emoji)
+                .setItems(emojis, (dialog, which) ->
+                        ComposerFormatManager.insertEmoji(input, emojis[which]))
                 .show();
     }
 

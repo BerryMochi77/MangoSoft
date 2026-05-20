@@ -144,6 +144,32 @@ ProfileBackgroundManager manager = new ProfileBackgroundManager(authManager);
 manager.displayBackground(user, imageView);
 ```
 
+## Composer format options
+
+Post creation and reply composition share a small "more options" composer menu. The entry point is a plus button:
+
+- In `FeedFragment`, the plus button is shown in the create-post dialog and inserts formatting into the post body.
+- In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
+- Reply-to-message dialogs also expose the same plus menu.
+
+Current options:
+
+- `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
+- `Add emoji`: inserts the selected emoji at the cursor.
+
+Architecture:
+
+- `ComposerFormatManager` owns the formatting tokens, image copy logic, and rendering helper.
+- `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
+- `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
+
+How to add another format option:
+
+1. Add the option label in `strings.xml`.
+2. Add a branch in `showComposerMenu(...)` for both `FeedFragment` and `PostViewerActivity`.
+3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
+4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
+
 当前已验证：
 
 ```text

@@ -2,6 +2,7 @@ package com.example.comp2100miniproject;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -17,6 +18,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -46,6 +50,8 @@ public class FeedFragment extends Fragment {
     private AuthManager authManager;
     private RecyclerView recyclerPosts;
     private EditText inputSearchPosts;
+    private EditText activeComposerInput;
+    private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
 
     /** Cached list of non-deleted posts. Filtered on every text change. */
     private final ArrayList<Post> allPosts = new ArrayList<>();
@@ -60,6 +66,15 @@ public class FeedFragment extends Fragment {
         } else {
             throw new IllegalStateException("FeedFragment requires a TabHost activity.");
         }
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        composerImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::insertSelectedImage
+        );
     }
 
     @Nullable
@@ -199,6 +214,13 @@ public class FeedFragment extends Fragment {
         container.addView(inputTitle, params);
         container.addView(inputBody, params);
 
+        ImageButton moreButton = composerMoreButton();
+        LinearLayout toolRow = new LinearLayout(requireContext());
+        toolRow.setGravity(Gravity.END);
+        toolRow.addView(moreButton);
+        container.addView(toolRow);
+        moreButton.setOnClickListener(v -> showComposerMenu(inputBody));
+
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.create_post)
                 .setView(container)
@@ -225,6 +247,65 @@ public class FeedFragment extends Fragment {
         HashtagService.getInstance().indexPost(post);
         Toast.makeText(requireContext(), R.string.post_created, Toast.LENGTH_SHORT).show();
         loadPosts();
+    }
+
+    private ImageButton composerMoreButton() {
+        ImageButton button = new ImageButton(requireContext());
+        int size = (int) (44 * getResources().getDisplayMetrics().density);
+        int padding = (int) (10 * getResources().getDisplayMetrics().density);
+        button.setLayoutParams(new LinearLayout.LayoutParams(size, size));
+        button.setBackgroundResource(R.drawable.bg_fab_circle);
+        button.setImageResource(R.drawable.ic_add_format);
+        button.setContentDescription(getString(R.string.more_composer_options));
+        button.setPadding(padding, padding, padding, padding);
+        return button;
+    }
+
+    private void showComposerMenu(EditText input) {
+        activeComposerInput = input;
+        String[] options = {
+                getString(R.string.add_image),
+                getString(R.string.add_emoji)
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.more_composer_options)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        chooseComposerImage();
+                    } else if (which == 1) {
+                        showEmojiChooser(input);
+                    }
+                })
+                .show();
+    }
+
+    private void chooseComposerImage() {
+        composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void insertSelectedImage(Uri uri) {
+        if (activeComposerInput == null || uri == null) return;
+
+        Uri copied = ComposerFormatManager.copyImage(requireContext(), uri);
+        if (copied == null) {
+            Toast.makeText(requireContext(), R.string.image_attach_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ComposerFormatManager.insertImage(activeComposerInput, copied);
+        Toast.makeText(requireContext(), R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showEmojiChooser(EditText input) {
+        String[] emojis = {"🙂", "😂", "😍", "👍", "🔥", "🎉"};
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.add_emoji)
+                .setItems(emojis, (dialog, which) ->
+                        ComposerFormatManager.insertEmoji(input, emojis[which]))
+                .show();
     }
 
     private void openPost(UUID postId) {

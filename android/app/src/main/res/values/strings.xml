@@ -95,6 +95,12 @@
     <string name="post_created">Post created</string>
     <string name="write_reply">Write a reply</string>
     <string name="send">Send</string>
+    <string name="more_composer_options">More composer options</string>
+    <string name="add_image">Add image</string>
+    <string name="add_emoji">Add emoji</string>
+    <string name="attached_image">Attached image</string>
+    <string name="image_attached">Image attached</string>
+    <string name="image_attach_failed">Image could not be attached</string>
     <string name="reply_sent">Reply sent</string>
     <string name="empty_content">Content cannot be empty</string>
     <string name="edit">Edit</string>

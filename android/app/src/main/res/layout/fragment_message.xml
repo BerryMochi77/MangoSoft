@@ -100,6 +100,21 @@
         app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
         app:layout_constraintTop_toBottomOf="@+id/textMessageTimestamp" />
 
+    <ImageView
+        android:id="@+id/imageMessageAttachment"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="14dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/bg_card"
+        android:contentDescription="@string/attached_image"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
+        app:layout_constraintTop_toBottomOf="@+id/textMessageContent" />
+
     <LinearLayout
         android:id="@+id/messageOwnerActions"
         android:layout_width="0dp"
@@ -111,7 +126,7 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
-        app:layout_constraintTop_toBottomOf="@+id/textMessageContent">
+        app:layout_constraintTop_toBottomOf="@+id/imageMessageAttachment">
 
         <Button
             android:id="@+id/buttonEditMessage"
