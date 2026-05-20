@@ -154,4 +154,5 @@
     <string name="tz_utc">UTC</string>
     <string name="tz_sydney">Australia / Sydney</string>
     <string name="tz_shanghai">Asia / Shanghai</string>
+    <string name="posted_by">Posted by %1$s</string>
 </resources>

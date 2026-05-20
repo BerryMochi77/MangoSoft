@@ -1,11 +1,158 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Chinese (Simplified) string overrides.
-  Only strings visible in Settings and time displays are translated here.
-  Full app localisation can be extended by adding more keys to this file.
+  Chinese (Simplified) translations for the Social Moderation app.
+  Covers every visible UI string so switching to Chinese in Settings
+  fully localises the UI without an app rebuild.
+
+  Keys that are intentionally left in English (e.g. hashtags, usernames)
+  are simply omitted — Android falls back to the default values/strings.xml.
 -->
 <resources>
+
+    <!-- ── App name ──────────────────────────────────────────────────────── -->
     <string name="app_name">社交审核</string>
+
+    <!-- ── Login screen ──────────────────────────────────────────────────── -->
+    <string name="login_subtitle">登录以查看帖子和举报消息</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="login">登录</string>
+    <string name="register">注册</string>
+    <string name="login_failed">用户名或密码错误</string>
+    <string name="register_failed">用户名须为4-20位字母或数字，密码至少4位</string>
+    <string name="register_success">账号已创建</string>
+
+    <!-- ── Bottom navigation ──────────────────────────────────────────────── -->
+    <string name="nav_feed">帖子</string>
+    <string name="nav_trending">趋势</string>
+    <string name="nav_profile">个人资料</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- ── Feed screen ────────────────────────────────────────────────────── -->
+    <string name="post_feed">帖子列表</string>
+    <string name="feed">帖子</string>
+    <string name="signed_in_as">当前登录：%1$s</string>
+    <string name="new_post">发布新帖</string>
+    <string name="review_reports">审核报告</string>
+    <string name="create_post">创建帖子</string>
+    <string name="post_title_hint">帖子标题</string>
+    <string name="post_body_hint">帖子内容（可选，支持标签）</string>
+    <string name="post_created">帖子已创建</string>
+    <string name="post_deleted_unavailable">该帖子已被删除，正在刷新列表。</string>
+    <string name="search">搜索</string>
+    <string name="search_posts_hint">搜索帖子…</string>
+
+    <!-- ── Trends screen ──────────────────────────────────────────────────── -->
+    <string name="trending">趋势</string>
+    <string name="trending_tags">热门标签</string>
+    <string name="trending_tags_title">热门标签</string>
+    <string name="posts_tagged_with">带有标签 %1$s 的帖子</string>
+    <string name="results_header">帖子</string>
+    <string name="no_results">未找到带有该标签的帖子。</string>
+    <string name="no_trending_yet">暂无标签</string>
+
+    <!-- ── Profile screen ────────────────────────────────────────────────── -->
+    <string name="profile">个人资料</string>
+    <string name="edit_profile">编辑资料</string>
+    <string name="display_name">显示名称</string>
+    <string name="new_password">新密码</string>
+    <string name="change_display_name">修改显示名称</string>
+    <string name="change_password">修改密码</string>
+    <string name="save_profile">保存资料</string>
+    <string name="profile_saved">资料已保存</string>
+    <string name="profile_save_failed">显示名称不能为空，新密码至少4位。</string>
+    <string name="username_value">用户名：%1$s</string>
+    <string name="my_posts">我的帖子</string>
+    <string name="my_replies">我的回复</string>
+    <string name="no_posts_yet">暂无帖子</string>
+    <string name="no_replies_yet">暂无回复</string>
+    <string name="previous">上一页</string>
+    <string name="next">下一页</string>
+    <string name="page_format">第 %1$d / %2$d 页</string>
+    <string name="profile_avatar">头像</string>
+    <string name="change_avatar">更换头像</string>
+    <string name="profile_background">个人主页背景</string>
+    <string name="change_profile_background">更换背景图片</string>
+    <string name="select_avatar_source">选择头像来源</string>
+    <string name="choose_default_avatar">选择默认头像</string>
+    <string name="choose_gallery_avatar">从相册选择</string>
+    <string name="select_profile_background_source">选择背景来源</string>
+    <string name="choose_default_profile_background">选择默认背景</string>
+    <string name="choose_gallery_profile_background">从相册选择</string>
+    <string name="crop_avatar">裁剪头像</string>
+    <string name="crop_avatar_hint">拖动以调整位置，双指捏合以缩放。</string>
+    <string name="save_avatar">保存头像</string>
+    <string name="avatar_updated">头像已更新</string>
+    <string name="avatar_update_failed">头像更新失败</string>
+    <string name="profile_background_updated">背景已更新</string>
+    <string name="profile_background_update_failed">背景更新失败</string>
+
+    <!-- ── Post viewer ────────────────────────────────────────────────────── -->
+    <string name="posted_by">由 %1$s 发布</string>
+    <string name="view_count">%1$d 次浏览</string>
+    <string name="view_count_icon_desc">浏览量</string>
+    <string name="post_not_found">帖子未找到</string>
+    <string name="write_reply">写回复</string>
+    <string name="write_reply_hint">写回复…</string>
+    <string name="send">发送</string>
+    <string name="reply_sent">回复已发送</string>
+    <string name="reply">回复</string>
+    <string name="reply_to">回复 %1$s</string>
+    <string name="more_composer_options">更多选项</string>
+    <string name="add_image">添加图片</string>
+    <string name="add_emoji">添加表情</string>
+    <string name="attached_image">附件图片</string>
+    <string name="image_attached">图片已附加</string>
+    <string name="image_attach_failed">图片附加失败</string>
+    <string name="image_options">图片选项</string>
+    <string name="save_image_to_gallery">保存到相册</string>
+    <string name="image_saved_to_gallery">图片已保存到相册</string>
+    <string name="image_save_failed">图片保存失败</string>
+    <string name="edit_post">编辑帖子</string>
+    <string name="edit_reply">编辑回复</string>
+    <string name="delete_post_confirm">确定删除该帖子？</string>
+    <string name="delete_reply_confirm">确定删除该回复？</string>
+    <string name="post_deleted">帖子已删除</string>
+    <string name="reply_deleted">回复已删除</string>
+    <string name="post_updated">帖子已更新</string>
+    <string name="reply_updated">回复已更新</string>
+    <string name="edited_label">[已编辑]</string>
+
+    <!-- ── Common actions ─────────────────────────────────────────────────── -->
+    <string name="back">返回</string>
+    <string name="submit">提交</string>
+    <string name="cancel">取消</string>
+    <string name="edit">编辑</string>
+    <string name="delete">删除</string>
+    <string name="empty_content">内容不能为空</string>
+    <string name="logout">退出</string>
+
+    <!-- ── Moderation ─────────────────────────────────────────────────────── -->
+    <string name="report">举报</string>
+    <string name="report_reason_title">举报消息</string>
+    <string name="report_reason_hint">描述问题</string>
+    <string name="report_sent">举报已发送</string>
+    <string name="report_failed">举报已存在或无法发送</string>
+    <string name="report_frozen">您的举报权限已被冻结</string>
+    <string name="reported_messages">已举报消息</string>
+    <string name="pending_reports">待处理</string>
+    <string name="processed_reports">已处理</string>
+    <string name="hide_message">隐藏</string>
+    <string name="unhide_message">取消隐藏</string>
+    <string name="hidden">已隐藏</string>
+    <string name="message_hidden">消息已隐藏</string>
+    <string name="message_unhidden">消息已恢复</string>
+    <string name="no_reports">无待处理举报</string>
+    <string name="details">详情</string>
+    <string name="report_details">举报详情</string>
+    <string name="frozen_users">已冻结用户</string>
+    <string name="no_frozen_users">无已冻结用户</string>
+    <string name="freeze_reporter">冻结举报者</string>
+    <string name="unfreeze_reporter">解冻举报者</string>
+    <string name="reporter_frozen">举报者已冻结</string>
+    <string name="reporter_unfrozen">举报者已解冻</string>
+
+    <!-- ── Settings screen ───────────────────────────────────────────────── -->
     <string name="settings">设置</string>
     <string name="settings_section_appearance">外观</string>
     <string name="settings_section_account">账户</string>
@@ -27,13 +174,5 @@
     <string name="tz_utc">协调世界时（UTC）</string>
     <string name="tz_sydney">悉尼（澳大利亚）</string>
     <string name="tz_shanghai">上海（中国）</string>
-    <string name="cancel">取消</string>
-    <string name="logout">退出</string>
-    <string name="feed">信息流</string>
-    <string name="trending">热门标签</string>
-    <string name="profile">个人资料</string>
-    <string name="new_post">新发帖</string>
-    <string name="post_feed">帖子列表</string>
-    <string name="trending_tags_title">热门标签</string>
-    <string name="no_trending_yet">暂无标签</string>
+
 </resources>

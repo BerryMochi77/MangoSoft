@@ -201,7 +201,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private void renderPost() {
         // Strip #tags out of the title - they render as chips below.
         textPostTitle.setText(HashtagParser.stripTags(post.topic));
-        textPostAuthor.setText("Posted by " + authorName(post));
+        textPostAuthor.setText(getString(R.string.posted_by, authorName(post)));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         // View count — delegated entirely to PostViewService (separation of concerns).
         int views = PostViewService.getInstance().getViewCount(post.id);
