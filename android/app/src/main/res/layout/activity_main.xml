@@ -14,26 +14,13 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="20dp"
         android:text="@string/post_feed"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/buttonSettings"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/buttonSettings"
-        android:layout_width="52dp"
-        android:layout_height="42dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="20dp"
-        android:contentDescription="@string/settings"
-        android:text="@string/settings_overflow_icon"
-        android:textAllCaps="false"
-        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -87,50 +74,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/buttonAdminReports" />
 
-    <LinearLayout
+    <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="0dp"
-        android:layout_height="64dp"
-        android:background="@drawable/bg_bottom_nav"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
+        android:layout_height="wrap_content"
+        android:background="@color/card_surface"
+        app:itemIconTint="@color/bottom_nav_item_tint"
+        app:itemTextColor="@color/bottom_nav_item_tint"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-        <Button
-            android:id="@+id/navFeed"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:text="@string/feed"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/navTrending"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_marginHorizontal="4dp"
-            android:layout_weight="1"
-            android:text="@string/trending"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/navProfile"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_marginHorizontal="4dp"
-            android:layout_weight="1"
-            android:text="@string/profile"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/navLogout"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:text="@string/logout"
-            android:textAllCaps="false" />
-    </LinearLayout>
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_nav_menu" />
 </androidx.constraintlayout.widget.ConstraintLayout>
