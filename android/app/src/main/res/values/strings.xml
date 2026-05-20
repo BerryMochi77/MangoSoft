@@ -136,4 +136,6 @@
     <string name="write_reply_hint">Write a reply…</string>
     <string name="search">Search</string>
     <string name="search_posts_hint">Search posts…</string>
+    <string name="view_count">%1$d views</string>
+    <string name="view_count_icon_desc">View count</string>
 </resources>
