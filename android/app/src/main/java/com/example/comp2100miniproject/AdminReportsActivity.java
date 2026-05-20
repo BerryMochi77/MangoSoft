@@ -27,6 +27,7 @@ import java.util.UUID;
 import dao.model.Message;
 import dao.model.User;
 import dao.UserDAO;
+import messagestate.MessageDeletionRegistry;
 import moderation.ModerationTools;
 import moderation.Report;
 import moderation.ReportRegistry;
@@ -80,10 +81,11 @@ public class AdminReportsActivity extends AppCompatActivity {
     private void loadReports() {
         ArrayList<Message> pending = new ArrayList<>();
         ArrayList<Message> processed = new ArrayList<>();
+        MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
         Iterator<Message> iterator = ModerationTools.getReportedMessages("MOST", 100);
         while (iterator.hasNext()) {
             Message message = iterator.next();
-            if (message.isDeleted()) continue;
+            if (deletions.isDeleted(message.id())) continue;
             if (message.isHidden()) {
                 processed.add(message);
             } else {

@@ -221,6 +221,32 @@ SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
 - 在别的页面显示某个用户的头像：`new AvatarManager(authManager).displayAvatar(user, imageView)`
 - 增加默认头像：加 drawable + 加 string label + 在 `DEFAULT_AVATARS` 里注册一项
 
+## Per-message state（sidecar pattern）
+
+Hackathon 2 brief 的硬约束：
+
+> "New features that introduce additional per-message state (e.g., reactions) should avoid modifying the `Message` data model (e.g., be SOLID)."
+
+也就是说，[`Message`](android/social-core/src/main/java/dao/model/Message.java) 只保留 Hackathon 1 时就有的字段（id / poster / thread / timestamp / message / hidden），所有 Hackathon 1 之后新增的 per-message 状态都走 **sidecar registry**，放在 social-core 的 `messagestate/` 包里。
+
+当前已有两个 sidecar：
+
+| Registry | 职责 | 例子 |
+|---|---|---|
+| [`MessageEditRegistry`](android/social-core/src/main/java/messagestate/MessageEditRegistry.java) | 记录哪些 message 被编辑过 + 当前内容 | `recordEdit(id, newContent)` / `currentContent(id, original)` |
+| [`MessageDeletionRegistry`](android/social-core/src/main/java/messagestate/MessageDeletionRegistry.java) | 软删除标记 | `markDeleted(id)` / `isDeleted(id)` |
+
+**约定**：
+
+- Registry 是单例（`getInstance()`），key 永远是 `Message.id()`
+- UI 显示消息时调 `MessageEditRegistry.currentContent(id, msg.message())`，不要直接用 `msg.message()`
+- 过滤可见消息走 [`Post.getVisibleMessages(isAdmin)`](android/social-core/src/main/java/dao/model/Post.java)，它内部会查 `MessageDeletionRegistry`
+- `Message` 模型保持 6 字段 + `hidden`，**不要加新字段**
+
+**未来扩展 Reddit 风格的嵌套回帖**：新加一个 `MessageThreadRegistry`，结构同上，记录 `Map<UUID, UUID>` 表示"子 message → 父 message"。Message 模型一行不动，UI 渲染时查 registry 重建树即可。任何其它 per-message 特性（标签、收藏、置顶、...）都按这个模板。
+
+> 注：reactions 当前的 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java) 在 app 模块下而不是 social-core，是历史遗留——它的 key 实际上是 post UUID 而不是 message UUID。如果以后要做 per-message reactions，新写一个 social-core 下的 `MessageReactionRegistry` 跟当前两个 sidecar 同款即可。
+
 ## Moderation 当前入口
 
 核心审核功能入口：

@@ -24,6 +24,7 @@ import java.util.UUID;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.User;
+import messagestate.MessageEditRegistry;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
     public interface OnReportClick {
@@ -98,12 +99,13 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             }
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
 
+            MessageEditRegistry edits = MessageEditRegistry.getInstance();
             String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
-            if (message.isEdited()) time += " " + itemView.getContext().getString(R.string.edited_label);
+            if (edits.isEdited(message.id())) time += " " + itemView.getContext().getString(R.string.edited_label);
             if (message.isHidden()) time += " - hidden from members";
             timestamp.setText(time);
 
-            content.setText(message.message());
+            content.setText(edits.currentContent(message.id(), message.message()));
             boolean mine = currentUserId != null && currentUserId.equals(message.poster());
             reportButton.setVisibility(mine ? View.GONE : View.VISIBLE);
             ownerActions.setVisibility(mine ? View.VISIBLE : View.GONE);

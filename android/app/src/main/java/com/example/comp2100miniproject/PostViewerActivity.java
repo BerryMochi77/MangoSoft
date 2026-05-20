@@ -25,6 +25,9 @@ import com.example.comp2100miniproject.src.MessageAdapter;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
+import messagestate.MessageDeletionRegistry;
+import messagestate.MessageEditRegistry;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.UUID;
@@ -292,7 +295,9 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void showEditReplyDialog(Message message) {
         EditText input = new EditText(this);
-        input.setText(message.message());
+        // Show the latest edited content if any, otherwise the original.
+        input.setText(MessageEditRegistry.getInstance()
+                .currentContent(message.id(), message.message()));
         input.setSelection(input.getText().length());
         input.setMinLines(3);
 
@@ -311,8 +316,8 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
-        message.setMessage(cleanContent);
-        message.setEdited(true);
+        // Per-message state lives in sidecars, not on Message itself.
+        MessageEditRegistry.getInstance().recordEdit(message.id(), cleanContent);
         Toast.makeText(this, R.string.reply_updated, Toast.LENGTH_SHORT).show();
         loadMessages();
     }
@@ -322,7 +327,7 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setTitle(R.string.delete_reply_confirm)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
-                    message.setDeleted(true);
+                    MessageDeletionRegistry.getInstance().markDeleted(message.id());
                     Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                     loadMessages();
                 })

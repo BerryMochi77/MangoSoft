@@ -127,15 +127,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         }
 
         private int messageCount(Post post) {
+            // getVisibleMessages already consults MessageDeletionRegistry
+            // and filters hidden/deleted, so we just count what it returns.
             int count = 0;
-            Iterator<Message> messages =
-                    post.getVisibleMessages(false)
-                            .getAll();
+            Iterator<Message> messages = post.getVisibleMessages(false).getAll();
             while (messages.hasNext()) {
-                Message message = messages.next();
-                if (!message.isDeleted()) {
-                    count++;
-                }
+                messages.next();
+                count++;
             }
             return count;
         }

@@ -36,6 +36,7 @@ import dao.PostDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import messagestate.MessageDeletionRegistry;
 
 /** Profile tab: edit display name + password, avatar, and list user's posts and replies. */
 public class ProfileFragment extends Fragment {
@@ -221,10 +222,13 @@ public class ProfileFragment extends Fragment {
             }
         }
 
+        MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
         Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
         while (messages.hasNext()) {
             Message message = messages.next();
-            if (!message.isDeleted() && currentUser.getUUID().equals(message.poster()) && isPostVisible(message.thread())) {
+            if (!deletions.isDeleted(message.id())
+                    && currentUser.getUUID().equals(message.poster())
+                    && isPostVisible(message.thread())) {
                 myReplies.add(message);
             }
         }

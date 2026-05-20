@@ -1,6 +1,7 @@
 package dao.model;
 
 import dao.MessageComparator;
+import messagestate.MessageDeletionRegistry;
 import sorteddata.SortedData;
 import sorteddata.SortedDataFactory;
 
@@ -41,9 +42,11 @@ public class Post implements HasUUID {
 	public SortedData<Message> getVisibleMessages(boolean isAdmin) {
 		SortedData<Message> visibleMessages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
 
+		MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
 		for (var iterator = messages.getAll(); iterator.hasNext(); ) {
 			Message message = iterator.next();
-			if (!message.isDeleted() && (isAdmin || !message.isHidden())) visibleMessages.insert(message);
+			boolean deleted = deletions.isDeleted(message.id());
+			if (!deleted && (isAdmin || !message.isHidden())) visibleMessages.insert(message);
 		}
 
 		return visibleMessages;
