@@ -1,14 +1,19 @@
 package com.example.comp2100miniproject;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -33,7 +38,9 @@ public class ProfileActivity extends AppCompatActivity {
     private static final int PAGE_SIZE = 3;
 
     private AuthManager authManager;
+    private AvatarManager avatarManager;
     private User currentUser;
+    private ImageView imageAvatar;
     private EditText inputDisplayName;
     private EditText inputNewPassword;
     private TextView textUsername;
@@ -47,6 +54,7 @@ public class ProfileActivity extends AppCompatActivity {
     private Button buttonNextPosts;
     private Button buttonPrevReplies;
     private Button buttonNextReplies;
+    private ActivityResultLauncher<String[]> galleryAvatarLauncher;
     private final ArrayList<Post> myPosts = new ArrayList<>();
     private final ArrayList<Message> myReplies = new ArrayList<>();
     private int postsPage = 0;
@@ -59,6 +67,11 @@ public class ProfileActivity extends AppCompatActivity {
         setContentView(R.layout.activity_profile);
 
         authManager = new AuthManager(this);
+        avatarManager = new AvatarManager(authManager);
+        galleryAvatarLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                this::setGalleryAvatar
+        );
         currentUser = authManager.getUser(readCurrentUserId());
         if (currentUser == null) {
             openLogin();
@@ -77,6 +90,8 @@ public class ProfileActivity extends AppCompatActivity {
         renderContentPages();
 
         findViewById(R.id.buttonSaveProfile).setOnClickListener(v -> saveProfile());
+        findViewById(R.id.buttonChooseDefaultAvatar).setOnClickListener(v -> showDefaultAvatarChooser());
+        findViewById(R.id.buttonChooseGalleryAvatar).setOnClickListener(v -> chooseGalleryAvatar());
         buttonPrevPosts.setOnClickListener(v -> {
             postsPage--;
             renderPostsPage();
@@ -127,6 +142,7 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
+        imageAvatar = findViewById(R.id.imageAvatar);
         textUsername = findViewById(R.id.textUsername);
         inputDisplayName = findViewById(R.id.inputDisplayName);
         inputNewPassword = findViewById(R.id.inputNewPassword);
@@ -143,8 +159,48 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void renderProfile() {
+        avatarManager.displayAvatar(currentUser, imageAvatar);
         textUsername.setText(getString(R.string.username_value, currentUser.username()));
         inputDisplayName.setText(authManager.getDisplayName(currentUser));
+    }
+
+    private void showDefaultAvatarChooser() {
+        AvatarManager.AvatarOption[] options = avatarManager.defaultAvatars();
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.choose_default_avatar)
+                .setItems(avatarManager.defaultAvatarLabels(this), (dialog, which) -> {
+                    if (avatarManager.setDefaultAvatar(currentUser, options[which])) {
+                        renderProfile();
+                        Toast.makeText(this, R.string.avatar_updated, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+    private void chooseGalleryAvatar() {
+        galleryAvatarLauncher.launch(new String[]{"image/*"});
+    }
+
+    private void setGalleryAvatar(Uri uri) {
+        if (uri == null) return;
+
+        try {
+            getContentResolver().takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+            );
+        } catch (SecurityException ignored) {
+            // Some document providers return readable URIs without persistable permissions.
+        }
+
+        if (avatarManager.setGalleryAvatar(currentUser, uri)) {
+            renderProfile();
+            Toast.makeText(this, R.string.avatar_updated, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void collectUserContent() {

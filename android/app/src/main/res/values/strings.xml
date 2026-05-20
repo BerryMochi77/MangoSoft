@@ -54,6 +54,15 @@
     <string name="my_replies">My replies</string>
     <string name="profile_saved">Profile saved</string>
     <string name="profile_save_failed">Display name is required. New password must be at least 4 characters.</string>
+    <string name="profile_avatar">Profile avatar</string>
+    <string name="choose_default_avatar">Choose default avatar</string>
+    <string name="choose_gallery_avatar">Choose from album</string>
+    <string name="avatar_default_1">Blue avatar</string>
+    <string name="avatar_default_2">Green avatar</string>
+    <string name="avatar_default_3">Purple avatar</string>
+    <string name="avatar_default_4">Rose avatar</string>
+    <string name="avatar_updated">Avatar updated</string>
+    <string name="avatar_update_failed">Avatar could not be updated</string>
     <string name="username_value">Username: %1$s</string>
     <string name="previous">Previous</string>
     <string name="next">Next</string>
