@@ -17,9 +17,16 @@ Android 迁移后的核心结构：
 android/
   app/
     src/main/java/com/example/comp2100miniproject/
-      MainActivity.java
-      PostViewerActivity.java
-      MessageFragment.java
+      MainActivity.java        # 单 Activity 宿主 + BottomNavigationView
+      TabHost.java             # Fragment 与宿主之间的接口
+      FeedFragment.java        # 4 个 Tab 各一个 Fragment
+      TrendsFragment.java
+      ProfileFragment.java
+      SettingsFragment.java
+      PostViewerActivity.java  # 深页面（点进帖子）
+      AdminReportsActivity.java
+      FrozenUsersActivity.java
+      LoginActivity.java
       src/
         MessageAdapter.java
         PostAdapter.java
@@ -122,28 +129,52 @@ sdk.dir=C\:\\Users\\52734\\AppData\\Local\\Android\\Sdk
 
 ## 顶层导航
 
-顶层页面共用同一个 Material `BottomNavigationView`：
+应用是**单 Activity + 多 Fragment** 结构。`MainActivity` 是唯一持有
+`BottomNavigationView` 的宿主，4 个 Tab 各对应一个 Fragment：
 
-- 菜单：`android/app/src/main/res/menu/bottom_nav_menu.xml`
-- 图标：`res/drawable/ic_tab_*.xml`
-- 选中态颜色选择器：`res/color/bottom_nav_item_tint.xml`
+| Tab            | Fragment            | 职责                              |
+|----------------|---------------------|-----------------------------------|
+| `navFeed`      | `FeedFragment`      | 帖子列表 + 发帖 + 管理员审核入口 |
+| `navTrending`  | `TrendsFragment`    | Trending tags + 按 tag 过滤的内联结果 |
+| `navProfile`   | `ProfileFragment`   | 个人资料、头像、我的帖子/回复    |
+| `navSettings`  | `SettingsFragment`  | 主题、登出                        |
 
-当前 4 个 Tab：`navFeed` / `navTrending` / `navProfile` / `navSettings`，分别对应
-`MainActivity` / `HashtagSearchActivity` / `ProfileActivity` / `SettingsActivity`。
+Tab 切换通过 `FragmentTransaction.show()` / `hide()` 实现 — **不是** 启动新
+Activity。这样底部栏始终留在原地、每个 Tab 的 scroll 和分页 state 也会
+保留。"进入-退出" 式的 Activity 跳转只用于"深页面"（PostViewerActivity、
+AdminReportsActivity、FrozenUsersActivity 等），它们有左上角箭头 `ic_arrow_back`，
+没有底部栏。
 
-新增顶层页面时：
+Fragment 通过 `TabHost` 接口与宿主通信：
 
-1. 在 `bottom_nav_menu.xml` 增加 item，配套加一个 `ic_tab_*.xml`。
-2. 在 Activity 布局里直接复用同一个 `<BottomNavigationView ... app:menu="@menu/bottom_nav_menu"/>` 块。
-3. 在 `onCreate` 里 `bottomNav.setSelectedItemId(R.id.<own tab>)`，并在
-   `setOnItemSelectedListener` 里处理其他 Tab 的跳转，命中本页面时 `return true`，
-   其余 `return false` 以保留当前选中态。
+```java
+public interface TabHost {
+    User currentUser();
+    void showTrendsForTag(String tag);   // 跨 Tab 跳转：点击 #tag 切到 Trends 并预过滤
+    void requestLogout();                 // SettingsFragment 触发登出
+}
+```
 
-页面顶部如需返回按钮，使用统一的左上角箭头 `ImageButton`（参考
+资源约定：
+- 菜单：`res/menu/bottom_nav_menu.xml`
+- Tab 图标：`res/drawable/ic_tab_*.xml`
+- 选中态色选择器：`res/color/bottom_nav_item_tint.xml`
+
+新增顶层 Tab 的步骤：
+
+1. 在 `bottom_nav_menu.xml` 加一个 item，配套加 `ic_tab_*.xml`。
+2. 创建 `XxxFragment extends Fragment`，在 `onAttach` 里把 `context` 转成
+   `TabHost` 缓存起来。
+3. 在 `MainActivity.setupFragments` 里 `add()` 这个 fragment（初始 `hide()`），
+   并在 `showTab` 的分支里把它对应到新 menu id。
+
+跨 Tab 跳转走 `TabHost`。例如点击一个 #hashtag 切到 Trends，FeedFragment 调用
+`host.showTrendsForTag(tag)`，MainActivity 内部做 `applyTagFilter` + 改
+`selectedItemId`，让选中态高亮跟上。
+
+页面顶部如需返回按钮，使用左上角箭头 `ImageButton`（参考
 `activity_post_viewer.xml` 的 `buttonBack`，drawable 为 `ic_arrow_back.xml`），
-不要再在底部放整宽的 Back 按钮。系统返回手势已自动可用。
-
-用户偏好（主题、账号入口、登出）统一放进 `SettingsActivity`，不要回到底部按钮或右上角弹窗的形式。
+不要再放整宽的底部 Back 按钮。系统返回手势已自动可用。
 
 ## Moderation 当前入口
 

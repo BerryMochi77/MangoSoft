@@ -2,40 +2,51 @@ package com.example.comp2100miniproject;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.IdRes;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.comp2100miniproject.auth.AuthManager;
-import com.example.comp2100miniproject.src.PostAdapter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.UUID;
 
 import dao.PostDAO;
 import dao.RandomContentGenerator;
-import dao.model.Post;
 import dao.model.User;
-import hashtag.HashtagParser;
-import hashtag.HashtagService;
 
-public class MainActivity extends AppCompatActivity {
+/**
+ * Single-Activity host for the four bottom-nav tabs. Tab taps swap the
+ * visible Fragment via show/hide so each tab keeps its scroll position and
+ * internal state — no "enter / exit" Activity transitions, no rebuilt UI.
+ *
+ * Each tab Fragment talks back to this Activity through the {@link TabHost}
+ * interface for cross-tab routing (hashtag → Trends) and logout.
+ */
+public class MainActivity extends AppCompatActivity implements TabHost {
+
+    private static final String TAG_FEED = "tab_feed";
+    private static final String TAG_TRENDS = "tab_trends";
+    private static final String TAG_PROFILE = "tab_profile";
+    private static final String TAG_SETTINGS = "tab_settings";
+
     private AuthManager authManager;
     private User currentUser;
+
+    private FeedFragment feedFragment;
+    private TrendsFragment trendsFragment;
+    private ProfileFragment profileFragment;
+    private SettingsFragment settingsFragment;
+
+    private BottomNavigationView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,47 +65,16 @@ public class MainActivity extends AppCompatActivity {
             RandomContentGenerator.populateRandomData();
         }
 
-        TextView textCurrentUser = findViewById(R.id.textCurrentUser);
-        textCurrentUser.setText(getString(R.string.signed_in_as, authManager.getDisplayName(currentUser)));
+        setupFragments(savedInstanceState);
 
-        Button buttonAdminReports = findViewById(R.id.buttonAdminReports);
-        buttonAdminReports.setVisibility(currentUser.role() == User.Role.Admin ? View.VISIBLE : View.GONE);
-        buttonAdminReports.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, AdminReportsActivity.class);
-            putCurrentUser(intent);
-            startActivity(intent);
-        });
-
-        Button buttonNewPost = findViewById(R.id.buttonNewPost);
-        buttonNewPost.setOnClickListener(v -> showCreatePostDialog());
-
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
-        bottomNav.setSelectedItemId(R.id.navFeed);
+        bottomNav = findViewById(R.id.bottomNav);
         bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.navFeed) {
-                return true;
-            } else if (id == R.id.navTrending) {
-                openHashtagSearch(null);
-                return false;
-            } else if (id == R.id.navProfile) {
-                Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
-                putCurrentUser(intent);
-                startActivity(intent);
-                return false;
-            } else if (id == R.id.navSettings) {
-                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                putCurrentUser(intent);
-                startActivity(intent);
-                return false;
-            }
-            return false;
+            showTab(item.getItemId(), null);
+            return true;
         });
-
-        RecyclerView recycler = findViewById(R.id.recyclerPosts);
-        recycler.setLayoutManager(new LinearLayoutManager(this));
-
-        loadPosts();
+        if (savedInstanceState == null) {
+            bottomNav.setSelectedItemId(R.id.navFeed);
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -103,111 +83,91 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Either re-attach the fragments restored by the system, or create them
+     * for the first time. All four are added up front and toggled via
+     * show/hide so each tab preserves state between switches.
+     */
+    private void setupFragments(@Nullable Bundle savedInstanceState) {
+        FragmentManager fm = getSupportFragmentManager();
+
+        feedFragment = (FeedFragment) fm.findFragmentByTag(TAG_FEED);
+        trendsFragment = (TrendsFragment) fm.findFragmentByTag(TAG_TRENDS);
+        profileFragment = (ProfileFragment) fm.findFragmentByTag(TAG_PROFILE);
+        settingsFragment = (SettingsFragment) fm.findFragmentByTag(TAG_SETTINGS);
+
+        if (savedInstanceState != null) {
+            // System restored the fragments; nothing else to do.
+            return;
+        }
+
+        feedFragment = new FeedFragment();
+        trendsFragment = new TrendsFragment();
+        profileFragment = new ProfileFragment();
+        settingsFragment = new SettingsFragment();
+
+        FragmentTransaction tx = fm.beginTransaction();
+        tx.add(R.id.fragmentContainer, feedFragment, TAG_FEED);
+        tx.add(R.id.fragmentContainer, trendsFragment, TAG_TRENDS);
+        tx.add(R.id.fragmentContainer, profileFragment, TAG_PROFILE);
+        tx.add(R.id.fragmentContainer, settingsFragment, TAG_SETTINGS);
+        tx.hide(trendsFragment);
+        tx.hide(profileFragment);
+        tx.hide(settingsFragment);
+        tx.commit();
+    }
+
+    private void showTab(@IdRes int itemId, @Nullable String trendsTag) {
+        Fragment target;
+        if (itemId == R.id.navFeed) {
+            target = feedFragment;
+        } else if (itemId == R.id.navTrending) {
+            target = trendsFragment;
+            if (trendsFragment != null) {
+                trendsFragment.applyTagFilter(trendsTag);
+            }
+        } else if (itemId == R.id.navProfile) {
+            target = profileFragment;
+        } else if (itemId == R.id.navSettings) {
+            target = settingsFragment;
+        } else {
+            return;
+        }
+
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction tx = fm.beginTransaction();
+        for (Fragment f : new Fragment[]{feedFragment, trendsFragment, profileFragment, settingsFragment}) {
+            if (f == null) continue;
+            if (f == target) tx.show(f);
+            else tx.hide(f);
+        }
+        tx.commit();
+    }
+
+    // === TabHost ===
+
     @Override
-    protected void onResume() {
-        super.onResume();
-        if (authManager != null && currentUser != null) {
-            loadPosts();
+    public User currentUser() {
+        return currentUser;
+    }
+
+    @Override
+    public void showTrendsForTag(String tag) {
+        // Drive the bottom nav so the selected-state highlight follows.
+        // Setting the same id again does not refire the listener, so apply
+        // the tag filter directly here regardless of current selection.
+        if (trendsFragment != null) {
+            trendsFragment.applyTagFilter(tag);
         }
+        bottomNav.setSelectedItemId(R.id.navTrending);
     }
 
-    private void loadPosts() {
-        ArrayList<Post> posts = new ArrayList<>();
-        Iterator<Post> it = PostDAO.getInstance().getAll();
-        while (it.hasNext()) {
-            Post post = it.next();
-            if (!post.isDeleted()) posts.add(post);
-        }
-
-        RecyclerView recycler = findViewById(R.id.recyclerPosts);
-        recycler.setAdapter(new PostAdapter(this, posts,
-                (position, post) -> openPost(post.id),
-                tag -> openHashtagSearch(tag)));
+    @Override
+    public void requestLogout() {
+        openLogin();
     }
 
-    private void showCreatePostDialog() {
-        int dp16 = (int) (16 * getResources().getDisplayMetrics().density);
-
-        EditText inputTitle = new EditText(this);
-        inputTitle.setHint(R.string.post_title_hint);
-        inputTitle.setSingleLine(true);
-
-        EditText inputBody = new EditText(this);
-        inputBody.setHint(R.string.post_body_hint);
-        inputBody.setMinLines(3);
-        inputBody.setMaxLines(6);
-        inputBody.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp16, dp16 / 2, dp16, 0);
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        params.bottomMargin = dp16 / 2;
-
-        container.addView(inputTitle, params);
-        container.addView(inputBody, params);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.create_post)
-                .setView(container)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.submit, (dialog, which) ->
-                        createPost(inputTitle.getText().toString(), inputBody.getText().toString()))
-                .show();
-    }
-
-    private void createPost(String title, String body) {
-        String cleanTitle = title == null ? "" : title.trim();
-        if (cleanTitle.isEmpty()) {
-            Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String cleanBody = body == null ? "" : body.trim();
-
-        Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTitle);
-        post.setBody(cleanBody);
-        // Extract hashtags from both title and body so #tags in content are indexed.
-        post.setHashtags(HashtagParser.extract(cleanTitle + " " + cleanBody));
-        PostDAO.getInstance().add(post);
-        HashtagService.getInstance().indexPost(post);
-        Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();
-        loadPosts();
-    }
-
-    private void openHashtagSearch(String tag) {
-        Intent intent = new Intent(this, HashtagSearchActivity.class);
-        if (tag != null) intent.putExtra(HashtagSearchActivity.EXTRA_HASHTAG, tag);
-        putCurrentUser(intent);
-        startActivity(intent);
-    }
-
-    private int postIndex(UUID postId) {
-        int index = 0;
-        Iterator<Post> posts = PostDAO.getInstance().getAll();
-        while (posts.hasNext()) {
-            Post post = posts.next();
-            if (post.id.equals(postId)) return post.isDeleted() ? -1 : index;
-            index++;
-        }
-        return -1;
-    }
-
-    private void openPost(UUID postId) {
-        int index = postIndex(postId);
-        if (index < 0) {
-            Toast.makeText(this, R.string.post_deleted_unavailable, Toast.LENGTH_SHORT).show();
-            loadPosts();
-            return;
-        }
-
-        Intent intent = new Intent(MainActivity.this, PostViewerActivity.class);
-        intent.putExtra("post_index", index);
-        putCurrentUser(intent);
-        startActivity(intent);
-    }
+    // === Helpers ===
 
     private UUID readCurrentUserId() {
         String value = getIntent().getStringExtra(AuthManager.EXTRA_USER_ID);
@@ -217,11 +177,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
-    }
-
-    private void putCurrentUser(Intent intent) {
-        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
-        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
     }
 
     private void openLogin() {

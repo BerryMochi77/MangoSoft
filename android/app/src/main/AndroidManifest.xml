@@ -14,36 +14,19 @@
         android:theme="@style/Theme.COMP2100Miniproject">
         <activity
             android:name=".AvatarCropActivity"
-            android:exported="false">
-        </activity>
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false">
-        </activity>
-        <activity
-            android:name=".HashtagSearchActivity"
-            android:exported="false">
-        </activity>
-        <activity
-            android:name=".ProfileActivity"
-            android:exported="true">
-        </activity>
+            android:exported="false" />
         <activity
             android:name=".FrozenUsersActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".AdminReportsActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".PostViewerActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".LoginActivity"
             android:exported="true">
