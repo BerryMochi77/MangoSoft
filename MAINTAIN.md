@@ -192,6 +192,35 @@ finish();
 `activity_post_viewer.xml` 的 `buttonBack`，drawable 为 `ic_arrow_back.xml`），
 不要再放整宽的底部 Back 按钮。系统返回手势已自动可用。
 
+## 主题模式
+
+`ThemeModeManager` 管理浅色 / 深色 / 跟随系统三种模式。状态写在
+SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
+调用 `applySavedMode` 应用到 `AppCompatDelegate`。
+
+- UI 入口：`SettingsFragment` 的 "Theme" 行，点开调
+  `ThemeModeManager.showModeChooser(activity)`
+- 颜色资源：浅色 `res/values/colors.xml`，深色 `res/values-night/colors.xml`，
+  **同名** — layout 只引用 `@color/text_primary` 这类共享名，不要在 XML 里写
+  死颜色
+- 增加模式：在 `ThemeModeManager.Mode` 加 enum 项 + 在 `values/strings.xml`
+  加 label
+
+## 用户头像
+
+`AvatarManager` 管业务（默认头像、读写、URI），`CircleAvatarImageView` 管圆形
+显示，`AvatarCropActivity` 提供裁剪 UI。
+
+- 存储：用户 JSON 里 `avatarSource` ∈ `default` / `gallery`；`avatarValue` 是默
+  认头像 key 或本地文件 URI。已存用户没有这两个字段时回退到第一个默认头像
+- 默认头像：`drawable/avatar_default_{1..4}.xml`，在 `AvatarManager.DEFAULT_AVATARS`
+  注册。key 字符串必须保持稳定（用户记录靠它识别）
+- 从相册选图：`PickVisualMedia` → `AvatarManager.setGalleryAvatar(context, user, uri)`
+  把字节拷到 `filesDir/avatars/<uuid>` 并存本地 URI。**不要**回到 `OpenDocument` —
+  Photo Picker 返回的 URI 不能 `takePersistableUriPermission`，所以拷贝是必须的
+- 在别的页面显示某个用户的头像：`new AvatarManager(authManager).displayAvatar(user, imageView)`
+- 增加默认头像：加 drawable + 加 string label + 在 `DEFAULT_AVATARS` 里注册一项
+
 ## Moderation 当前入口
 
 核心审核功能入口：
