@@ -12,6 +12,13 @@
     <string name="feed">Feed</string>
     <string name="profile">Profile</string>
     <string name="logout">Log out</string>
+    <string name="settings">Settings</string>
+    <string name="settings_overflow_icon">...</string>
+    <string name="theme_mode_button">Theme: %1$s</string>
+    <string name="theme_mode_title">Theme mode</string>
+    <string name="theme_mode_system">Follow system</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_dark">Dark</string>
     <string name="review_reports">Review reports</string>
     <string name="frozen_users">Frozen users</string>
     <string name="signed_in_as">Signed in as %1$s</string>

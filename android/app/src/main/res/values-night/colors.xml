@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="surface">#101318</color>
+    <color name="card_surface">#1A1D23</color>
+    <color name="border">#30343B</color>
+    <color name="text_primary">#F4F7FB</color>
+    <color name="text_secondary">#B8C0CC</color>
+    <color name="accent">#8AB4F8</color>
+    <color name="warning">#FFB4AB</color>
+    <color name="warning_soft">#442522</color>
+</resources>

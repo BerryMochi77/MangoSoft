@@ -66,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
         Button buttonNewPost = findViewById(R.id.buttonNewPost);
         buttonNewPost.setOnClickListener(v -> showCreatePostDialog());
 
+        Button buttonSettings = findViewById(R.id.buttonSettings);
+        buttonSettings.setOnClickListener(v -> showSettingsDialog());
+
         Button navFeed = findViewById(R.id.navFeed);
         Button navTrending = findViewById(R.id.navTrending);
         Button navProfile = findViewById(R.id.navProfile);
@@ -121,6 +124,24 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.submit, (dialog, which) -> createPost(input.getText().toString()))
+                .show();
+    }
+
+    private void showSettingsDialog() {
+        String[] settings = {
+                getString(
+                        R.string.theme_mode_button,
+                        ThemeModeManager.getSavedModeLabel(this)
+                )
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings)
+                .setItems(settings, (dialog, which) -> {
+                    if (which == 0) {
+                        ThemeModeManager.showModeChooser(this);
+                    }
+                })
                 .show();
     }
 
