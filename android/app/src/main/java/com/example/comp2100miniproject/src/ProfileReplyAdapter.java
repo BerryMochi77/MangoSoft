@@ -1,6 +1,6 @@
 package com.example.comp2100miniproject.src;
 
-import android.text.format.DateFormat;
+import com.example.comp2100miniproject.AppTimeFormatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -58,7 +58,7 @@ public class ProfileReplyAdapter extends RecyclerView.Adapter<ProfileReplyAdapte
             }
             title.setText(preview(MessageEditRegistry.getInstance()
                     .currentContent(message.id(), message.message())));
-            String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
+            String time = AppTimeFormatter.format(message.timestamp(), itemView.getContext());
             meta.setText(time);
         }
 

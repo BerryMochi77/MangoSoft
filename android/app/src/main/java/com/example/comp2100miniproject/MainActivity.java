@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         if (!PostDAO.getInstance().getAll().hasNext()) {
             RandomContentGenerator.populateRandomData();
         }
+        RandomContentGenerator.repairSeededData();
 
         setupFragments(savedInstanceState);
 

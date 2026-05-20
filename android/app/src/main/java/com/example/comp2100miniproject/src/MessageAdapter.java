@@ -1,7 +1,8 @@
 package com.example.comp2100miniproject.src;
 
 import android.content.Context;
-import android.text.format.DateFormat;
+
+import com.example.comp2100miniproject.AppTimeFormatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -123,7 +124,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
 
             MessageEditRegistry edits = MessageEditRegistry.getInstance();
-            String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
+            String time = AppTimeFormatter.format(message.timestamp(), itemView.getContext());
             if (edits.isEdited(message.id())) time += " " + itemView.getContext().getString(R.string.edited_label);
             if (message.isHidden()) time += " - hidden from members";
             timestamp.setText(time);

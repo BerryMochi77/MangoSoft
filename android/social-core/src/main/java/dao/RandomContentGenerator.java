@@ -5,11 +5,13 @@ import dao.model.Post;
 import dao.model.User;
 import hashtag.HashtagParser;
 import hashtag.HashtagService;
+import messagestate.MessageDeletionRegistry;
 import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -37,6 +39,7 @@ public class RandomContentGenerator {
 			"Could we add a follow-up screen for user profiles later?",
 			"This is readable on mobile now."
 	};
+	private static final Set<String> GENERATED_REPLY_TEXTS = new HashSet<>();
 
 	private static final String[] POST_BODIES = {
 			"Here is the screen state I was looking at.",
@@ -95,6 +98,25 @@ public class RandomContentGenerator {
 			"june"
 	));
 
+	static {
+		GENERATED_REPLY_TEXTS.addAll(Arrays.asList(REPLIES));
+		GENERATED_REPLY_TEXTS.addAll(Arrays.asList(FOLLOW_UPS));
+		for (String base : REPLIES) {
+			for (int postIndex = 0; postIndex < POST_COUNT; postIndex++) {
+				for (int replyIndex = 0; replyIndex < 16; replyIndex++) {
+					GENERATED_REPLY_TEXTS.add(demoReplyContent(base, postIndex, replyIndex));
+				}
+			}
+		}
+		for (String base : FOLLOW_UPS) {
+			for (int postIndex = 0; postIndex < POST_COUNT; postIndex++) {
+				for (int replyIndex = 0; replyIndex < 48; replyIndex++) {
+					GENERATED_REPLY_TEXTS.add(demoReplyContent(base, postIndex, replyIndex));
+				}
+			}
+		}
+	}
+
 	public static void populateRandomData() {
 		List<User> users = getExistingUsers();
 		if (users.isEmpty()) return;
@@ -109,6 +131,24 @@ public class RandomContentGenerator {
 			PostDAO.getInstance().add(post);
 			HashtagService.getInstance().indexPost(post);
 			populateReplies(post, users, i);
+		}
+	}
+
+	public static void repairSeededData() {
+		HashtagService hashtags = HashtagService.getInstance();
+		Iterator<Post> posts = PostDAO.getInstance().getAll();
+		while (posts.hasNext()) {
+			Post post = posts.next();
+			int demoIndex = demoPostIndex(post.topic);
+			if (demoIndex >= 0) {
+				String body = demoPostBody(demoIndex);
+				if (post.getBody().isEmpty() && !body.isEmpty()) {
+					post.setBody(body);
+					post.setHashtags(HashtagParser.extract(post.topic + " " + body));
+					hashtags.indexPost(post);
+				}
+			}
+			purgeMisassignedGeneratedReplies(post);
 		}
 	}
 
@@ -216,13 +256,52 @@ public class RandomContentGenerator {
 		return content;
 	}
 
+	private static void purgeMisassignedGeneratedReplies(Post post) {
+		MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
+		for (var iterator = post.messages.getAll(); iterator.hasNext(); ) {
+			Message message = iterator.next();
+			User author = UserDAO.getInstance().getByUUID(message.poster());
+			if (author == null || isDemoUsername(author.username())) continue;
+			if (isGeneratedReplyContent(message.message())) {
+				deletions.markDeleted(message.id());
+			}
+		}
+	}
+
+	private static boolean isGeneratedReplyContent(String content) {
+		if (content == null) return false;
+		String clean = content.trim();
+		if (GENERATED_REPLY_TEXTS.contains(clean)) return true;
+		for (String base : REPLIES) {
+			if (clean.startsWith(base + " ")) return true;
+			if (clean.startsWith(base + "\n")) return true;
+		}
+		for (String base : FOLLOW_UPS) {
+			if (clean.startsWith(base + " ")) return true;
+			if (clean.startsWith(base + "\n")) return true;
+		}
+		return false;
+	}
+
+	private static int demoPostIndex(String topic) {
+		if (topic == null) return -1;
+		for (int i = 0; i < POST_TITLES.length; i++) {
+			if (POST_TITLES[i].equals(topic)) return i;
+		}
+		return -1;
+	}
+
+	private static boolean isDemoUsername(String username) {
+		return username != null && DEMO_USERNAMES.contains(username.toLowerCase());
+	}
+
 	private static List<User> getExistingUsers() {
 		ArrayList<User> users = new ArrayList<>();
 		for (var iterator = UserDAO.getInstance().getAll(); iterator.hasNext(); ) {
 			User user = iterator.next();
 			if (user.username() != null
 					&& user.role() == User.Role.Member
-					&& DEMO_USERNAMES.contains(user.username().toLowerCase())) {
+					&& isDemoUsername(user.username())) {
 				users.add(user);
 			}
 		}

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.AvatarManager;
+import com.example.comp2100miniproject.ComposerFormatManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -55,7 +56,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         private final TextView title;
         private final TextView meta;
         private final TextView edited;
+        private final TextView body;
         private final ImageView avatar;
+        private final ImageView attachment;
         private final ChipGroup chipGroupHashtags;
 
         VH(View view) {
@@ -64,7 +67,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             title = view.findViewById(R.id.textPostItemTitle);
             meta = view.findViewById(R.id.textPostItemMeta);
             edited = view.findViewById(R.id.textPostEdited);
+            body = view.findViewById(R.id.textPostItemBody);
             chipGroupHashtags = view.findViewById(R.id.chipGroupHashtags);
+            attachment = view.findViewById(R.id.imagePostItemAttachment);
         }
 
         void display(Post post, AuthManager authManager, AvatarManager avatarManager, OnHashtagClick hashtagListener) {
@@ -91,6 +96,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
                             ? View.VISIBLE
                             : View.GONE
             );
+            ComposerFormatManager.bindContent(post.getBody(), body, attachment);
 
             bindHashtags(post, hashtagListener);
         }

@@ -180,6 +180,8 @@ How to add another format option:
 - Do not replace this with "all member users" from `UserDAO`; that makes a newly registered user appear to have written seeded comments.
 - User-created posts/replies should only be created through explicit UI actions such as `FeedFragment.createPost(...)` and `PostViewerActivity.addReplyMessage(...)`.
 - Seeded posts and replies may include composer-format content such as emoji and `[[image:demo:*]]` image tokens. `ComposerFormatManager` resolves those demo image tokens to bundled drawable resources, so `social-core` still has no Android imports.
+- `RandomContentGenerator.repairSeededData()` runs on app entry to hide old generated replies that were accidentally assigned to non-demo users, and to backfill rich demo bodies onto old seeded posts.
+- Feed cards use `ComposerFormatManager.bindContent(...)` for post body previews, so demo images and emoji are visible before opening the post detail page.
 
 当前已验证：
 
