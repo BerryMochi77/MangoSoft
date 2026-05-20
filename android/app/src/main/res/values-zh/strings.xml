@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chinese (Simplified) string overrides.
+  Only strings visible in Settings and time displays are translated here.
+  Full app localisation can be extended by adding more keys to this file.
+-->
+<resources>
+    <string name="app_name">社交审核</string>
+    <string name="settings">设置</string>
+    <string name="settings_section_appearance">外观</string>
+    <string name="settings_section_account">账户</string>
+    <string name="settings_section_localisation">本地化</string>
+    <string name="theme_mode_title">主题模式</string>
+    <string name="theme_mode_system">跟随系统</string>
+    <string name="theme_mode_light">浅色</string>
+    <string name="theme_mode_dark">深色</string>
+    <string name="settings_row_logout">退出登录</string>
+    <string name="settings_logout_confirm">确认退出登录？</string>
+    <string name="settings_row_language">语言</string>
+    <string name="settings_row_timezone">时区</string>
+    <string name="settings_timezone_preview">当前时间预览</string>
+    <string name="language_title">选择语言</string>
+    <string name="lang_english">English</string>
+    <string name="lang_chinese">中文（简体）</string>
+    <string name="timezone_title">选择时区</string>
+    <string name="tz_local">设备本地时间</string>
+    <string name="tz_utc">协调世界时（UTC）</string>
+    <string name="tz_sydney">悉尼（澳大利亚）</string>
+    <string name="tz_shanghai">上海（中国）</string>
+    <string name="cancel">取消</string>
+    <string name="logout">退出</string>
+    <string name="feed">信息流</string>
+    <string name="trending">热门标签</string>
+    <string name="profile">个人资料</string>
+    <string name="new_post">新发帖</string>
+    <string name="post_feed">帖子列表</string>
+    <string name="trending_tags_title">热门标签</string>
+    <string name="no_trending_yet">暂无标签</string>
+</resources>
