@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -82,6 +83,9 @@ public class MainActivity extends AppCompatActivity {
         });
         navLogout.setOnClickListener(v -> openLogin());
 
+        RecyclerView recycler = findViewById(R.id.recyclerPosts);
+        recycler.setLayoutManager(new LinearLayoutManager(this));
+
         loadPosts();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
@@ -108,22 +112,42 @@ public class MainActivity extends AppCompatActivity {
         }
 
         RecyclerView recycler = findViewById(R.id.recyclerPosts);
-        recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(new PostAdapter(this, posts,
                 (position, post) -> openPost(post.id),
                 tag -> openHashtagSearch(tag)));
     }
 
     private void showCreatePostDialog() {
-        EditText input = new EditText(this);
-        input.setHint(R.string.post_title_hint);
-        input.setSingleLine(true);
+        int dp16 = (int) (16 * getResources().getDisplayMetrics().density);
+
+        EditText inputTitle = new EditText(this);
+        inputTitle.setHint(R.string.post_title_hint);
+        inputTitle.setSingleLine(true);
+
+        EditText inputBody = new EditText(this);
+        inputBody.setHint(R.string.post_body_hint);
+        inputBody.setMinLines(3);
+        inputBody.setMaxLines(6);
+        inputBody.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp16, dp16 / 2, dp16, 0);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = dp16 / 2;
+
+        container.addView(inputTitle, params);
+        container.addView(inputBody, params);
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.create_post)
-                .setView(input)
+                .setView(container)
                 .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.submit, (dialog, which) -> createPost(input.getText().toString()))
+                .setPositiveButton(R.string.submit, (dialog, which) ->
+                        createPost(inputTitle.getText().toString(), inputBody.getText().toString()))
                 .show();
     }
 
@@ -145,15 +169,18 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void createPost(String topic) {
-        String cleanTopic = topic == null ? "" : topic.trim();
-        if (cleanTopic.isEmpty()) {
+    private void createPost(String title, String body) {
+        String cleanTitle = title == null ? "" : title.trim();
+        if (cleanTitle.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
             return;
         }
+        String cleanBody = body == null ? "" : body.trim();
 
-        Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTopic);
-        post.setHashtags(HashtagParser.extract(cleanTopic));
+        Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTitle);
+        post.setBody(cleanBody);
+        // Extract hashtags from both title and body so #tags in content are indexed.
+        post.setHashtags(HashtagParser.extract(cleanTitle + " " + cleanBody));
         PostDAO.getInstance().add(post);
         HashtagService.getInstance().indexPost(post);
         Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();

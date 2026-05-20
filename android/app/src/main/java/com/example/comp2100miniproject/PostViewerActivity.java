@@ -44,6 +44,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostTitle;
     private TextView textPostAuthor;
     private TextView textPostEdited;
+    private TextView textPostBody;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
 
@@ -81,6 +82,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostTitle = findViewById(R.id.textPostTitle);
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
+        textPostBody = findViewById(R.id.textPostBody);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
 
@@ -154,6 +156,13 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostTitle.setText(post.topic);
         textPostAuthor.setText("Posted by " + authorName(post));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
+        String body = post.getBody();
+        if (body.isEmpty()) {
+            textPostBody.setVisibility(View.GONE);
+        } else {
+            textPostBody.setVisibility(View.VISIBLE);
+            textPostBody.setText(body);
+        }
     }
 
     private void loadMessages() {
@@ -215,7 +224,8 @@ public class PostViewerActivity extends AppCompatActivity {
 
         HashtagService.getInstance().removePost(post);
         post.topic = cleanTopic;
-        post.setHashtags(HashtagParser.extract(cleanTopic));
+        // Re-extract hashtags from title + existing body when editing.
+        post.setHashtags(HashtagParser.extract(cleanTopic + " " + post.getBody()));
         post.setEdited(true);
         HashtagService.getInstance().indexPost(post);
         renderPost();

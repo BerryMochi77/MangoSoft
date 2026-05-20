@@ -88,4 +88,5 @@
     <string name="results_header">Posts</string>
     <string name="no_results">No posts found with this tag.</string>
     <string name="no_trending_yet">No tags yet</string>
+    <string name="post_body_hint">Post content (optional, hashtags supported)</string>
 </resources>
