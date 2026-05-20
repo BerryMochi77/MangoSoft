@@ -12,14 +12,51 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="12dp"
         android:text="@string/post_feed"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonNewPostIcon"
+        app:layout_constraintEnd_toStartOf="@+id/buttonSearchToggle"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@+id/buttonNewPostIcon" />
+
+    <ImageButton
+        android:id="@+id/buttonSearchToggle"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/search"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_search"
+        app:layout_constraintEnd_toStartOf="@+id/buttonNewPostIcon"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/text_primary" />
+
+    <!--
+        Primary action: write a new post. Filled accent circle to read as
+        the foreground CTA on the feed; the pencil icon makes it clear
+        this is "compose", not a generic plus / add.
+    -->
+    <ImageButton
+        android:id="@+id/buttonNewPostIcon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/bg_fab_circle"
+        android:contentDescription="@string/new_post"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_edit_post"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@android:color/white" />
 
     <TextView
         android:id="@+id/textCurrentUser"
@@ -32,17 +69,24 @@
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewTitle" />
+        app:layout_constraintTop_toBottomOf="@+id/buttonNewPostIcon" />
 
-    <Button
-        android:id="@+id/buttonNewPost"
+    <!--
+        Search input toggled by buttonSearchToggle. visibility=gone by
+        default so the feed isn't cluttered when the user isn't searching.
+    -->
+    <EditText
+        android:id="@+id/inputSearchPosts"
         android:layout_width="0dp"
-        android:layout_height="42dp"
+        android:layout_height="44dp"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="20dp"
-        android:text="@string/new_post"
-        android:textAllCaps="false"
+        android:hint="@string/search_posts_hint"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:singleLine="true"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textCurrentUser" />
@@ -52,13 +96,13 @@
         android:layout_width="0dp"
         android:layout_height="42dp"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="20dp"
         android:text="@string/review_reports"
         android:textAllCaps="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonNewPost" />
+        app:layout_constraintTop_toBottomOf="@+id/inputSearchPosts" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerPosts"

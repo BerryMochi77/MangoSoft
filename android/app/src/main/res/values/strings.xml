@@ -118,4 +118,6 @@
     <string name="reply">Reply</string>
     <string name="reply_to">Reply to %1$s</string>
     <string name="write_reply_hint">Write a reply…</string>
+    <string name="search">Search</string>
+    <string name="search_posts_hint">Search posts…</string>
 </resources>
