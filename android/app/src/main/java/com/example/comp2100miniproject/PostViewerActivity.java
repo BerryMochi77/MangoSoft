@@ -22,11 +22,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
 import com.example.comp2100miniproject.src.MessageAdapter;
+import com.example.comp2100miniproject.src.ThreadConnectorDecoration;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
 import messagestate.MessageDeletionRegistry;
 import messagestate.MessageEditRegistry;
+import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -54,6 +56,13 @@ public class PostViewerActivity extends AppCompatActivity {
     private ChipGroup chipGroupPostHashtags;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
+
+    /**
+     * Threaded (depth-first) list of currently-visible messages. Updated on
+     * every {@link #loadMessages()}. Used both as the adapter's data source
+     * and as the lookup for {@link ThreadConnectorDecoration}.
+     */
+    private ArrayList<Message> threadedMessages = new ArrayList<>();
 
     private Button buttonLike;
     private Button buttonHeart;
@@ -102,6 +111,11 @@ public class PostViewerActivity extends AppCompatActivity {
         setupReactionButtons();
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        // ItemDecoration paints the parent-to-child L connectors. It reads
+        // the current threaded list via a method reference so it stays in
+        // sync as loadMessages() rebuilds the list after edits/replies.
+        recyclerMessages.addItemDecoration(
+                new ThreadConnectorDecoration(this, this::messageIdAt));
 
         ImageButton buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
@@ -215,39 +229,84 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-        ArrayList<Message> messages = new ArrayList<>();
+        ArrayList<Message> timeSorted = new ArrayList<>();
         Iterator<Message> it = post.getVisibleMessages(currentUser.role() == User.Role.Admin).getAll();
         while (it.hasNext()) {
-            messages.add(it.next());
+            timeSorted.add(it.next());
         }
+
+        // Reorder time-sorted messages into Reddit-style depth-first order so
+        // every reply sits directly under its parent. MessageAdapter picks
+        // depth back out of MessageThreadRegistry when computing indent, and
+        // ThreadConnectorDecoration uses threadedMessages to find each
+        // child's parent View when painting the L connector.
+        threadedMessages = new ArrayList<>(
+                MessageThreadRegistry.getInstance().flatten(timeSorted, Message::id));
 
         recyclerMessages.setAdapter(new MessageAdapter(
                 this,
-                messages,
+                threadedMessages,
                 currentUser.getUUID(),
                 this::showReportDialog,
                 this::showEditReplyDialog,
-                this::confirmDeleteReply
+                this::confirmDeleteReply,
+                this::showReplyDialog
         ));
     }
 
+    /** Lookup used by {@link ThreadConnectorDecoration}. */
+    private UUID messageIdAt(int position) {
+        if (position < 0 || position >= threadedMessages.size()) return null;
+        return threadedMessages.get(position).id();
+    }
+
     private void addReply() {
-        String content = inputReply.getText().toString().trim();
+        addReplyMessage(inputReply.getText().toString(), null);
+        inputReply.setText("");
+    }
+
+    /**
+     * Insert a reply. If {@code parentMessageId} is non-null, record the
+     * parent/child relationship in {@link MessageThreadRegistry} so the
+     * new message renders indented beneath the message it replies to.
+     */
+    private void addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
+        String content = rawContent == null ? "" : rawContent.trim();
         if (content.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
             return;
         }
 
+        UUID newId = UUID.randomUUID();
         post.messages.insert(new Message(
-                UUID.randomUUID(),
+                newId,
                 currentUser.getUUID(),
                 post.getUUID(),
                 System.currentTimeMillis(),
                 content
         ));
-        inputReply.setText("");
+        if (parentMessageId != null) {
+            MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
+        }
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
+    }
+
+    private void showReplyDialog(Message parent) {
+        EditText input = new EditText(this);
+        input.setHint(R.string.write_reply_hint);
+        input.setMinLines(3);
+
+        User author = UserDAO.getInstance().getByUUID(parent.poster());
+        String authorName = author == null ? "Unknown user" : authManager.getDisplayName(author);
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.reply_to, authorName))
+                .setView(input)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.send, (dialog, which) ->
+                        addReplyMessage(input.getText().toString(), parent.id()))
+                .show();
     }
 
     private void showEditPostDialog() {

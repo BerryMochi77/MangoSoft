@@ -115,4 +115,7 @@
     <string name="settings_row_profile">Edit profile</string>
     <string name="settings_row_logout">Log out</string>
     <string name="settings_logout_confirm">Log out of this account?</string>
+    <string name="reply">Reply</string>
+    <string name="reply_to">Reply to %1$s</string>
+    <string name="write_reply_hint">Write a reply…</string>
 </resources>
