@@ -1,11 +1,13 @@
 package com.example.comp2100miniproject;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -20,10 +22,16 @@ import com.example.comp2100miniproject.auth.AuthManager;
 import dao.model.User;
 
 public class LoginActivity extends AppCompatActivity {
+    private static final String PREF_LOGIN = "login_preferences";
+    private static final String KEY_REMEMBER = "remember_credentials";
+    private static final String KEY_USERNAME = "remembered_username";
+    private static final String KEY_PASSWORD = "remembered_password";
+
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private EditText inputUsername;
     private EditText inputPassword;
+    private CheckBox checkboxRememberCredentials;
     private ImageView imageLoginAvatar;
 
     @Override
@@ -36,6 +44,7 @@ public class LoginActivity extends AppCompatActivity {
         avatarManager = new AvatarManager(authManager);
         inputUsername = findViewById(R.id.inputUsername);
         inputPassword = findViewById(R.id.inputPassword);
+        checkboxRememberCredentials = findViewById(R.id.checkboxRememberCredentials);
         imageLoginAvatar = findViewById(R.id.imageLoginAvatar);
 
         Button buttonLogin = findViewById(R.id.buttonLogin);
@@ -43,6 +52,9 @@ public class LoginActivity extends AppCompatActivity {
 
         buttonLogin.setOnClickListener(v -> login());
         buttonRegister.setOnClickListener(v -> register());
+        checkboxRememberCredentials.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!isChecked) clearRememberedCredentials();
+        });
 
         // Preview the avatar of whichever account matches the username being
         // typed. Unknown / empty username falls back to a neutral icon so
@@ -54,7 +66,7 @@ public class LoginActivity extends AppCompatActivity {
                 refreshLoginAvatar(s == null ? "" : s.toString());
             }
         });
-        refreshLoginAvatar("");
+        loadRememberedCredentials();
     }
 
     private void refreshLoginAvatar(String username) {
@@ -79,6 +91,7 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.login_failed, Toast.LENGTH_SHORT).show();
             return;
         }
+        updateRememberedCredentials();
         openMain(user);
     }
 
@@ -89,7 +102,40 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
         Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show();
+        updateRememberedCredentials();
         openMain(user);
+    }
+
+    private void loadRememberedCredentials() {
+        SharedPreferences preferences = getSharedPreferences(PREF_LOGIN, MODE_PRIVATE);
+        boolean remember = preferences.getBoolean(KEY_REMEMBER, false);
+        checkboxRememberCredentials.setChecked(remember);
+        if (remember) {
+            inputUsername.setText(preferences.getString(KEY_USERNAME, ""));
+            inputPassword.setText(preferences.getString(KEY_PASSWORD, ""));
+        }
+        refreshLoginAvatar(username());
+    }
+
+    private void updateRememberedCredentials() {
+        if (!checkboxRememberCredentials.isChecked()) {
+            clearRememberedCredentials();
+            return;
+        }
+
+        getSharedPreferences(PREF_LOGIN, MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_REMEMBER, true)
+                .putString(KEY_USERNAME, username())
+                .putString(KEY_PASSWORD, password())
+                .apply();
+    }
+
+    private void clearRememberedCredentials() {
+        getSharedPreferences(PREF_LOGIN, MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply();
     }
 
     private String username() {
