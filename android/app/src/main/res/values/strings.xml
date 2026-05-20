@@ -101,6 +101,10 @@
     <string name="no_results">No posts found with this tag.</string>
     <string name="no_trending_yet">No tags yet</string>
     <string name="post_body_hint">Post content (optional, hashtags supported)</string>
+    <string name="post_body_label">Post content</string>
+    <string name="post_tags_label">Tags</string>
+    <string name="post_tags_hint">Add tags, e.g. bug help moderation</string>
+    <string name="publish_post">Publish post</string>
     <string name="nav_feed">Feed</string>
     <string name="nav_trending">Trends</string>
     <string name="nav_profile">Profile</string>

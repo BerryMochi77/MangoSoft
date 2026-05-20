@@ -46,7 +46,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textLoginSubtitle">
 
-        <ImageView
+        <com.example.comp2100miniproject.CircleAvatarImageView
             android:id="@+id/imageLoginAvatar"
             android:layout_width="80dp"
             android:layout_height="80dp"

@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
     private SettingsFragment settingsFragment;
 
     private BottomNavigationView bottomNav;
+    private int currentTabId = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,11 +70,13 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
         bottomNav = findViewById(R.id.bottomNav);
         bottomNav.setOnItemSelectedListener(item -> {
-            showTab(item.getItemId(), null);
+            showTab(item.getItemId(), null, false);
             return true;
         });
         if (savedInstanceState == null) {
             bottomNav.setSelectedItemId(R.id.navFeed);
+        } else {
+            currentTabId = bottomNav.getSelectedItemId();
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
@@ -117,13 +120,14 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         tx.commit();
     }
 
-    private void showTab(@IdRes int itemId, @Nullable String trendsTag) {
+    private void showTab(@IdRes int itemId, @Nullable String trendsTag, boolean forceTrendsFilter) {
+        boolean sameTab = itemId == currentTabId;
         Fragment target;
         if (itemId == R.id.navFeed) {
             target = feedFragment;
         } else if (itemId == R.id.navTrending) {
             target = trendsFragment;
-            if (trendsFragment != null) {
+            if (trendsFragment != null && (forceTrendsFilter || trendsTag != null)) {
                 trendsFragment.applyTagFilter(trendsTag);
             }
         } else if (itemId == R.id.navProfile) {
@@ -134,14 +138,20 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             return;
         }
 
+        if (sameTab && !forceTrendsFilter) {
+            return;
+        }
+
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction tx = fm.beginTransaction();
+        tx.setReorderingAllowed(true);
         for (Fragment f : new Fragment[]{feedFragment, trendsFragment, profileFragment, settingsFragment}) {
             if (f == null) continue;
             if (f == target) tx.show(f);
             else tx.hide(f);
         }
         tx.commit();
+        currentTabId = itemId;
     }
 
     // === TabHost ===
@@ -153,13 +163,13 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
     @Override
     public void showTrendsForTag(String tag) {
-        // Drive the bottom nav so the selected-state highlight follows.
-        // Setting the same id again does not refire the listener, so apply
-        // the tag filter directly here regardless of current selection.
-        if (trendsFragment != null) {
-            trendsFragment.applyTagFilter(tag);
+        // Keep the BottomNavigationView as the stable Activity-level chrome.
+        // The selected state is updated without rebuilding the nav; only the
+        // fragment visibility changes.
+        showTab(R.id.navTrending, tag, true);
+        if (bottomNav.getSelectedItemId() != R.id.navTrending) {
+            bottomNav.setSelectedItemId(R.id.navTrending);
         }
-        bottomNav.setSelectedItemId(R.id.navTrending);
     }
 
     @Override

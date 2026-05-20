@@ -3,19 +3,15 @@ package com.example.comp2100miniproject;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,8 +26,6 @@ import java.util.UUID;
 import dao.PostDAO;
 import dao.model.Post;
 import dao.model.User;
-import hashtag.HashtagParser;
-import hashtag.HashtagService;
 
 /** Feed tab: list of posts + create post + admin entry. */
 public class FeedFragment extends Fragment {
@@ -74,8 +68,7 @@ public class FeedFragment extends Fragment {
             startActivity(intent);
         });
 
-        Button buttonNewPost = view.findViewById(R.id.buttonNewPost);
-        buttonNewPost.setOnClickListener(v -> showCreatePostDialog());
+        view.findViewById(R.id.buttonNewPost).setOnClickListener(v -> openCreatePost());
 
         recyclerPosts = view.findViewById(R.id.recyclerPosts);
         recyclerPosts.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -104,57 +97,10 @@ public class FeedFragment extends Fragment {
                 tag -> host.showTrendsForTag(tag)));
     }
 
-    private void showCreatePostDialog() {
-        int dp16 = (int) (16 * getResources().getDisplayMetrics().density);
-
-        EditText inputTitle = new EditText(requireContext());
-        inputTitle.setHint(R.string.post_title_hint);
-        inputTitle.setSingleLine(true);
-
-        EditText inputBody = new EditText(requireContext());
-        inputBody.setHint(R.string.post_body_hint);
-        inputBody.setMinLines(3);
-        inputBody.setMaxLines(6);
-        inputBody.setGravity(Gravity.TOP | Gravity.START);
-
-        LinearLayout container = new LinearLayout(requireContext());
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp16, dp16 / 2, dp16, 0);
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        params.bottomMargin = dp16 / 2;
-
-        container.addView(inputTitle, params);
-        container.addView(inputBody, params);
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.create_post)
-                .setView(container)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.submit, (dialog, which) ->
-                        createPost(inputTitle.getText().toString(), inputBody.getText().toString()))
-                .show();
-    }
-
-    private void createPost(String title, String body) {
-        String cleanTitle = title == null ? "" : title.trim();
-        if (cleanTitle.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.empty_content, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String cleanBody = body == null ? "" : body.trim();
-
-        User currentUser = host.currentUser();
-        Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTitle);
-        post.setBody(cleanBody);
-        // Extract hashtags from both title and body so #tags in content are indexed.
-        post.setHashtags(HashtagParser.extract(cleanTitle + " " + cleanBody));
-        PostDAO.getInstance().add(post);
-        HashtagService.getInstance().indexPost(post);
-        Toast.makeText(requireContext(), R.string.post_created, Toast.LENGTH_SHORT).show();
-        loadPosts();
+    private void openCreatePost() {
+        Intent intent = new Intent(requireContext(), CreatePostActivity.class);
+        putCurrentUser(intent);
+        startActivity(intent);
     }
 
     private void openPost(UUID postId) {

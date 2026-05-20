@@ -16,6 +16,9 @@
             android:name=".AvatarCropActivity"
             android:exported="false" />
         <activity
+            android:name=".CreatePostActivity"
+            android:exported="false" />
+        <activity
             android:name=".FrozenUsersActivity"
             android:exported="true" />
         <activity

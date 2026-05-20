@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -38,6 +39,7 @@ import moderation.ModerationTools;
 
 public class PostViewerActivity extends AppCompatActivity {
     private AuthManager authManager;
+    private AvatarManager avatarManager;
     private FrozenUserManager frozenUserManager;
     private User currentUser;
     private Post post;
@@ -45,6 +47,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
+    private ImageView imagePostAuthorAvatar;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
 
@@ -60,6 +63,7 @@ public class PostViewerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_post_viewer);
 
         authManager = new AuthManager(this);
+        avatarManager = new AvatarManager(authManager);
         frozenUserManager = new FrozenUserManager(this);
         currentUser = authManager.getUser(readCurrentUserId());
         if (currentUser == null) {
@@ -83,6 +87,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
+        imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
 
@@ -154,7 +159,13 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void renderPost() {
         textPostTitle.setText(post.topic);
-        textPostAuthor.setText("Posted by " + authorName(post));
+        User poster = UserDAO.getInstance().getByUUID(post.poster);
+        if (poster != null) {
+            avatarManager.displayAvatar(poster, imagePostAuthorAvatar);
+        } else {
+            imagePostAuthorAvatar.setImageResource(R.drawable.avatar_default_1);
+        }
+        textPostAuthor.setText("Posted by " + authorName(poster));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         String body = post.getBody();
         if (body.isEmpty()) {
@@ -293,8 +304,7 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    private String authorName(Post post) {
-        User user = UserDAO.getInstance().getByUUID(post.poster);
+    private String authorName(User user) {
         return user == null ? "Unknown author" : authManager.getDisplayName(user);
     }
 
