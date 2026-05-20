@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -63,7 +64,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         private final TextView author;
         private final TextView timestamp;
         private final TextView content;
-        private final Button reportButton;
+        private final ImageButton reportButton;
         private final LinearLayout ownerActions;
         private final Button editButton;
         private final Button deleteButton;
