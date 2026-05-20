@@ -1,7 +1,7 @@
 package com.example.comp2100miniproject;
 
 import android.os.Bundle;
-import android.text.format.DateFormat;
+import com.example.comp2100miniproject.AppTimeFormatter;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -169,7 +169,7 @@ public class AdminReportsActivity extends AppCompatActivity {
         String reporterName = reporter == null ? report.user().toString() : authManager.getDisplayName(reporter);
         boolean frozen = frozenUserManager.isFrozen(report.user());
         reporterView.setText(frozen ? reporterName + " (frozen)" : reporterName);
-        timeView.setText(DateFormat.format("MMM d, HH:mm", report.timestamp()).toString());
+        timeView.setText(AppTimeFormatter.format(report.timestamp(), this));
         reasonView.setText(report.reason() == null || report.reason().isBlank()
                 ? "No detail provided"
                 : report.reason());
