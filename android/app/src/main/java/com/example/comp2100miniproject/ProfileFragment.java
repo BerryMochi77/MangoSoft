@@ -1,27 +1,30 @@
 package com.example.comp2100miniproject;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.src.PostAdapter;
 import com.example.comp2100miniproject.src.ProfileReplyAdapter;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,17 +32,19 @@ import java.util.List;
 import java.util.UUID;
 
 import dao.PostDAO;
-import dao.RandomContentGenerator;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
 
-public class ProfileActivity extends AppCompatActivity {
+/** Profile tab: edit display name + password, list user's posts and replies. */
+public class ProfileFragment extends Fragment {
     private static final int PAGE_SIZE = 3;
 
+    private TabHost host;
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private User currentUser;
+
     private ImageView imageAvatar;
     private EditText inputDisplayName;
     private EditText inputNewPassword;
@@ -54,44 +59,73 @@ public class ProfileActivity extends AppCompatActivity {
     private Button buttonNextPosts;
     private Button buttonPrevReplies;
     private Button buttonNextReplies;
-    private ActivityResultLauncher<String[]> galleryAvatarLauncher;
+
     private final ArrayList<Post> myPosts = new ArrayList<>();
     private final ArrayList<Message> myReplies = new ArrayList<>();
     private int postsPage = 0;
     private int repliesPage = 0;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_profile);
+    private ActivityResultLauncher<String[]> galleryAvatarLauncher;
 
-        authManager = new AuthManager(this);
-        avatarManager = new AvatarManager(authManager);
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof TabHost) {
+            host = (TabHost) context;
+        } else {
+            throw new IllegalStateException("ProfileFragment requires a TabHost activity.");
+        }
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Activity result launchers must be registered before the fragment
+        // reaches STARTED, so we do it in onCreate rather than onViewCreated.
         galleryAvatarLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(),
                 this::setGalleryAvatar
         );
-        currentUser = authManager.getUser(readCurrentUserId());
-        if (currentUser == null) {
-            openLogin();
-            return;
-        }
+    }
 
-        if (!PostDAO.getInstance().getAll().hasNext()) {
-            RandomContentGenerator.populateRandomData();
-        }
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_profile, container, false);
+    }
 
-        bindViews();
-        recyclerMyPosts.setLayoutManager(new LinearLayoutManager(this));
-        recyclerMyReplies.setLayoutManager(new LinearLayoutManager(this));
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        authManager = new AuthManager(requireContext());
+        avatarManager = new AvatarManager(authManager);
+        currentUser = host.currentUser();
+
+        imageAvatar = view.findViewById(R.id.imageAvatar);
+        textUsername = view.findViewById(R.id.textUsername);
+        inputDisplayName = view.findViewById(R.id.inputDisplayName);
+        inputNewPassword = view.findViewById(R.id.inputNewPassword);
+        textNoMyPosts = view.findViewById(R.id.textNoMyPosts);
+        textNoMyReplies = view.findViewById(R.id.textNoMyReplies);
+        textPostsPage = view.findViewById(R.id.textPostsPage);
+        textRepliesPage = view.findViewById(R.id.textRepliesPage);
+        recyclerMyPosts = view.findViewById(R.id.recyclerMyPosts);
+        recyclerMyReplies = view.findViewById(R.id.recyclerMyReplies);
+        buttonPrevPosts = view.findViewById(R.id.buttonPrevPosts);
+        buttonNextPosts = view.findViewById(R.id.buttonNextPosts);
+        buttonPrevReplies = view.findViewById(R.id.buttonPrevReplies);
+        buttonNextReplies = view.findViewById(R.id.buttonNextReplies);
+
+        recyclerMyPosts.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerMyReplies.setLayoutManager(new LinearLayoutManager(requireContext()));
         collectUserContent();
         renderProfile();
         renderContentPages();
 
-        findViewById(R.id.buttonSaveProfile).setOnClickListener(v -> saveProfile());
-        findViewById(R.id.buttonChooseDefaultAvatar).setOnClickListener(v -> showDefaultAvatarChooser());
-        findViewById(R.id.buttonChooseGalleryAvatar).setOnClickListener(v -> chooseGalleryAvatar());
+        view.findViewById(R.id.buttonSaveProfile).setOnClickListener(v -> saveProfile());
+        view.findViewById(R.id.buttonChooseDefaultAvatar).setOnClickListener(v -> showDefaultAvatarChooser());
+        view.findViewById(R.id.buttonChooseGalleryAvatar).setOnClickListener(v -> chooseGalleryAvatar());
         buttonPrevPosts.setOnClickListener(v -> {
             postsPage--;
             renderPostsPage();
@@ -108,54 +142,14 @@ public class ProfileActivity extends AppCompatActivity {
             repliesPage++;
             renderRepliesPage();
         });
-
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
-        bottomNav.setSelectedItemId(R.id.navProfile);
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.navProfile) {
-                return true;
-            } else if (id == R.id.navFeed) {
-                finish();
-                return false;
-            } else if (id == R.id.navTrending) {
-                Intent intent = new Intent(ProfileActivity.this, HashtagSearchActivity.class);
-                putCurrentUser(intent);
-                startActivity(intent);
-                return false;
-            } else if (id == R.id.navSettings) {
-                Intent intent = new Intent(ProfileActivity.this, SettingsActivity.class);
-                putCurrentUser(intent);
-                startActivity(intent);
-                return false;
-            }
-            return false;
-        });
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
-        if (authManager != null && currentUser != null) {
+        if (currentUser != null) {
             refreshContent();
         }
-    }
-
-    private void bindViews() {
-        imageAvatar = findViewById(R.id.imageAvatar);
-        textUsername = findViewById(R.id.textUsername);
-        inputDisplayName = findViewById(R.id.inputDisplayName);
-        inputNewPassword = findViewById(R.id.inputNewPassword);
-        textNoMyPosts = findViewById(R.id.textNoMyPosts);
-        textNoMyReplies = findViewById(R.id.textNoMyReplies);
-        textPostsPage = findViewById(R.id.textPostsPage);
-        textRepliesPage = findViewById(R.id.textRepliesPage);
-        recyclerMyPosts = findViewById(R.id.recyclerMyPosts);
-        recyclerMyReplies = findViewById(R.id.recyclerMyReplies);
-        buttonPrevPosts = findViewById(R.id.buttonPrevPosts);
-        buttonNextPosts = findViewById(R.id.buttonNextPosts);
-        buttonPrevReplies = findViewById(R.id.buttonPrevReplies);
-        buttonNextReplies = findViewById(R.id.buttonNextReplies);
     }
 
     private void renderProfile() {
@@ -166,14 +160,14 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void showDefaultAvatarChooser() {
         AvatarManager.AvatarOption[] options = avatarManager.defaultAvatars();
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.choose_default_avatar)
-                .setItems(avatarManager.defaultAvatarLabels(this), (dialog, which) -> {
+                .setItems(avatarManager.defaultAvatarLabels(requireContext()), (dialog, which) -> {
                     if (avatarManager.setDefaultAvatar(currentUser, options[which])) {
                         renderProfile();
-                        Toast.makeText(this, R.string.avatar_updated, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), R.string.avatar_updated, Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
                     }
                 })
                 .show();
@@ -187,7 +181,7 @@ public class ProfileActivity extends AppCompatActivity {
         if (uri == null) return;
 
         try {
-            getContentResolver().takePersistableUriPermission(
+            requireContext().getContentResolver().takePersistableUriPermission(
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
             );
@@ -197,9 +191,9 @@ public class ProfileActivity extends AppCompatActivity {
 
         if (avatarManager.setGalleryAvatar(currentUser, uri)) {
             renderProfile();
-            Toast.makeText(this, R.string.avatar_updated, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.avatar_updated, Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -245,7 +239,8 @@ public class ProfileActivity extends AppCompatActivity {
         postsPage = clampPage(postsPage, myPosts.size());
         textNoMyPosts.setVisibility(View.GONE);
         recyclerMyPosts.setVisibility(View.VISIBLE);
-        recyclerMyPosts.setAdapter(new PostAdapter(this, pagePosts(), (position, post) -> openPost(post.id), null));
+        recyclerMyPosts.setAdapter(new PostAdapter(requireContext(), pagePosts(),
+                (position, post) -> openPost(post.id), null));
         updatePager(postsPage, myPosts.size(), textPostsPage, buttonPrevPosts, buttonNextPosts);
     }
 
@@ -304,27 +299,28 @@ public class ProfileActivity extends AppCompatActivity {
                 inputNewPassword.getText().toString()
         );
         if (!saved) {
-            Toast.makeText(this, R.string.profile_save_failed, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.profile_save_failed, Toast.LENGTH_SHORT).show();
             return;
         }
 
         currentUser = authManager.getUser(currentUser.getUUID());
         inputNewPassword.setText("");
         renderProfile();
-        Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
     }
 
     private void openPost(UUID postId) {
         int index = postIndex(postId);
         if (index < 0) {
-            Toast.makeText(this, R.string.post_deleted_unavailable, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.post_deleted_unavailable, Toast.LENGTH_SHORT).show();
             refreshContent();
             return;
         }
 
-        Intent intent = new Intent(ProfileActivity.this, PostViewerActivity.class);
+        Intent intent = new Intent(requireContext(), PostViewerActivity.class);
         intent.putExtra("post_index", index);
-        putCurrentUser(intent);
+        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
         startActivity(intent);
     }
 
@@ -351,27 +347,5 @@ public class ProfileActivity extends AppCompatActivity {
             if (post.id.equals(postId)) return !post.isDeleted();
         }
         return false;
-    }
-
-    private UUID readCurrentUserId() {
-        String value = getIntent().getStringExtra(AuthManager.EXTRA_USER_ID);
-        if (value == null) return null;
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
-    private void putCurrentUser(Intent intent) {
-        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
-        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
-    }
-
-    private void openLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
     }
 }
