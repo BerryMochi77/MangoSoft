@@ -52,6 +52,15 @@ public class AuthManager {
         return user;
     }
 
+    /**
+     * Returns the stored user with the given username, or {@code null} if no
+     * such user exists. Used by the login screen to look up an account's
+     * avatar before the user finishes typing their password.
+     */
+    public User findUserByUsername(String username) {
+        return findStoredUser(username);
+    }
+
     public User register(String username, String password) {
         String cleanUsername = username == null ? "" : username.trim();
         if (!isValidUsername(cleanUsername) || password == null || password.length() < 4) return null;

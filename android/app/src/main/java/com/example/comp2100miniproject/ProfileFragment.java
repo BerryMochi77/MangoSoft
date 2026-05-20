@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -65,7 +66,7 @@ public class ProfileFragment extends Fragment {
     private int postsPage = 0;
     private int repliesPage = 0;
 
-    private ActivityResultLauncher<String[]> galleryAvatarLauncher;
+    private ActivityResultLauncher<PickVisualMediaRequest> galleryAvatarLauncher;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -82,8 +83,13 @@ public class ProfileFragment extends Fragment {
         super.onCreate(savedInstanceState);
         // Activity result launchers must be registered before the fragment
         // reaches STARTED, so we do it in onCreate rather than onViewCreated.
+        // PickVisualMedia opens the Android Photo Picker (bottom sheet on
+        // API 33+, falls back to a system-managed picker on older versions)
+        // instead of the generic SAF document picker. The Photo Picker has
+        // its own visible close button, which is important on emulators
+        // where the gesture-back swipe is unreliable.
         galleryAvatarLauncher = registerForActivityResult(
-                new ActivityResultContracts.OpenDocument(),
+                new ActivityResultContracts.PickVisualMedia(),
                 this::setGalleryAvatar
         );
     }
@@ -174,22 +180,19 @@ public class ProfileFragment extends Fragment {
     }
 
     private void chooseGalleryAvatar() {
-        galleryAvatarLauncher.launch(new String[]{"image/*"});
+        galleryAvatarLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
     }
 
     private void setGalleryAvatar(Uri uri) {
+        // null = user backed out of the picker, treat as a no-op silently.
         if (uri == null) return;
 
-        try {
-            requireContext().getContentResolver().takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-            );
-        } catch (SecurityException ignored) {
-            // Some document providers return readable URIs without persistable permissions.
-        }
-
-        if (avatarManager.setGalleryAvatar(currentUser, uri)) {
+        // Photo Picker URIs are temporary and not persistable, so copy the
+        // bytes into the app's private files dir and store the local file
+        // URI. This way the avatar still loads after process restart.
+        if (avatarManager.setGalleryAvatar(requireContext(), currentUser, uri)) {
             renderProfile();
             Toast.makeText(requireContext(), R.string.avatar_updated, Toast.LENGTH_SHORT).show();
         } else {
