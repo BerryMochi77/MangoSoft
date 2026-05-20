@@ -1,4 +1,4 @@
-package com.example.comp2100miniproject.reaction;
+package com.example.comp2100miniproject;
 
 import java.util.HashMap;
 import java.util.UUID;

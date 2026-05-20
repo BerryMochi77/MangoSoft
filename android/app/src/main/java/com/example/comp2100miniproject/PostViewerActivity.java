@@ -19,9 +19,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
-import com.example.comp2100miniproject.reaction.ReactionData;
-import com.example.comp2100miniproject.reaction.ReactionManager;
-import com.example.comp2100miniproject.reaction.ReactionType;
 import com.example.comp2100miniproject.src.MessageAdapter;
 
 import java.util.ArrayList;

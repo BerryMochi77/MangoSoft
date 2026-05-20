@@ -1,4 +1,4 @@
-package com.example.comp2100miniproject.reaction;
+package com.example.comp2100miniproject;
 
 public class ReactionData {
 
