@@ -21,6 +21,7 @@ import dao.UserDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import hashtag.HashtagParser;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
@@ -61,7 +62,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         }
 
         void display(Post post, AuthManager authManager, OnHashtagClick hashtagListener) {
-            title.setText(post.topic);
+            // The hashtags already render as chips below — keep them out of
+            // the title to make it readable.
+            title.setText(HashtagParser.stripTags(post.topic));
 
             meta.setText(
                     String.format(

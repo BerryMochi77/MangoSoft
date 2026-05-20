@@ -38,4 +38,21 @@ public final class HashtagParser {
         }
         return new ArrayList<>(seen);
     }
+
+    /**
+     * Strip every {@code #tag} occurrence from {@code text} and collapse the
+     * remaining whitespace, so the same string can be rendered as a clean
+     * title with the tags shown separately as chips.
+     * Example: "Debugging RecyclerView adapters #android #bug" → "Debugging RecyclerView adapters"
+     * The original text is left untouched if no tags are present.
+     *
+     * @param text the raw post title or body
+     * @return the text with all hashtags removed and whitespace tidied
+     */
+    public static String stripTags(String text) {
+        if (text == null || text.isEmpty()) return "";
+        String stripped = HASHTAG_PATTERN.matcher(text).replaceAll("");
+        // Collapse runs of whitespace introduced by the removals.
+        return stripped.replaceAll("\\s+", " ").trim();
+    }
 }

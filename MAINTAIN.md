@@ -172,6 +172,22 @@ public interface TabHost {
 `host.showTrendsForTag(tag)`，MainActivity 内部做 `applyTagFilter` + 改
 `selectedItemId`，让选中态高亮跟上。
 
+**从深页面（PostViewerActivity 等）跳回 Tab**：深页面不是 Fragment，拿不到 `TabHost`。
+做法是发一个 intent 回 MainActivity：
+
+```java
+Intent intent = new Intent(this, MainActivity.class);
+intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+intent.putExtra(MainActivity.EXTRA_TRENDS_TAG, tag);
+startActivity(intent);
+finish();
+```
+
+`CLEAR_TOP | SINGLE_TOP` 让 MainActivity 走 `onNewIntent` 而不是重建，所以其他 Tab
+的状态保留。MainActivity 在 `handleTrendsIntent` 里读 extra、用完立即 `removeExtra`
+以避免配置变更时重复触发。新增类似的"深页面 → Tab"指令时沿用这个 pattern：新加一个
+`EXTRA_*` 常量、在 `handleTrendsIntent` 同级加一个 handler。
+
 页面顶部如需返回按钮，使用左上角箭头 `ImageButton`（参考
 `activity_post_viewer.xml` 的 `buttonBack`，drawable 为 `ic_arrow_back.xml`），
 不要再放整宽的底部 Back 按钮。系统返回手势已自动可用。

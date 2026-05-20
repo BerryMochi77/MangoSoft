@@ -33,6 +33,12 @@ import dao.model.User;
  */
 public class MainActivity extends AppCompatActivity implements TabHost {
 
+    /**
+     * Intent extra used by deep pages (e.g. PostViewerActivity) to ask
+     * MainActivity to surface the Trends tab pre-filtered by a hashtag.
+     */
+    public static final String EXTRA_TRENDS_TAG = "trends_tag";
+
     private static final String TAG_FEED = "tab_feed";
     private static final String TAG_TRENDS = "tab_trends";
     private static final String TAG_PROFILE = "tab_profile";
@@ -81,6 +87,27 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        handleTrendsIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // A deep page (PostViewer) sent us back here with a hashtag - route
+        // straight to the Trends tab without rebuilding the activity.
+        setIntent(intent);
+        handleTrendsIntent(intent);
+    }
+
+    private void handleTrendsIntent(@Nullable Intent intent) {
+        if (intent == null) return;
+        String tag = intent.getStringExtra(EXTRA_TRENDS_TAG);
+        if (tag == null || tag.isEmpty()) return;
+        // Consume the extra so a later configuration change (e.g. rotation)
+        // does not silently re-trigger this jump.
+        intent.removeExtra(EXTRA_TRENDS_TAG);
+        showTrendsForTag(tag);
     }
 
     /**

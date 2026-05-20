@@ -1,5 +1,6 @@
 package com.example.comp2100miniproject;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -21,6 +22,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
 import com.example.comp2100miniproject.src.MessageAdapter;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -45,6 +48,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
+    private ChipGroup chipGroupPostHashtags;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
 
@@ -83,6 +87,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
+        chipGroupPostHashtags = findViewById(R.id.chipGroupPostHashtags);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
 
@@ -153,9 +158,11 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void renderPost() {
-        textPostTitle.setText(post.topic);
+        // Strip #tags out of the title - they render as chips below.
+        textPostTitle.setText(HashtagParser.stripTags(post.topic));
         textPostAuthor.setText("Posted by " + authorName(post));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
+        renderHashtagChips();
         String body = post.getBody();
         if (body.isEmpty()) {
             textPostBody.setVisibility(View.GONE);
@@ -163,6 +170,45 @@ public class PostViewerActivity extends AppCompatActivity {
             textPostBody.setVisibility(View.VISIBLE);
             textPostBody.setText(body);
         }
+    }
+
+    private void renderHashtagChips() {
+        chipGroupPostHashtags.removeAllViews();
+        java.util.List<String> tags = post.getHashtags();
+        if (tags == null || tags.isEmpty()) {
+            chipGroupPostHashtags.setVisibility(View.GONE);
+            return;
+        }
+        chipGroupPostHashtags.setVisibility(View.VISIBLE);
+        for (String tag : tags) {
+            Chip chip = new Chip(this);
+            chip.setText("#" + tag);
+            chip.setClickable(true);
+            chip.setFocusable(true);
+            chip.setChipBackgroundColorResource(R.color.chip_hashtag_bg);
+            chip.setTextColor(getColor(R.color.accent));
+            chip.setTextSize(12f);
+            chip.setEnsureMinTouchTargetSize(false);
+            chip.setOnClickListener(v -> openTrendsForTag(tag));
+            chipGroupPostHashtags.addView(chip);
+        }
+    }
+
+    /**
+     * Tapping a hashtag chip in a post detail returns to MainActivity and
+     * switches it to the Trends tab filtered by {@code tag}. CLEAR_TOP +
+     * SINGLE_TOP pops PostViewerActivity (and anything above MainActivity)
+     * and delivers the intent via onNewIntent rather than recreating
+     * MainActivity, so the rest of the tab state is preserved.
+     */
+    private void openTrendsForTag(String tag) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra(MainActivity.EXTRA_TRENDS_TAG, tag);
+        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+        startActivity(intent);
+        finish();
     }
 
     private void loadMessages() {
