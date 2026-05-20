@@ -1,0 +1,11 @@
+.idea/
+*.iml
+out/
+build/
+
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/social-core/build/
+android/local.properties
