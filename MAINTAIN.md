@@ -105,6 +105,45 @@ cd D:\IntellJ_Project\Hackthon\hackathon\android
 .\gradlew.bat build
 ```
 
+## Profile appearance maintenance
+
+Profile avatar and profile background are both user-facing appearance settings owned by the Android app layer. They do not modify `User`, `Post`, or `Message` domain models.
+
+Current entry point:
+
+- `ProfileFragment` -> `Edit profile`
+- `Change avatar` -> default avatar or album image
+- `Change profile background` -> default background or album image
+- `Change display name` and `Change password` remain in the same menu
+
+Storage:
+
+- Avatar state is stored in `users.json` as `avatarSource` and `avatarValue`.
+- Profile background state is stored in `users.json` as `profileBackgroundSource` and `profileBackgroundValue`.
+- Existing users without background fields fall back to `profile_background_default_1`.
+- Album images are copied into app-private storage before saving the file URI, because Photo Picker URIs are temporary.
+
+Code ownership:
+
+- `AvatarManager` handles default/gallery avatar display and persistence calls.
+- `ProfileBackgroundManager` handles default/gallery profile background display and persistence calls.
+- `AuthManager` owns reading/writing the user JSON appearance fields.
+- `ProfileFragment` owns the menu flow and screen refresh.
+
+How to add a default profile background:
+
+1. Add a drawable under `android/app/src/main/res/drawable/`.
+2. Add a label string in `android/app/src/main/res/values/strings.xml`.
+3. Register it in `ProfileBackgroundManager.DEFAULT_BACKGROUNDS`.
+4. Keep the option key stable because saved user records refer to it.
+
+How to show a user's profile background elsewhere:
+
+```java
+ProfileBackgroundManager manager = new ProfileBackgroundManager(authManager);
+manager.displayBackground(user, imageView);
+```
+
 当前已验证：
 
 ```text

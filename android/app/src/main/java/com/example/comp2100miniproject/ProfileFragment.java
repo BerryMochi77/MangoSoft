@@ -46,9 +46,11 @@ public class ProfileFragment extends Fragment {
     private TabHost host;
     private AuthManager authManager;
     private AvatarManager avatarManager;
+    private ProfileBackgroundManager profileBackgroundManager;
     private User currentUser;
 
     private ImageView imageAvatar;
+    private ImageView imageProfileBackground;
     private TextView textUsername;
     private TextView textNoMyPosts;
     private TextView textNoMyReplies;
@@ -62,6 +64,7 @@ public class ProfileFragment extends Fragment {
     private Button buttonNextReplies;
 
     private ActivityResultLauncher<PickVisualMediaRequest> galleryAvatarLauncher;
+    private ActivityResultLauncher<PickVisualMediaRequest> galleryBackgroundLauncher;
     private ActivityResultLauncher<Intent> avatarCropLauncher;
 
     private final ArrayList<Post> myPosts = new ArrayList<>();
@@ -85,6 +88,10 @@ public class ProfileFragment extends Fragment {
         galleryAvatarLauncher = registerForActivityResult(
                 new ActivityResultContracts.PickVisualMedia(),
                 this::setGalleryAvatar
+        );
+        galleryBackgroundLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::setGalleryBackground
         );
         avatarCropLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -112,9 +119,11 @@ public class ProfileFragment extends Fragment {
 
         authManager = new AuthManager(requireContext());
         avatarManager = new AvatarManager(authManager);
+        profileBackgroundManager = new ProfileBackgroundManager(authManager);
         currentUser = host.currentUser();
 
         imageAvatar = view.findViewById(R.id.imageAvatar);
+        imageProfileBackground = view.findViewById(R.id.imageProfileBackground);
         textUsername = view.findViewById(R.id.textUsername);
         textNoMyPosts = view.findViewById(R.id.textNoMyPosts);
         textNoMyReplies = view.findViewById(R.id.textNoMyReplies);
@@ -161,6 +170,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void renderProfile() {
+        profileBackgroundManager.displayBackground(currentUser, imageProfileBackground);
         avatarManager.displayAvatar(currentUser, imageAvatar);
         textUsername.setText(getString(R.string.username_value, currentUser.username()));
     }
@@ -168,6 +178,7 @@ public class ProfileFragment extends Fragment {
     private void showEditProfileChooser() {
         String[] options = {
                 getString(R.string.change_avatar),
+                getString(R.string.change_profile_background),
                 getString(R.string.change_display_name),
                 getString(R.string.change_password)
         };
@@ -178,8 +189,10 @@ public class ProfileFragment extends Fragment {
                     if (which == 0) {
                         showAvatarSourceChooser();
                     } else if (which == 1) {
-                        showDisplayNameDialog();
+                        showProfileBackgroundSourceChooser();
                     } else if (which == 2) {
+                        showDisplayNameDialog();
+                    } else if (which == 3) {
                         showPasswordDialog();
                     }
                 })
@@ -311,6 +324,56 @@ public class ProfileFragment extends Fragment {
             Toast.makeText(requireContext(), R.string.avatar_updated, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(requireContext(), R.string.avatar_update_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showProfileBackgroundSourceChooser() {
+        String[] options = {
+                getString(R.string.choose_default_profile_background),
+                getString(R.string.choose_gallery_profile_background)
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.select_profile_background_source)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showDefaultProfileBackgroundChooser();
+                    } else if (which == 1) {
+                        chooseGalleryProfileBackground();
+                    }
+                })
+                .show();
+    }
+
+    private void showDefaultProfileBackgroundChooser() {
+        ProfileBackgroundManager.BackgroundOption[] options = profileBackgroundManager.defaultBackgrounds();
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.choose_default_profile_background)
+                .setItems(profileBackgroundManager.defaultBackgroundLabels(requireContext()), (dialog, which) -> {
+                    if (profileBackgroundManager.setDefaultBackground(currentUser, options[which])) {
+                        renderProfile();
+                        Toast.makeText(requireContext(), R.string.profile_background_updated, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), R.string.profile_background_update_failed, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+    private void chooseGalleryProfileBackground() {
+        galleryBackgroundLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void setGalleryBackground(Uri uri) {
+        if (uri == null) return;
+
+        if (profileBackgroundManager.setGalleryBackground(requireContext(), currentUser, uri)) {
+            renderProfile();
+            Toast.makeText(requireContext(), R.string.profile_background_updated, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(requireContext(), R.string.profile_background_update_failed, Toast.LENGTH_SHORT).show();
         }
     }
 

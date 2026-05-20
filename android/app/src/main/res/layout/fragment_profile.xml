@@ -49,31 +49,49 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_height="190dp"
+                android:background="@drawable/bg_card">
 
-                <TextView
-                    android:id="@+id/textUsername"
+                <ImageView
+                    android:id="@+id/imageProfileBackground"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
-
-                <com.example.comp2100miniproject.CircleAvatarImageView
-                    android:id="@+id/imageAvatar"
-                    android:layout_width="96dp"
-                    android:layout_height="96dp"
-                    android:layout_gravity="start"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="22dp"
-                    android:contentDescription="@string/profile_avatar"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/profile_background"
                     android:scaleType="centerCrop"
-                    android:src="@drawable/avatar_default_1" />
-            </LinearLayout>
+                    android:src="@drawable/profile_background_default_1" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#66000000" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/textUsername"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+
+                    <com.example.comp2100miniproject.CircleAvatarImageView
+                        android:id="@+id/imageAvatar"
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:layout_gravity="start"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="38dp"
+                        android:contentDescription="@string/profile_avatar"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/avatar_default_1" />
+                </LinearLayout>
+            </FrameLayout>
 
             <TextView
                 android:layout_width="match_parent"
