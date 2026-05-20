@@ -35,19 +35,7 @@ sdk.dir=C\:\\Users\\52734\\AppData\\Local\\Android\\Sdk
 
 `local.properties` is ignored by git.
 
-## Current User Flow
+## Contributing
 
-The Android app currently supports:
-
-- viewing the post list
-- opening a post
-- viewing visible messages
-- reporting a message from the message row
-
-The report button calls:
-
-```java
-ModerationTools.addReport(messageId, userId, timestamp)
-```
-
-Future social features should go into `android/social-core` first, then be surfaced through `android/app`.
+See [`MAINTAIN.md`](MAINTAIN.md) for module boundaries, navigation architecture,
+and feature-specific conventions (theme mode, avatars, moderation entry points).

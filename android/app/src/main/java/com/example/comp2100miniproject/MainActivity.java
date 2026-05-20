@@ -33,6 +33,12 @@ import dao.model.User;
  */
 public class MainActivity extends AppCompatActivity implements TabHost {
 
+    /**
+     * Intent extra used by deep pages (e.g. PostViewerActivity) to ask
+     * MainActivity to surface the Trends tab pre-filtered by a hashtag.
+     */
+    public static final String EXTRA_TRENDS_TAG = "trends_tag";
+
     private static final String TAG_FEED = "tab_feed";
     private static final String TAG_TRENDS = "tab_trends";
     private static final String TAG_PROFILE = "tab_profile";
@@ -79,11 +85,44 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             currentTabId = bottomNav.getSelectedItemId();
         }
 
+        // Pad the root for the status bar and side gesture areas, but NOT
+        // for the bottom: we want the BottomNavigationView's background to
+        // extend all the way to the screen edge (under the gesture handle).
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
+
+        // Pad the BottomNavigationView's own bottom by the gesture-nav inset
+        // so its icons and labels stay above the gesture handle while its
+        // background fills that area in the bar's surface color.
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
+            return insets;
+        });
+
+        handleTrendsIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // A deep page (PostViewer) sent us back here with a hashtag - route
+        // straight to the Trends tab without rebuilding the activity.
+        setIntent(intent);
+        handleTrendsIntent(intent);
+    }
+
+    private void handleTrendsIntent(@Nullable Intent intent) {
+        if (intent == null) return;
+        String tag = intent.getStringExtra(EXTRA_TRENDS_TAG);
+        if (tag == null || tag.isEmpty()) return;
+        // Consume the extra so a later configuration change (e.g. rotation)
+        // does not silently re-trigger this jump.
+        intent.removeExtra(EXTRA_TRENDS_TAG);
+        showTrendsForTag(tag);
     }
 
     /**

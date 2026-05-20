@@ -23,6 +23,7 @@ import dao.UserDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import hashtag.HashtagParser;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
@@ -67,7 +68,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         }
 
         void display(Post post, AuthManager authManager, AvatarManager avatarManager, OnHashtagClick hashtagListener) {
-            title.setText(post.topic);
+            // The hashtags already render as chips below — keep them out of
+            // the title to make it readable.
+            title.setText(HashtagParser.stripTags(post.topic));
             User user = UserDAO.getInstance().getByUUID(post.poster);
             if (user != null) {
                 avatarManager.displayAvatar(user, avatar);
