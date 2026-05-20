@@ -82,9 +82,21 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             bottomNav.setSelectedItemId(R.id.navFeed);
         }
 
+        // Pad the root for the status bar and side gesture areas, but NOT
+        // for the bottom: we want the BottomNavigationView's background to
+        // extend all the way to the screen edge (under the gesture handle).
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
+            return insets;
+        });
+
+        // Pad the BottomNavigationView's own bottom by the gesture-nav inset
+        // so its icons and labels stay above the gesture handle while its
+        // background fills that area in the bar's surface color.
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
             return insets;
         });
 
