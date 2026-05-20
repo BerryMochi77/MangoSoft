@@ -183,13 +183,13 @@ public class PostViewerActivity extends AppCompatActivity {
     private void updateReactionButtons() {
         ReactionManager manager = ReactionManager.getInstance();
         Set<String> options = manager.getReactionOptions(post.getUUID());
-        String selected = manager.getUserReaction(post.getUUID(), currentUser.getUUID());
         reactionChipGroup.removeAllViews();
 
         for (String emoji : options) {
             Chip chip = reactionChip(emoji + " " + manager.getReactionCount(post.getUUID(), emoji));
-            chip.setChecked(emoji.equals(selected));
-            chip.setAlpha(emoji.equals(selected) ? 1f : 0.82f);
+            boolean selected = manager.hasUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
+            chip.setChecked(selected);
+            chip.setAlpha(selected ? 1f : 0.82f);
             chip.setOnClickListener(v -> {
                 manager.toggleReaction(post.getUUID(), currentUser.getUUID(), emoji);
                 updateReactionButtons();

@@ -369,3 +369,18 @@ git status --short
 cd android
 .\gradlew.bat build
 ```
+
+## Login and reactions maintenance
+
+Login credential memory is intentionally split into two behaviors:
+
+- The login screen always remembers the last successful username in `SharedPreferences` and pre-fills it next time.
+- Password memory is opt-in only. The `Remember password` checkbox stores or clears the password while keeping the last username.
+- Do not store this state in `User` records; it is device-local UI convenience state owned by `LoginActivity`.
+
+Post reactions are per-post, per-user emoji toggles:
+
+- Each emoji can be selected once per user. Tapping the same emoji again removes that user's reaction.
+- Selecting one emoji must not clear other selected emojis from the same user.
+- The `+` chip expands a quick emoji tray directly on the post detail page; avoid adding an extra submit dialog for quick reactions.
+- `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.

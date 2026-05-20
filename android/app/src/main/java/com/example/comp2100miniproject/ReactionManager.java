@@ -11,7 +11,7 @@ public class ReactionManager {
     private static ReactionManager instance;
 
     private final HashMap<UUID, ReactionData> reactions;
-    private final HashMap<UUID, HashMap<UUID, String>> userReactions;
+    private final HashMap<UUID, HashMap<UUID, LinkedHashSet<String>>> userReactions;
     private final HashMap<UUID, LinkedHashSet<String>> postReactionOptions;
 
     private ReactionManager() {
@@ -55,18 +55,19 @@ public class ReactionManager {
         return options;
     }
 
-    public String getUserReaction(UUID postId, UUID userId) {
-        Map<UUID, String> byUser = userReactions.get(postId);
-        if (byUser == null) return null;
-        return byUser.get(userId);
+    public boolean hasUserReaction(UUID postId, UUID userId, String emoji) {
+        Map<UUID, LinkedHashSet<String>> byUser = userReactions.get(postId);
+        if (byUser == null) return false;
+        Set<String> selected = byUser.get(userId);
+        return selected != null && selected.contains(emoji);
     }
 
     public int getReactionCount(UUID postId, String emoji) {
-        Map<UUID, String> byUser = userReactions.get(postId);
+        Map<UUID, LinkedHashSet<String>> byUser = userReactions.get(postId);
         if (byUser == null || emoji == null) return 0;
         int count = 0;
-        for (String selected : byUser.values()) {
-            if (emoji.equals(selected)) count++;
+        for (Set<String> selected : byUser.values()) {
+            if (selected.contains(emoji)) count++;
         }
         return count;
     }
@@ -75,17 +76,26 @@ public class ReactionManager {
         if (postId == null || userId == null || emoji == null || emoji.trim().isEmpty()) return;
         String cleanEmoji = emoji.trim();
         getReactionOptions(postId).add(cleanEmoji);
-        HashMap<UUID, String> byUser = userReactions.get(postId);
+        HashMap<UUID, LinkedHashSet<String>> byUser = userReactions.get(postId);
         if (byUser == null) {
             byUser = new HashMap<>();
             userReactions.put(postId, byUser);
         }
 
-        String current = byUser.get(userId);
-        if (cleanEmoji.equals(current)) {
-            byUser.remove(userId);
+        LinkedHashSet<String> selected = byUser.get(userId);
+        if (selected == null) {
+            selected = new LinkedHashSet<>();
+            byUser.put(userId, selected);
+        }
+
+        if (selected.contains(cleanEmoji)) {
+            selected.remove(cleanEmoji);
         } else {
-            byUser.put(userId, cleanEmoji);
+            selected.add(cleanEmoji);
+        }
+
+        if (selected.isEmpty()) {
+            byUser.remove(userId);
         }
     }
 }

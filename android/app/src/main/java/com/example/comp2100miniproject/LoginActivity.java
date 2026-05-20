@@ -23,8 +23,8 @@ import dao.model.User;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String PREF_LOGIN = "login_preferences";
-    private static final String KEY_REMEMBER = "remember_credentials";
-    private static final String KEY_USERNAME = "remembered_username";
+    private static final String KEY_REMEMBER_PASSWORD = "remember_password";
+    private static final String KEY_LAST_USERNAME = "last_username";
     private static final String KEY_PASSWORD = "remembered_password";
 
     private AuthManager authManager;
@@ -53,7 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         buttonLogin.setOnClickListener(v -> login());
         buttonRegister.setOnClickListener(v -> register());
         checkboxRememberCredentials.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!isChecked) clearRememberedCredentials();
+            if (!isChecked) clearRememberedPassword();
         });
 
         // Preview the avatar of whichever account matches the username being
@@ -108,33 +108,37 @@ public class LoginActivity extends AppCompatActivity {
 
     private void loadRememberedCredentials() {
         SharedPreferences preferences = getSharedPreferences(PREF_LOGIN, MODE_PRIVATE);
-        boolean remember = preferences.getBoolean(KEY_REMEMBER, false);
+        boolean remember = preferences.getBoolean(KEY_REMEMBER_PASSWORD, false);
         checkboxRememberCredentials.setChecked(remember);
+        inputUsername.setText(preferences.getString(KEY_LAST_USERNAME, ""));
         if (remember) {
-            inputUsername.setText(preferences.getString(KEY_USERNAME, ""));
             inputPassword.setText(preferences.getString(KEY_PASSWORD, ""));
         }
         refreshLoginAvatar(username());
     }
 
     private void updateRememberedCredentials() {
+        SharedPreferences.Editor editor = getSharedPreferences(PREF_LOGIN, MODE_PRIVATE)
+                .edit()
+                .putString(KEY_LAST_USERNAME, username());
+
         if (!checkboxRememberCredentials.isChecked()) {
-            clearRememberedCredentials();
+            editor.putBoolean(KEY_REMEMBER_PASSWORD, false)
+                    .remove(KEY_PASSWORD)
+                    .apply();
             return;
         }
 
-        getSharedPreferences(PREF_LOGIN, MODE_PRIVATE)
-                .edit()
-                .putBoolean(KEY_REMEMBER, true)
-                .putString(KEY_USERNAME, username())
+        editor.putBoolean(KEY_REMEMBER_PASSWORD, true)
                 .putString(KEY_PASSWORD, password())
                 .apply();
     }
 
-    private void clearRememberedCredentials() {
+    private void clearRememberedPassword() {
         getSharedPreferences(PREF_LOGIN, MODE_PRIVATE)
                 .edit()
-                .clear()
+                .putBoolean(KEY_REMEMBER_PASSWORD, false)
+                .remove(KEY_PASSWORD)
                 .apply();
     }
 

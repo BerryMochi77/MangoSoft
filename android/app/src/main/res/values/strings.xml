@@ -8,7 +8,7 @@
     <string name="login_failed">Invalid username or password</string>
     <string name="register_failed">Username must be 4-20 letters or digits, and password must be at least 4 characters</string>
     <string name="register_success">Account created</string>
-    <string name="remember_credentials">Remember username and password</string>
+    <string name="remember_credentials">Remember password</string>
     <string name="post_feed">Post Feed</string>
     <string name="feed">Feed</string>
     <string name="profile">Profile</string>
