@@ -17,6 +17,7 @@ public class Post implements HasUUID {
 	private boolean edited;
 	private boolean deleted;
 	private List<String> hashtags;
+	private String body;
 
 	public Post(UUID id, UUID poster, String topic) {
 		this.id = id;
@@ -24,6 +25,7 @@ public class Post implements HasUUID {
 		this.topic = topic;
 		this.messages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
 		this.hashtags = new ArrayList<>();
+		this.body = "";
 	}
 
 	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
@@ -62,6 +64,16 @@ public class Post implements HasUUID {
 	/** Add a single tag if not already present. */
 	public void addHashtag(String tag) {
 		if (!hashtags.contains(tag)) hashtags.add(tag);
+	}
+
+	/** Returns the post body/content (may be empty). */
+	public String getBody() {
+		return body == null ? "" : body;
+	}
+
+	/** Sets the post body/content. */
+	public void setBody(String body) {
+		this.body = body == null ? "" : body;
 	}
 
 	public boolean isEdited() {
