@@ -120,6 +120,31 @@ sdk.dir=C\:\\Users\\52734\\AppData\\Local\\Android\\Sdk
 4. 能用纯 Java 测试覆盖的逻辑，不写进 Activity。
 5. 修改消息可见性时，优先使用 `Post.getVisibleMessages(isAdmin)`，不要直接遍历 `post.messages` 给普通用户展示。
 
+## 顶层导航
+
+顶层页面共用同一个 Material `BottomNavigationView`：
+
+- 菜单：`android/app/src/main/res/menu/bottom_nav_menu.xml`
+- 图标：`res/drawable/ic_tab_*.xml`
+- 选中态颜色选择器：`res/color/bottom_nav_item_tint.xml`
+
+当前 4 个 Tab：`navFeed` / `navTrending` / `navProfile` / `navSettings`，分别对应
+`MainActivity` / `HashtagSearchActivity` / `ProfileActivity` / `SettingsActivity`。
+
+新增顶层页面时：
+
+1. 在 `bottom_nav_menu.xml` 增加 item，配套加一个 `ic_tab_*.xml`。
+2. 在 Activity 布局里直接复用同一个 `<BottomNavigationView ... app:menu="@menu/bottom_nav_menu"/>` 块。
+3. 在 `onCreate` 里 `bottomNav.setSelectedItemId(R.id.<own tab>)`，并在
+   `setOnItemSelectedListener` 里处理其他 Tab 的跳转，命中本页面时 `return true`，
+   其余 `return false` 以保留当前选中态。
+
+页面顶部如需返回按钮，使用统一的左上角箭头 `ImageButton`（参考
+`activity_post_viewer.xml` 的 `buttonBack`，drawable 为 `ic_arrow_back.xml`），
+不要再在底部放整宽的 Back 按钮。系统返回手势已自动可用。
+
+用户偏好（主题、账号入口、登出）统一放进 `SettingsActivity`，不要回到底部按钮或右上角弹窗的形式。
+
 ## Moderation 当前入口
 
 核心审核功能入口：

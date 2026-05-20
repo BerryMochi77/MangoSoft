@@ -3,7 +3,7 @@ package com.example.comp2100miniproject;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -72,7 +72,7 @@ public class HashtagSearchActivity extends AppCompatActivity {
 
         recyclerSearchResults.setLayoutManager(new LinearLayoutManager(this));
 
-        Button buttonBack = findViewById(R.id.buttonBack);
+        ImageButton buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
 
         currentTag = getIntent().getStringExtra(EXTRA_HASHTAG);

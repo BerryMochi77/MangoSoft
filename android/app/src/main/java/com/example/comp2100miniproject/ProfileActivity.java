@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.src.PostAdapter;
 import com.example.comp2100miniproject.src.ProfileReplyAdapter;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -93,17 +94,28 @@ public class ProfileActivity extends AppCompatActivity {
             renderRepliesPage();
         });
 
-        Button navFeed = findViewById(R.id.navFeed);
-        Button navProfile = findViewById(R.id.navProfile);
-        Button navLogout = findViewById(R.id.navLogout);
-        navProfile.setEnabled(false);
-        navFeed.setOnClickListener(v -> {
-            Intent intent = new Intent(ProfileActivity.this, MainActivity.class);
-            putCurrentUser(intent);
-            startActivity(intent);
-            finish();
+        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+        bottomNav.setSelectedItemId(R.id.navProfile);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.navProfile) {
+                return true;
+            } else if (id == R.id.navFeed) {
+                finish();
+                return false;
+            } else if (id == R.id.navTrending) {
+                Intent intent = new Intent(ProfileActivity.this, HashtagSearchActivity.class);
+                putCurrentUser(intent);
+                startActivity(intent);
+                return false;
+            } else if (id == R.id.navSettings) {
+                Intent intent = new Intent(ProfileActivity.this, SettingsActivity.class);
+                putCurrentUser(intent);
+                startActivity(intent);
+                return false;
+            }
+            return false;
         });
-        navLogout.setOnClickListener(v -> openLogin());
     }
 
     @Override
