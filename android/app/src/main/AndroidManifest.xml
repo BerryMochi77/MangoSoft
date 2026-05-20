@@ -13,21 +13,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.COMP2100Miniproject">
         <activity
+            android:name=".AvatarCropActivity"
+            android:exported="false" />
+        <activity
             android:name=".FrozenUsersActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".AdminReportsActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".PostViewerActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
         <activity
             android:name=".LoginActivity"
             android:exported="true">

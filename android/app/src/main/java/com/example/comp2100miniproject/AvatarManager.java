@@ -44,6 +44,7 @@ public class AvatarManager {
     public void displayAvatar(User user, ImageView imageView) {
         AuthManager.Avatar avatar = authManager.getAvatar(user);
         if (SOURCE_GALLERY.equals(avatar.source())) {
+            imageView.setImageDrawable(null);
             imageView.setImageURI(Uri.parse(avatar.value()));
             return;
         }

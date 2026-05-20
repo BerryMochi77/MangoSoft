@@ -37,7 +37,7 @@ import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
 
-/** Profile tab: edit display name + password, list user's posts and replies. */
+/** Profile tab: edit display name + password, avatar, and list user's posts and replies. */
 public class ProfileFragment extends Fragment {
     private static final int PAGE_SIZE = 3;
 
@@ -61,12 +61,13 @@ public class ProfileFragment extends Fragment {
     private Button buttonPrevReplies;
     private Button buttonNextReplies;
 
+    private ActivityResultLauncher<PickVisualMediaRequest> galleryAvatarLauncher;
+    private ActivityResultLauncher<Intent> avatarCropLauncher;
+
     private final ArrayList<Post> myPosts = new ArrayList<>();
     private final ArrayList<Message> myReplies = new ArrayList<>();
     private int postsPage = 0;
     private int repliesPage = 0;
-
-    private ActivityResultLauncher<PickVisualMediaRequest> galleryAvatarLauncher;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -81,16 +82,21 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Activity result launchers must be registered before the fragment
-        // reaches STARTED, so we do it in onCreate rather than onViewCreated.
-        // PickVisualMedia opens the Android Photo Picker (bottom sheet on
-        // API 33+, falls back to a system-managed picker on older versions)
-        // instead of the generic SAF document picker. The Photo Picker has
-        // its own visible close button, which is important on emulators
-        // where the gesture-back swipe is unreliable.
         galleryAvatarLauncher = registerForActivityResult(
                 new ActivityResultContracts.PickVisualMedia(),
                 this::setGalleryAvatar
+        );
+        avatarCropLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() != android.app.Activity.RESULT_OK || result.getData() == null) {
+                        return;
+                    }
+                    String croppedUri = result.getData().getStringExtra(AvatarCropActivity.EXTRA_CROPPED_URI);
+                    if (croppedUri != null) {
+                        applyCroppedAvatar(Uri.parse(croppedUri));
+                    }
+                }
         );
     }
 
@@ -186,12 +192,15 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setGalleryAvatar(Uri uri) {
-        // null = user backed out of the picker, treat as a no-op silently.
         if (uri == null) return;
 
-        // Photo Picker URIs are temporary and not persistable, so copy the
-        // bytes into the app's private files dir and store the local file
-        // URI. This way the avatar still loads after process restart.
+        Intent intent = new Intent(requireContext(), AvatarCropActivity.class);
+        intent.putExtra(AvatarCropActivity.EXTRA_SOURCE_URI, uri.toString());
+        intent.putExtra(AvatarCropActivity.EXTRA_USER_ID, currentUser.getUUID().toString());
+        avatarCropLauncher.launch(intent);
+    }
+
+    private void applyCroppedAvatar(Uri uri) {
         if (avatarManager.setGalleryAvatar(requireContext(), currentUser, uri)) {
             renderProfile();
             Toast.makeText(requireContext(), R.string.avatar_updated, Toast.LENGTH_SHORT).show();
@@ -261,7 +270,7 @@ public class ProfileFragment extends Fragment {
         repliesPage = clampPage(repliesPage, myReplies.size());
         textNoMyReplies.setVisibility(View.GONE);
         recyclerMyReplies.setVisibility(View.VISIBLE);
-        recyclerMyReplies.setAdapter(new ProfileReplyAdapter(pageReplies(), reply -> openPost(reply.thread())));
+        recyclerMyReplies.setAdapter(new ProfileReplyAdapter(requireContext(), pageReplies(), reply -> openPost(reply.thread())));
         updatePager(repliesPage, myReplies.size(), textRepliesPage, buttonPrevReplies, buttonNextReplies);
     }
 

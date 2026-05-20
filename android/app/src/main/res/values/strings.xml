@@ -57,6 +57,9 @@
     <string name="profile_avatar">Profile avatar</string>
     <string name="choose_default_avatar">Choose default avatar</string>
     <string name="choose_gallery_avatar">Choose from album</string>
+    <string name="crop_avatar">Crop avatar</string>
+    <string name="crop_avatar_hint">Drag to reposition. Pinch with two fingers to zoom.</string>
+    <string name="save_avatar">Save avatar</string>
     <string name="avatar_default_1">Blue avatar</string>
     <string name="avatar_default_2">Green avatar</string>
     <string name="avatar_default_3">Purple avatar</string>
@@ -89,7 +92,7 @@
     <string name="reply_deleted">Reply deleted</string>
     <string name="post_updated">Post updated</string>
     <string name="reply_updated">Reply updated</string>
-    <string name="edited_label">\u005B\u5DF2\u7F16\u8F91\u005D</string>
+    <string name="edited_label">[edited]</string>
     <string name="trending">Trending</string>
     <string name="trending_tags">Trending Tags</string>
     <string name="trending_tags_title">Trending Tags</string>
