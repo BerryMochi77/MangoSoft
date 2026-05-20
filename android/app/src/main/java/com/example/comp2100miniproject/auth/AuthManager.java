@@ -93,6 +93,17 @@ public class AuthManager {
         return new Avatar(source, value);
     }
 
+    public ProfileBackground getProfileBackground(User user) {
+        if (user == null) return ProfileBackground.defaultBackground();
+        JSONObject json = findStoredUserJson(user.getUUID());
+        if (json == null) return ProfileBackground.defaultBackground();
+
+        String source = json.optString("profileBackgroundSource", ProfileBackground.SOURCE_DEFAULT);
+        String value = json.optString("profileBackgroundValue", ProfileBackground.DEFAULT_VALUE);
+        if (source.trim().isEmpty() || value.trim().isEmpty()) return ProfileBackground.defaultBackground();
+        return new ProfileBackground(source, value);
+    }
+
     public boolean updateAvatar(UUID userId, String source, String value) {
         if (userId == null || source == null || value == null || source.trim().isEmpty() || value.trim().isEmpty()) {
             return false;
@@ -106,6 +117,28 @@ public class AuthManager {
             try {
                 json.put("avatarSource", source);
                 json.put("avatarValue", value);
+                writeUsers(users);
+                return true;
+            } catch (JSONException ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public boolean updateProfileBackground(UUID userId, String source, String value) {
+        if (userId == null || source == null || value == null || source.trim().isEmpty() || value.trim().isEmpty()) {
+            return false;
+        }
+
+        JSONArray users = readUsers();
+        for (int i = 0; i < users.length(); i++) {
+            JSONObject json = users.optJSONObject(i);
+            if (json == null || !userId.toString().equals(json.optString("id"))) continue;
+
+            try {
+                json.put("profileBackgroundSource", source);
+                json.put("profileBackgroundValue", value);
                 writeUsers(users);
                 return true;
             } catch (JSONException ignored) {
@@ -255,6 +288,8 @@ public class AuthManager {
             json.put("password", user.password());
             json.put("avatarSource", Avatar.SOURCE_DEFAULT);
             json.put("avatarValue", Avatar.DEFAULT_VALUE);
+            json.put("profileBackgroundSource", ProfileBackground.SOURCE_DEFAULT);
+            json.put("profileBackgroundValue", ProfileBackground.DEFAULT_VALUE);
         } catch (JSONException ignored) {
         }
         return json;
@@ -285,6 +320,15 @@ public class AuthManager {
 
         public static Avatar defaultAvatar() {
             return new Avatar(SOURCE_DEFAULT, DEFAULT_VALUE);
+        }
+    }
+
+    public record ProfileBackground(String source, String value) {
+        public static final String SOURCE_DEFAULT = "default";
+        public static final String DEFAULT_VALUE = "profile_background_default_1";
+
+        public static ProfileBackground defaultBackground() {
+            return new ProfileBackground(SOURCE_DEFAULT, DEFAULT_VALUE);
         }
     }
 }

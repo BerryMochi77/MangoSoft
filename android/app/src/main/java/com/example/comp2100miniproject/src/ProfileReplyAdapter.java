@@ -19,6 +19,7 @@ import java.util.List;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.User;
+import messagestate.MessageEditRegistry;
 
 public class ProfileReplyAdapter extends RecyclerView.Adapter<ProfileReplyAdapter.VH> {
     public interface OnReplyClick {
@@ -55,7 +56,8 @@ public class ProfileReplyAdapter extends RecyclerView.Adapter<ProfileReplyAdapte
             } else {
                 avatar.setImageResource(R.drawable.avatar_default_1);
             }
-            title.setText(preview(message.message()));
+            title.setText(preview(MessageEditRegistry.getInstance()
+                    .currentContent(message.id(), message.message())));
             String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
             meta.setText(time);
         }

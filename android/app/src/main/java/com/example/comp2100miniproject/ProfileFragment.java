@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,6 +37,7 @@ import dao.PostDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import messagestate.MessageDeletionRegistry;
 
 /** Profile tab: edit display name + password, avatar, and list user's posts and replies. */
 public class ProfileFragment extends Fragment {
@@ -44,11 +46,11 @@ public class ProfileFragment extends Fragment {
     private TabHost host;
     private AuthManager authManager;
     private AvatarManager avatarManager;
+    private ProfileBackgroundManager profileBackgroundManager;
     private User currentUser;
 
     private ImageView imageAvatar;
-    private EditText inputDisplayName;
-    private EditText inputNewPassword;
+    private ImageView imageProfileBackground;
     private TextView textUsername;
     private TextView textNoMyPosts;
     private TextView textNoMyReplies;
@@ -62,6 +64,7 @@ public class ProfileFragment extends Fragment {
     private Button buttonNextReplies;
 
     private ActivityResultLauncher<PickVisualMediaRequest> galleryAvatarLauncher;
+    private ActivityResultLauncher<PickVisualMediaRequest> galleryBackgroundLauncher;
     private ActivityResultLauncher<Intent> avatarCropLauncher;
 
     private final ArrayList<Post> myPosts = new ArrayList<>();
@@ -85,6 +88,10 @@ public class ProfileFragment extends Fragment {
         galleryAvatarLauncher = registerForActivityResult(
                 new ActivityResultContracts.PickVisualMedia(),
                 this::setGalleryAvatar
+        );
+        galleryBackgroundLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::setGalleryBackground
         );
         avatarCropLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -112,12 +119,12 @@ public class ProfileFragment extends Fragment {
 
         authManager = new AuthManager(requireContext());
         avatarManager = new AvatarManager(authManager);
+        profileBackgroundManager = new ProfileBackgroundManager(authManager);
         currentUser = host.currentUser();
 
         imageAvatar = view.findViewById(R.id.imageAvatar);
+        imageProfileBackground = view.findViewById(R.id.imageProfileBackground);
         textUsername = view.findViewById(R.id.textUsername);
-        inputDisplayName = view.findViewById(R.id.inputDisplayName);
-        inputNewPassword = view.findViewById(R.id.inputNewPassword);
         textNoMyPosts = view.findViewById(R.id.textNoMyPosts);
         textNoMyReplies = view.findViewById(R.id.textNoMyReplies);
         textPostsPage = view.findViewById(R.id.textPostsPage);
@@ -135,9 +142,7 @@ public class ProfileFragment extends Fragment {
         renderProfile();
         renderContentPages();
 
-        view.findViewById(R.id.buttonSaveProfile).setOnClickListener(v -> saveProfile());
-        view.findViewById(R.id.buttonChooseDefaultAvatar).setOnClickListener(v -> showDefaultAvatarChooser());
-        view.findViewById(R.id.buttonChooseGalleryAvatar).setOnClickListener(v -> chooseGalleryAvatar());
+        view.findViewById(R.id.buttonEditProfile).setOnClickListener(v -> showEditProfileChooser());
         buttonPrevPosts.setOnClickListener(v -> {
             postsPage--;
             renderPostsPage();
@@ -165,9 +170,122 @@ public class ProfileFragment extends Fragment {
     }
 
     private void renderProfile() {
+        profileBackgroundManager.displayBackground(currentUser, imageProfileBackground);
         avatarManager.displayAvatar(currentUser, imageAvatar);
         textUsername.setText(getString(R.string.username_value, currentUser.username()));
-        inputDisplayName.setText(authManager.getDisplayName(currentUser));
+    }
+
+    private void showEditProfileChooser() {
+        String[] options = {
+                getString(R.string.change_avatar),
+                getString(R.string.change_profile_background),
+                getString(R.string.change_display_name),
+                getString(R.string.change_password)
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.edit_profile)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showAvatarSourceChooser();
+                    } else if (which == 1) {
+                        showProfileBackgroundSourceChooser();
+                    } else if (which == 2) {
+                        showDisplayNameDialog();
+                    } else if (which == 3) {
+                        showPasswordDialog();
+                    }
+                })
+                .show();
+    }
+
+    private void showDisplayNameDialog() {
+        EditText input = dialogInput(R.string.display_name, InputType.TYPE_CLASS_TEXT);
+        input.setText(authManager.getDisplayName(currentUser));
+        input.setSelectAllOnFocus(true);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.change_display_name)
+                .setView(input)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.submit, (dialog, which) ->
+                        saveDisplayName(input.getText().toString()))
+                .show();
+    }
+
+    private void showPasswordDialog() {
+        EditText input = dialogInput(
+                R.string.new_password,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+        );
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.change_password)
+                .setView(input)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.submit, (dialog, which) ->
+                        savePassword(input.getText().toString()))
+                .show();
+    }
+
+    private EditText dialogInput(int hintResId, int inputType) {
+        EditText input = new EditText(requireContext());
+        input.setHint(hintResId);
+        input.setInputType(inputType);
+        input.setSingleLine(true);
+        return input;
+    }
+
+    private void saveDisplayName(String displayName) {
+        boolean saved = authManager.updateProfile(
+                currentUser.getUUID(),
+                displayName,
+                ""
+        );
+        showProfileSaveResult(saved);
+    }
+
+    private void savePassword(String newPassword) {
+        if (newPassword == null || newPassword.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.profile_save_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean saved = authManager.updateProfile(
+                currentUser.getUUID(),
+                authManager.getDisplayName(currentUser),
+                newPassword
+        );
+        showProfileSaveResult(saved);
+    }
+
+    private void showProfileSaveResult(boolean saved) {
+        if (!saved) {
+            Toast.makeText(requireContext(), R.string.profile_save_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        currentUser = authManager.getUser(currentUser.getUUID());
+        renderProfile();
+        Toast.makeText(requireContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showAvatarSourceChooser() {
+        String[] options = {
+                getString(R.string.choose_default_avatar),
+                getString(R.string.choose_gallery_avatar)
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.select_avatar_source)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showDefaultAvatarChooser();
+                    } else if (which == 1) {
+                        chooseGalleryAvatar();
+                    }
+                })
+                .show();
     }
 
     private void showDefaultAvatarChooser() {
@@ -209,6 +327,56 @@ public class ProfileFragment extends Fragment {
         }
     }
 
+    private void showProfileBackgroundSourceChooser() {
+        String[] options = {
+                getString(R.string.choose_default_profile_background),
+                getString(R.string.choose_gallery_profile_background)
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.select_profile_background_source)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showDefaultProfileBackgroundChooser();
+                    } else if (which == 1) {
+                        chooseGalleryProfileBackground();
+                    }
+                })
+                .show();
+    }
+
+    private void showDefaultProfileBackgroundChooser() {
+        ProfileBackgroundManager.BackgroundOption[] options = profileBackgroundManager.defaultBackgrounds();
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.choose_default_profile_background)
+                .setItems(profileBackgroundManager.defaultBackgroundLabels(requireContext()), (dialog, which) -> {
+                    if (profileBackgroundManager.setDefaultBackground(currentUser, options[which])) {
+                        renderProfile();
+                        Toast.makeText(requireContext(), R.string.profile_background_updated, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), R.string.profile_background_update_failed, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+    private void chooseGalleryProfileBackground() {
+        galleryBackgroundLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void setGalleryBackground(Uri uri) {
+        if (uri == null) return;
+
+        if (profileBackgroundManager.setGalleryBackground(requireContext(), currentUser, uri)) {
+            renderProfile();
+            Toast.makeText(requireContext(), R.string.profile_background_updated, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(requireContext(), R.string.profile_background_update_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void collectUserContent() {
         myPosts.clear();
         myReplies.clear();
@@ -221,10 +389,13 @@ public class ProfileFragment extends Fragment {
             }
         }
 
+        MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
         Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
         while (messages.hasNext()) {
             Message message = messages.next();
-            if (!message.isDeleted() && currentUser.getUUID().equals(message.poster()) && isPostVisible(message.thread())) {
+            if (!deletions.isDeleted(message.id())
+                    && currentUser.getUUID().equals(message.poster())
+                    && isPostVisible(message.thread())) {
                 myReplies.add(message);
             }
         }
@@ -302,23 +473,6 @@ public class ProfileFragment extends Fragment {
     private int totalPages(int itemCount) {
         if (itemCount == 0) return 0;
         return (itemCount + PAGE_SIZE - 1) / PAGE_SIZE;
-    }
-
-    private void saveProfile() {
-        boolean saved = authManager.updateProfile(
-                currentUser.getUUID(),
-                inputDisplayName.getText().toString(),
-                inputNewPassword.getText().toString()
-        );
-        if (!saved) {
-            Toast.makeText(requireContext(), R.string.profile_save_failed, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        currentUser = authManager.getUser(currentUser.getUUID());
-        inputNewPassword.setText("");
-        renderProfile();
-        Toast.makeText(requireContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
     }
 
     private void openPost(UUID postId) {

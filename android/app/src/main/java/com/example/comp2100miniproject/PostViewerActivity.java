@@ -1,16 +1,21 @@
 package com.example.comp2100miniproject;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,8 +28,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
 import com.example.comp2100miniproject.src.MessageAdapter;
+import com.example.comp2100miniproject.src.ThreadConnectorDecoration;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+
+import messagestate.MessageDeletionRegistry;
+import messagestate.MessageEditRegistry;
+import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -50,10 +60,20 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
+    private ImageView imagePostAttachment;
     private ChipGroup chipGroupPostHashtags;
     private ImageView imagePostAuthorAvatar;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
+    private EditText activeComposerInput;
+    private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
+
+    /**
+     * Threaded (depth-first) list of currently-visible messages. Updated on
+     * every {@link #loadMessages()}. Used both as the adapter's data source
+     * and as the lookup for {@link ThreadConnectorDecoration}.
+     */
+    private ArrayList<Message> threadedMessages = new ArrayList<>();
 
     private Button buttonLike;
     private Button buttonHeart;
@@ -63,6 +83,10 @@ public class PostViewerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        composerImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                this::insertSelectedImage
+        );
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_post_viewer);
 
@@ -91,6 +115,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
+        imagePostAttachment = findViewById(R.id.imagePostAttachment);
         chipGroupPostHashtags = findViewById(R.id.chipGroupPostHashtags);
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
         recyclerMessages = findViewById(R.id.recyclerMessages);
@@ -104,12 +129,19 @@ public class PostViewerActivity extends AppCompatActivity {
         setupReactionButtons();
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        // ItemDecoration paints the parent-to-child L connectors. It reads
+        // the current threaded list via a method reference so it stays in
+        // sync as loadMessages() rebuilds the list after edits/replies.
+        recyclerMessages.addItemDecoration(
+                new ThreadConnectorDecoration(this, this::messageIdAt));
 
         ImageButton buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
 
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
         buttonSendReply.setOnClickListener(v -> addReply());
+        ImageButton buttonReplyMore = findViewById(R.id.buttonReplyMore);
+        buttonReplyMore.setOnClickListener(v -> showComposerMenu(inputReply));
 
         LinearLayout postOwnerActions = findViewById(R.id.postOwnerActions);
         boolean ownsPost = currentUser.getUUID().equals(post.poster);
@@ -165,8 +197,6 @@ public class PostViewerActivity extends AppCompatActivity {
     private void renderPost() {
         // Strip #tags out of the title - they render as chips below.
         textPostTitle.setText(HashtagParser.stripTags(post.topic));
-        textPostAuthor.setText("Posted by " + authorName(post));
-        textPostTitle.setText(post.topic);
         User poster = UserDAO.getInstance().getByUUID(post.poster);
         if (poster != null) {
             avatarManager.displayAvatar(poster, imagePostAuthorAvatar);
@@ -177,12 +207,7 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         renderHashtagChips();
         String body = post.getBody();
-        if (body.isEmpty()) {
-            textPostBody.setVisibility(View.GONE);
-        } else {
-            textPostBody.setVisibility(View.VISIBLE);
-            textPostBody.setText(body);
-        }
+        ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
     }
 
     private void renderHashtagChips() {
@@ -225,39 +250,157 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-        ArrayList<Message> messages = new ArrayList<>();
+        ArrayList<Message> timeSorted = new ArrayList<>();
         Iterator<Message> it = post.getVisibleMessages(currentUser.role() == User.Role.Admin).getAll();
         while (it.hasNext()) {
-            messages.add(it.next());
+            timeSorted.add(it.next());
         }
+
+        // Reorder time-sorted messages into Reddit-style depth-first order so
+        // every reply sits directly under its parent. MessageAdapter picks
+        // depth back out of MessageThreadRegistry when computing indent, and
+        // ThreadConnectorDecoration uses threadedMessages to find each
+        // child's parent View when painting the L connector.
+        threadedMessages = new ArrayList<>(
+                MessageThreadRegistry.getInstance().flatten(timeSorted, Message::id));
 
         recyclerMessages.setAdapter(new MessageAdapter(
                 this,
-                messages,
+                threadedMessages,
                 currentUser.getUUID(),
                 this::showReportDialog,
                 this::showEditReplyDialog,
-                this::confirmDeleteReply
+                this::confirmDeleteReply,
+                this::showReplyDialog
         ));
     }
 
+    /** Lookup used by {@link ThreadConnectorDecoration}. */
+    private UUID messageIdAt(int position) {
+        if (position < 0 || position >= threadedMessages.size()) return null;
+        return threadedMessages.get(position).id();
+    }
+
     private void addReply() {
-        String content = inputReply.getText().toString().trim();
+        addReplyMessage(inputReply.getText().toString(), null);
+        inputReply.setText("");
+    }
+
+    /**
+     * Insert a reply. If {@code parentMessageId} is non-null, record the
+     * parent/child relationship in {@link MessageThreadRegistry} so the
+     * new message renders indented beneath the message it replies to.
+     */
+    private void addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
+        String content = rawContent == null ? "" : rawContent.trim();
         if (content.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
             return;
         }
 
+        UUID newId = UUID.randomUUID();
         post.messages.insert(new Message(
-                UUID.randomUUID(),
+                newId,
                 currentUser.getUUID(),
                 post.getUUID(),
                 System.currentTimeMillis(),
                 content
         ));
-        inputReply.setText("");
+        if (parentMessageId != null) {
+            MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
+        }
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
+    }
+
+    private void showReplyDialog(Message parent) {
+        EditText input = new EditText(this);
+        input.setHint(R.string.write_reply_hint);
+        input.setMinLines(3);
+
+        int dp8 = (int) (8 * getResources().getDisplayMetrics().density);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.addView(input, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        ImageButton moreButton = composerMoreButton();
+        LinearLayout toolRow = new LinearLayout(this);
+        toolRow.setGravity(android.view.Gravity.END);
+        toolRow.setPadding(0, dp8, 0, 0);
+        toolRow.addView(moreButton);
+        container.addView(toolRow);
+        moreButton.setOnClickListener(v -> showComposerMenu(input));
+
+        User author = UserDAO.getInstance().getByUUID(parent.poster());
+        String authorName = author == null ? "Unknown user" : authManager.getDisplayName(author);
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.reply_to, authorName))
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.send, (dialog, which) ->
+                        addReplyMessage(input.getText().toString(), parent.id()))
+                .show();
+    }
+
+    private ImageButton composerMoreButton() {
+        ImageButton button = new ImageButton(this);
+        int size = (int) (44 * getResources().getDisplayMetrics().density);
+        button.setLayoutParams(new LinearLayout.LayoutParams(size, size));
+        button.setBackgroundResource(R.drawable.bg_fab_circle);
+        button.setImageResource(R.drawable.ic_add_format);
+        button.setContentDescription(getString(R.string.more_composer_options));
+        button.setPadding(10, 10, 10, 10);
+        return button;
+    }
+
+    private void showComposerMenu(EditText input) {
+        activeComposerInput = input;
+        String[] options = {
+                getString(R.string.add_image),
+                getString(R.string.add_emoji)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.more_composer_options)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        chooseComposerImage();
+                    } else if (which == 1) {
+                        showEmojiChooser(input);
+                    }
+                })
+                .show();
+    }
+
+    private void chooseComposerImage() {
+        composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void insertSelectedImage(Uri uri) {
+        if (activeComposerInput == null || uri == null) return;
+
+        Uri copied = ComposerFormatManager.copyImage(this, uri);
+        if (copied == null) {
+            Toast.makeText(this, R.string.image_attach_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ComposerFormatManager.insertImage(activeComposerInput, copied);
+        Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showEmojiChooser(EditText input) {
+        String[] emojis = {"🙂", "😂", "😍", "👍", "🔥", "🎉"};
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_emoji)
+                .setItems(emojis, (dialog, which) ->
+                        ComposerFormatManager.insertEmoji(input, emojis[which]))
+                .show();
     }
 
     private void showEditPostDialog() {
@@ -305,7 +448,9 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void showEditReplyDialog(Message message) {
         EditText input = new EditText(this);
-        input.setText(message.message());
+        // Show the latest edited content if any, otherwise the original.
+        input.setText(MessageEditRegistry.getInstance()
+                .currentContent(message.id(), message.message()));
         input.setSelection(input.getText().length());
         input.setMinLines(3);
 
@@ -324,8 +469,8 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
-        message.setMessage(cleanContent);
-        message.setEdited(true);
+        // Per-message state lives in sidecars, not on Message itself.
+        MessageEditRegistry.getInstance().recordEdit(message.id(), cleanContent);
         Toast.makeText(this, R.string.reply_updated, Toast.LENGTH_SHORT).show();
         loadMessages();
     }
@@ -335,7 +480,7 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setTitle(R.string.delete_reply_confirm)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
-                    message.setDeleted(true);
+                    MessageDeletionRegistry.getInstance().markDeleted(message.id());
                     Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                     loadMessages();
                 })
@@ -352,8 +497,7 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    private String authorName(Post post) {
-        User user = UserDAO.getInstance().getByUUID(post.poster);
+    private String authorName(User user) {
         return user == null ? "Unknown author" : authManager.getDisplayName(user);
     }
 

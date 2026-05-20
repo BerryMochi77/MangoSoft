@@ -105,6 +105,71 @@ cd D:\IntellJ_Project\Hackthon\hackathon\android
 .\gradlew.bat build
 ```
 
+## Profile appearance maintenance
+
+Profile avatar and profile background are both user-facing appearance settings owned by the Android app layer. They do not modify `User`, `Post`, or `Message` domain models.
+
+Current entry point:
+
+- `ProfileFragment` -> `Edit profile`
+- `Change avatar` -> default avatar or album image
+- `Change profile background` -> default background or album image
+- `Change display name` and `Change password` remain in the same menu
+
+Storage:
+
+- Avatar state is stored in `users.json` as `avatarSource` and `avatarValue`.
+- Profile background state is stored in `users.json` as `profileBackgroundSource` and `profileBackgroundValue`.
+- Existing users without background fields fall back to `profile_background_default_1`.
+- Album images are copied into app-private storage before saving the file URI, because Photo Picker URIs are temporary.
+
+Code ownership:
+
+- `AvatarManager` handles default/gallery avatar display and persistence calls.
+- `ProfileBackgroundManager` handles default/gallery profile background display and persistence calls.
+- `AuthManager` owns reading/writing the user JSON appearance fields.
+- `ProfileFragment` owns the menu flow and screen refresh.
+
+How to add a default profile background:
+
+1. Add a drawable under `android/app/src/main/res/drawable/`.
+2. Add a label string in `android/app/src/main/res/values/strings.xml`.
+3. Register it in `ProfileBackgroundManager.DEFAULT_BACKGROUNDS`.
+4. Keep the option key stable because saved user records refer to it.
+
+How to show a user's profile background elsewhere:
+
+```java
+ProfileBackgroundManager manager = new ProfileBackgroundManager(authManager);
+manager.displayBackground(user, imageView);
+```
+
+## Composer format options
+
+Post creation and reply composition share a small "more options" composer menu. The entry point is a plus button:
+
+- In `FeedFragment`, the plus button is shown in the create-post dialog and inserts formatting into the post body.
+- In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
+- Reply-to-message dialogs also expose the same plus menu.
+
+Current options:
+
+- `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
+- `Add emoji`: inserts the selected emoji at the cursor.
+
+Architecture:
+
+- `ComposerFormatManager` owns the formatting tokens, image copy logic, and rendering helper.
+- `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
+- `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
+
+How to add another format option:
+
+1. Add the option label in `strings.xml`.
+2. Add a branch in `showComposerMenu(...)` for both `FeedFragment` and `PostViewerActivity`.
+3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
+4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
+
 当前已验证：
 
 ```text
@@ -220,6 +285,34 @@ SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
   Photo Picker 返回的 URI 不能 `takePersistableUriPermission`，所以拷贝是必须的
 - 在别的页面显示某个用户的头像：`new AvatarManager(authManager).displayAvatar(user, imageView)`
 - 增加默认头像：加 drawable + 加 string label + 在 `DEFAULT_AVATARS` 里注册一项
+
+## Per-message state（sidecar pattern）
+
+Hackathon 2 brief 的硬约束：
+
+> "New features that introduce additional per-message state (e.g., reactions) should avoid modifying the `Message` data model (e.g., be SOLID)."
+
+也就是说，[`Message`](android/social-core/src/main/java/dao/model/Message.java) 只保留 Hackathon 1 时就有的字段（id / poster / thread / timestamp / message / hidden），所有 Hackathon 1 之后新增的 per-message 状态都走 **sidecar registry**，放在 social-core 的 `messagestate/` 包里。
+
+当前已有三个 sidecar：
+
+| Registry | 职责 | 例子 |
+|---|---|---|
+| [`MessageEditRegistry`](android/social-core/src/main/java/messagestate/MessageEditRegistry.java) | 记录哪些 message 被编辑过 + 当前内容 | `recordEdit(id, newContent)` / `currentContent(id, original)` |
+| [`MessageDeletionRegistry`](android/social-core/src/main/java/messagestate/MessageDeletionRegistry.java) | 软删除标记 | `markDeleted(id)` / `isDeleted(id)` |
+| [`MessageThreadRegistry`](android/social-core/src/main/java/messagestate/MessageThreadRegistry.java) | Reddit 风格嵌套回帖的父子关系 | `setParent(child, parent)` / `depthOf(id)` / `flatten(list, idOf)` |
+
+**约定**：
+
+- Registry 是单例（`getInstance()`），key 永远是 `Message.id()`
+- UI 显示消息时调 `MessageEditRegistry.currentContent(id, msg.message())`，不要直接用 `msg.message()`
+- 过滤可见消息走 [`Post.getVisibleMessages(isAdmin)`](android/social-core/src/main/java/dao/model/Post.java)，它内部会查 `MessageDeletionRegistry`
+- 渲染线程时先用 `MessageThreadRegistry.flatten(timeSorted, Message::id)` 重排成深度优先列表，再交给 `MessageAdapter`；adapter 让 `ThreadIndentView` 按 `depthOf` 占宽度，而连接父子头像的 L 线由 `ThreadConnectorDecoration`（一个 `RecyclerView.ItemDecoration`）在 RecyclerView 画布上跨行绘制 —— View 不能画到自己边界外，所以这部分用 ItemDecoration
+- `Message` 模型保持 6 字段 + `hidden`，**不要加新字段**
+
+**新增 per-message 特性**（点赞、收藏、置顶、reaction、…）一律按同款 sidecar 模板：social-core 下加一个新的 `*Registry` singleton，key 是 `Message.id()`，UI 层在渲染时按需查。Message 模型保持不变。
+
+> 注：reactions 当前的 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java) 在 app 模块下而不是 social-core，是历史遗留——它的 key 实际上是 post UUID 而不是 message UUID。如果以后要做 per-message reactions，新写一个 social-core 下的 `MessageReactionRegistry` 跟当前两个 sidecar 同款即可。
 
 ## Moderation 当前入口
 

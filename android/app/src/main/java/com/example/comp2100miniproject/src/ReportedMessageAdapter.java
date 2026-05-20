@@ -18,6 +18,7 @@ import java.util.List;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.User;
+import messagestate.MessageEditRegistry;
 
 public class ReportedMessageAdapter extends RecyclerView.Adapter<ReportedMessageAdapter.VH> {
     public interface OnActionClick {
@@ -71,7 +72,8 @@ public class ReportedMessageAdapter extends RecyclerView.Adapter<ReportedMessage
         ) {
             User user = UserDAO.getInstance().getByUUID(message.poster());
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
-            content.setText(message.message());
+            content.setText(MessageEditRegistry.getInstance()
+                    .currentContent(message.id(), message.message()));
             actionButton.setText(actionLabel);
             actionButton.setEnabled(true);
             actionButton.setOnClickListener(v -> onActionClick.onAction(message));

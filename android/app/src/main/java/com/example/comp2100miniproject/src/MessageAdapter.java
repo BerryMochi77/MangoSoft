@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.AvatarManager;
+import com.example.comp2100miniproject.ComposerFormatManager;
+import com.example.comp2100miniproject.ThreadIndentView;
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import java.util.ArrayList;
@@ -24,8 +26,14 @@ import java.util.UUID;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.User;
+import messagestate.MessageEditRegistry;
+import messagestate.MessageThreadRegistry;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
+
+    /** Cap visual nesting so deep threads do not slide off the screen on a phone. */
+    private static final int MAX_VISUAL_DEPTH = 5;
+
     public interface OnReportClick {
         void onReport(Message message);
     }
@@ -39,6 +47,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     private final OnReportClick onReportClick;
     private final OnMessageActionClick onEditClick;
     private final OnMessageActionClick onDeleteClick;
+    private final OnMessageActionClick onReplyClick;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
 
@@ -48,22 +57,27 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             UUID currentUserId,
             OnReportClick onReportClick,
             OnMessageActionClick onEditClick,
-            OnMessageActionClick onDeleteClick
+            OnMessageActionClick onDeleteClick,
+            OnMessageActionClick onReplyClick
     ) {
         messages = dataSet.toArray(new Message[0]);
         this.currentUserId = currentUserId;
         this.onReportClick = onReportClick;
         this.onEditClick = onEditClick;
         this.onDeleteClick = onDeleteClick;
+        this.onReplyClick = onReplyClick;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        private final ThreadIndentView indent;
         private final ImageView avatar;
         private final TextView author;
         private final TextView timestamp;
         private final TextView content;
+        private final ImageView attachment;
+        private final ImageButton replyButton;
         private final ImageButton reportButton;
         private final LinearLayout ownerActions;
         private final Button editButton;
@@ -71,10 +85,13 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
         public ViewHolder(View view) {
             super(view);
+            indent = view.findViewById(R.id.threadIndent);
             avatar = view.findViewById(R.id.imageMessageAvatar);
             author = view.findViewById(R.id.textMessageAuthor);
             timestamp = view.findViewById(R.id.textMessageTimestamp);
             content = view.findViewById(R.id.textMessageContent);
+            attachment = view.findViewById(R.id.imageMessageAttachment);
+            replyButton = view.findViewById(R.id.buttonReplyMessage);
             reportButton = view.findViewById(R.id.buttonReportMessage);
             ownerActions = view.findViewById(R.id.messageOwnerActions);
             editButton = view.findViewById(R.id.buttonEditMessage);
@@ -87,9 +104,16 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 OnReportClick onReportClick,
                 OnMessageActionClick onEditClick,
                 OnMessageActionClick onDeleteClick,
+                OnMessageActionClick onReplyClick,
                 AuthManager authManager,
                 AvatarManager avatarManager
         ) {
+            // Thread lines on the left mark nesting depth, the way Reddit
+            // visualises a comment tree. Cap so deep threads still fit on
+            // a phone.
+            int depth = MessageThreadRegistry.getInstance().depthOf(message.id());
+            indent.setDepth(Math.min(depth, MAX_VISUAL_DEPTH));
+
             User user = UserDAO.getInstance().getByUUID(message.poster());
             if (user != null) {
                 avatarManager.displayAvatar(user, avatar);
@@ -98,13 +122,21 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             }
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
 
+            MessageEditRegistry edits = MessageEditRegistry.getInstance();
             String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
-            if (message.isEdited()) time += " " + itemView.getContext().getString(R.string.edited_label);
+            if (edits.isEdited(message.id())) time += " " + itemView.getContext().getString(R.string.edited_label);
             if (message.isHidden()) time += " - hidden from members";
             timestamp.setText(time);
 
-            content.setText(message.message());
+            ComposerFormatManager.bindContent(
+                    edits.currentContent(message.id(), message.message()),
+                    content,
+                    attachment
+            );
             boolean mine = currentUserId != null && currentUserId.equals(message.poster());
+            // Reply is available to everyone, including the author.
+            replyButton.setVisibility(View.VISIBLE);
+            replyButton.setOnClickListener(v -> onReplyClick.onAction(message));
             reportButton.setVisibility(mine ? View.GONE : View.VISIBLE);
             ownerActions.setVisibility(mine ? View.VISIBLE : View.GONE);
             reportButton.setOnClickListener(v -> onReportClick.onReport(message));
@@ -129,6 +161,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 onReportClick,
                 onEditClick,
                 onDeleteClick,
+                onReplyClick,
                 authManager,
                 avatarManager
         );
