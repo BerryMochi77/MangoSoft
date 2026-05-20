@@ -4,9 +4,11 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -42,6 +44,9 @@ public class CreatePostActivity extends AppCompatActivity {
     private EditText inputBody;
     private EditText inputTags;
     private ChipGroup chipGroupTags;
+    private View attachmentPreviewCard;
+    private ImageView imageAttachmentPreview;
+    private Uri attachedImageUri;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
 
     @Override
@@ -65,6 +70,8 @@ public class CreatePostActivity extends AppCompatActivity {
         inputBody = findViewById(R.id.inputPostBody);
         inputTags = findViewById(R.id.inputPostTags);
         chipGroupTags = findViewById(R.id.chipGroupPostTags);
+        attachmentPreviewCard = findViewById(R.id.attachmentPreviewCard);
+        imageAttachmentPreview = findViewById(R.id.imageAttachmentPreview);
         inputBody.setGravity(Gravity.TOP | Gravity.START);
         inputTags.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -77,9 +84,13 @@ public class CreatePostActivity extends AppCompatActivity {
         ImageButton buttonBack = findViewById(R.id.buttonBackCreatePost);
         Button buttonPublish = findViewById(R.id.buttonPublishPost);
         ImageButton buttonComposerOptions = findViewById(R.id.buttonComposerOptions);
+        ImageButton buttonRemoveAttachment = findViewById(R.id.buttonRemoveAttachment);
         buttonBack.setOnClickListener(v -> finish());
         buttonPublish.setOnClickListener(v -> publishPost());
         buttonComposerOptions.setOnClickListener(v -> showComposerMenu());
+        buttonRemoveAttachment.setOnClickListener(v -> clearAttachmentPreview());
+        imageAttachmentPreview.setOnClickListener(v ->
+                ComposerFormatManager.showImagePreview(this, attachedImageUri));
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -121,8 +132,16 @@ public class CreatePostActivity extends AppCompatActivity {
             return;
         }
 
-        ComposerFormatManager.insertImage(inputBody, copied);
+        attachedImageUri = copied;
+        imageAttachmentPreview.setImageURI(copied);
+        attachmentPreviewCard.setVisibility(View.VISIBLE);
         Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void clearAttachmentPreview() {
+        attachedImageUri = null;
+        imageAttachmentPreview.setImageDrawable(null);
+        attachmentPreviewCard.setVisibility(View.GONE);
     }
 
     private void showEmojiChooser() {
@@ -148,7 +167,7 @@ public class CreatePostActivity extends AppCompatActivity {
             return;
         }
 
-        String cleanBody = inputBody.getText().toString().trim();
+        String cleanBody = buildPostBody();
         List<String> tags = normalizedTags(inputTags.getText().toString(), cleanTitle, cleanBody);
         Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTitle);
         post.setBody(cleanBody);
@@ -157,6 +176,14 @@ public class CreatePostActivity extends AppCompatActivity {
         HashtagService.getInstance().indexPost(post);
         Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();
         finish();
+    }
+
+    private String buildPostBody() {
+        String cleanBody = inputBody.getText().toString().trim();
+        if (attachedImageUri == null) return cleanBody;
+        String imageToken = ComposerFormatManager.imageToken(attachedImageUri);
+        if (cleanBody.isEmpty()) return imageToken;
+        return cleanBody + "\n\n" + imageToken;
     }
 
     private void renderTagPreview() {

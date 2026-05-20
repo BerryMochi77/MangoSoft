@@ -103,6 +103,34 @@
                 app:tint="@android:color/white" />
         </LinearLayout>
 
+        <FrameLayout
+            android:id="@+id/attachmentPreviewCard"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/imageAttachmentPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/attached_image"
+                android:scaleType="centerCrop" />
+
+            <ImageButton
+                android:id="@+id/buttonRemoveAttachment"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_fab_circle"
+                android:contentDescription="@string/remove_attached_image"
+                android:padding="10dp"
+                android:src="@drawable/ic_close"
+                app:tint="@android:color/white" />
+        </FrameLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

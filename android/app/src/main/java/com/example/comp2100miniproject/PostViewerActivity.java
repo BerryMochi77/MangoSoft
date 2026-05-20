@@ -8,7 +8,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +37,7 @@ import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.UUID;
 
 import dao.PostDAO;
@@ -69,6 +69,16 @@ public class PostViewerActivity extends AppCompatActivity {
     private EditText inputReply;
     private EditText activeComposerInput;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
+    private static final String[] QUICK_REACTION_EMOJIS = {
+            "\uD83D\uDE00",
+            "\uD83E\uDD73",
+            "\uD83D\uDE05",
+            "\uD83D\uDE22",
+            "\uD83D\uDE2E",
+            "\uD83D\uDE4C",
+            "\uD83D\uDD25",
+            "\uD83C\uDF89"
+    };
 
     /**
      * Threaded (depth-first) list of currently-visible messages. Updated on
@@ -77,10 +87,8 @@ public class PostViewerActivity extends AppCompatActivity {
      */
     private ArrayList<Message> threadedMessages = new ArrayList<>();
 
-    private Button buttonLike;
-    private Button buttonHeart;
-    private Button buttonLaugh;
-    private Button buttonAngry;
+    private ChipGroup reactionChipGroup;
+    private ChipGroup emojiReactionTray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,10 +132,8 @@ public class PostViewerActivity extends AppCompatActivity {
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
 
-        buttonLike = findViewById(R.id.buttonLike);
-        buttonHeart = findViewById(R.id.buttonHeart);
-        buttonLaugh = findViewById(R.id.buttonLaugh);
-        buttonAngry = findViewById(R.id.buttonAngry);
+        reactionChipGroup = findViewById(R.id.reactionChipGroup);
+        emojiReactionTray = findViewById(R.id.emojiReactionTray);
 
         setupReactionButtons();
 
@@ -153,7 +159,7 @@ public class PostViewerActivity extends AppCompatActivity {
         findViewById(R.id.buttonDeletePost).setOnClickListener(v -> confirmDeletePost());
 
         // Record one view per fresh open. savedInstanceState != null means the OS
-        // recreated the activity (e.g. screen rotation) — don't count that again.
+        // recreated the activity, so do not count that again.
         if (savedInstanceState == null) {
             PostViewService.getInstance().recordView(post.id);
         }
@@ -169,38 +175,64 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void setupReactionButtons() {
-        ReactionManager manager = ReactionManager.getInstance();
-
+        setupEmojiReactionTray();
         updateReactionButtons();
-
-        buttonLike.setOnClickListener(v -> {
-            manager.addReaction(post.getUUID(), ReactionType.LIKE);
-            updateReactionButtons();
-        });
-
-        buttonHeart.setOnClickListener(v -> {
-            manager.addReaction(post.getUUID(), ReactionType.HEART);
-            updateReactionButtons();
-        });
-
-        buttonLaugh.setOnClickListener(v -> {
-            manager.addReaction(post.getUUID(), ReactionType.LAUGH);
-            updateReactionButtons();
-        });
-
-        buttonAngry.setOnClickListener(v -> {
-            manager.addReaction(post.getUUID(), ReactionType.ANGRY);
-            updateReactionButtons();
-        });
     }
 
     private void updateReactionButtons() {
-        ReactionData data = ReactionManager.getInstance().getReactionData(post.getUUID());
+        ReactionManager manager = ReactionManager.getInstance();
+        Set<String> options = manager.getReactionOptions(post.getUUID());
+        String selected = manager.getUserReaction(post.getUUID(), currentUser.getUUID());
+        reactionChipGroup.removeAllViews();
 
-        buttonLike.setText("👍 " + data.getLikes());
-        buttonHeart.setText("❤️ " + data.getHearts());
-        buttonLaugh.setText("😂 " + data.getLaughs());
-        buttonAngry.setText("😡 " + data.getAngries());
+        for (String emoji : options) {
+            Chip chip = reactionChip(emoji + " " + manager.getReactionCount(post.getUUID(), emoji));
+            chip.setChecked(emoji.equals(selected));
+            chip.setAlpha(emoji.equals(selected) ? 1f : 0.82f);
+            chip.setOnClickListener(v -> {
+                manager.toggleReaction(post.getUUID(), currentUser.getUUID(), emoji);
+                updateReactionButtons();
+            });
+            reactionChipGroup.addView(chip);
+        }
+
+        Chip addChip = reactionChip("+");
+        addChip.setContentDescription(getString(R.string.custom_reaction_title));
+        addChip.setOnClickListener(v -> toggleEmojiReactionTray());
+        reactionChipGroup.addView(addChip);
+    }
+
+    private Chip reactionChip(String text) {
+        Chip chip = new Chip(this);
+        chip.setText(text);
+        chip.setCheckable(true);
+        chip.setClickable(true);
+        chip.setFocusable(true);
+        chip.setEnsureMinTouchTargetSize(false);
+        chip.setMinHeight((int) (36 * getResources().getDisplayMetrics().density));
+        chip.setChipBackgroundColorResource(R.color.chip_hashtag_bg);
+        chip.setTextColor(getColor(R.color.text_primary));
+        chip.setTextSize(14f);
+        return chip;
+    }
+
+    private void setupEmojiReactionTray() {
+        emojiReactionTray.removeAllViews();
+        for (String emoji : QUICK_REACTION_EMOJIS) {
+            Chip chip = reactionChip(emoji);
+            chip.setOnClickListener(v -> {
+                ReactionManager.getInstance().toggleReaction(
+                        post.getUUID(), currentUser.getUUID(), emoji);
+                emojiReactionTray.setVisibility(View.GONE);
+                updateReactionButtons();
+            });
+            emojiReactionTray.addView(chip);
+        }
+    }
+
+    private void toggleEmojiReactionTray() {
+        int nextVisibility = emojiReactionTray.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE;
+        emojiReactionTray.setVisibility(nextVisibility);
     }
 
     private void renderPost() {
@@ -214,7 +246,7 @@ public class PostViewerActivity extends AppCompatActivity {
         }
         textPostAuthor.setText("Posted by " + authorName(poster));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
-        // View count — delegated entirely to PostViewService (separation of concerns).
+        // View count is delegated entirely to PostViewService.
         int views = PostViewService.getInstance().getViewCount(post.id);
         textViewCount.setText(getString(R.string.view_count, views));
         renderHashtagChips();
@@ -407,7 +439,14 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void showEmojiChooser(EditText input) {
-        String[] emojis = {"🙂", "😂", "😍", "👍", "🔥", "🎉"};
+        String[] emojis = {
+                "\uD83D\uDE42",
+                "\uD83D\uDE02",
+                "\uD83D\uDE0D",
+                "\uD83D\uDC4D",
+                "\uD83D\uDD25",
+                "\uD83C\uDF80"
+        };
         new AlertDialog.Builder(this)
                 .setTitle(R.string.add_emoji)
                 .setItems(emojis, (dialog, which) ->

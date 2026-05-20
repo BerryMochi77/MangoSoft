@@ -98,9 +98,12 @@
     <string name="more_composer_options">More composer options</string>
     <string name="add_image">Add image</string>
     <string name="add_emoji">Add emoji</string>
+    <string name="custom_reaction_title">Add reaction</string>
+    <string name="custom_reaction_hint">Emoji</string>
     <string name="attached_image">Attached image</string>
     <string name="image_attached">Image attached</string>
     <string name="image_attach_failed">Image could not be attached</string>
+    <string name="remove_attached_image">Remove attached image</string>
     <string name="image_options">Image options</string>
     <string name="save_image_to_gallery">Save image to gallery</string>
     <string name="image_saved_to_gallery">Image saved to gallery</string>

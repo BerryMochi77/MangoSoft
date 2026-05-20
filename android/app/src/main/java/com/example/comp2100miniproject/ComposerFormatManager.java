@@ -69,7 +69,12 @@ public final class ComposerFormatManager {
 
     public static void insertImage(EditText input, Uri imageUri) {
         if (input == null || imageUri == null) return;
-        insertText(input, "\n[[image:" + imageUri + "]]\n");
+        insertText(input, "\n" + imageToken(imageUri) + "\n");
+    }
+
+    public static String imageToken(Uri imageUri) {
+        if (imageUri == null) return "";
+        return "[[image:" + imageUri + "]]";
     }
 
     public static void insertEmoji(EditText input, String emoji) {
