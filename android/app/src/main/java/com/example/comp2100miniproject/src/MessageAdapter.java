@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -13,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.R;
+import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import java.util.ArrayList;
@@ -37,6 +39,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     private final OnMessageActionClick onEditClick;
     private final OnMessageActionClick onDeleteClick;
     private final AuthManager authManager;
+    private final AvatarManager avatarManager;
 
     public MessageAdapter(
             Context context,
@@ -52,9 +55,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         this.onEditClick = onEditClick;
         this.onDeleteClick = onDeleteClick;
         this.authManager = new AuthManager(context);
+        this.avatarManager = new AvatarManager(authManager);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        private final ImageView avatar;
         private final TextView author;
         private final TextView timestamp;
         private final TextView content;
@@ -65,6 +70,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
         public ViewHolder(View view) {
             super(view);
+            avatar = view.findViewById(R.id.imageMessageAvatar);
             author = view.findViewById(R.id.textMessageAuthor);
             timestamp = view.findViewById(R.id.textMessageTimestamp);
             content = view.findViewById(R.id.textMessageContent);
@@ -80,9 +86,15 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 OnReportClick onReportClick,
                 OnMessageActionClick onEditClick,
                 OnMessageActionClick onDeleteClick,
-                AuthManager authManager
+                AuthManager authManager,
+                AvatarManager avatarManager
         ) {
             User user = UserDAO.getInstance().getByUUID(message.poster());
+            if (user != null) {
+                avatarManager.displayAvatar(user, avatar);
+            } else {
+                avatar.setImageResource(R.drawable.avatar_default_1);
+            }
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
 
             String time = DateFormat.format("MMM d, HH:mm", message.timestamp()).toString();
@@ -116,7 +128,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 onReportClick,
                 onEditClick,
                 onDeleteClick,
-                authManager
+                authManager,
+                avatarManager
         );
     }
 

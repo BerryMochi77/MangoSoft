@@ -8,17 +8,27 @@
     android:background="@drawable/bg_card"
     android:padding="14dp">
 
+    <com.example.comp2100miniproject.CircleAvatarImageView
+        android:id="@+id/imageMessageAvatar"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:contentDescription="@string/profile_avatar"
+        android:src="@drawable/avatar_default_1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <TextView
         android:id="@+id/textMessageAuthor"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/text_primary"
         android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@+id/buttonReportMessage"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/imageMessageAvatar"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -31,7 +41,7 @@
         android:textColor="@color/text_secondary"
         android:textSize="12sp"
         app:layout_constraintEnd_toStartOf="@+id/buttonReportMessage"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
         app:layout_constraintTop_toBottomOf="@+id/textMessageAuthor" />
 
     <Button
@@ -57,7 +67,7 @@
         android:textColor="@color/text_primary"
         android:textSize="15sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
         app:layout_constraintTop_toBottomOf="@+id/textMessageTimestamp" />
 
     <LinearLayout

@@ -4,12 +4,14 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.R;
+import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -37,12 +39,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
     private final OnPostClick listener;
     private final OnHashtagClick hashtagListener;
     private final AuthManager authManager;
+    private final AvatarManager avatarManager;
 
     public PostAdapter(Context context, List<Post> posts, OnPostClick listener, OnHashtagClick hashtagListener) {
         this.posts = posts;
         this.listener = listener;
         this.hashtagListener = hashtagListener;
         this.authManager = new AuthManager(context);
+        this.avatarManager = new AvatarManager(authManager);
     }
 
     static class VH extends RecyclerView.ViewHolder {
@@ -50,23 +54,31 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         private final TextView title;
         private final TextView meta;
         private final TextView edited;
+        private final ImageView avatar;
         private final ChipGroup chipGroupHashtags;
 
         VH(View view) {
             super(view);
+            avatar = view.findViewById(R.id.imagePostAvatar);
             title = view.findViewById(R.id.textPostItemTitle);
             meta = view.findViewById(R.id.textPostItemMeta);
             edited = view.findViewById(R.id.textPostEdited);
             chipGroupHashtags = view.findViewById(R.id.chipGroupHashtags);
         }
 
-        void display(Post post, AuthManager authManager, OnHashtagClick hashtagListener) {
+        void display(Post post, AuthManager authManager, AvatarManager avatarManager, OnHashtagClick hashtagListener) {
             title.setText(post.topic);
+            User user = UserDAO.getInstance().getByUUID(post.poster);
+            if (user != null) {
+                avatarManager.displayAvatar(user, avatar);
+            } else {
+                avatar.setImageResource(R.drawable.avatar_default_1);
+            }
 
             meta.setText(
                     String.format(
                             "%s - %d messages",
-                            authorName(post, authManager),
+                            authorName(user, authManager),
                             messageCount(post)
                     )
             );
@@ -105,10 +117,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             }
         }
 
-        private String authorName(Post post, AuthManager authManager) {
-            User user =
-                    UserDAO.getInstance()
-                            .getByUUID(post.poster);
+        private String authorName(User user, AuthManager authManager) {
             return user == null
                     ? "Unknown author"
                     : authManager.getDisplayName(user);
@@ -151,7 +160,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             int position
     ) {
         Post post = posts.get(position);
-        holder.display(post, authManager, hashtagListener);
+        holder.display(post, authManager, avatarManager, hashtagListener);
         holder.itemView.setOnClickListener(
                 v -> listener.onClick(position, post)
         );

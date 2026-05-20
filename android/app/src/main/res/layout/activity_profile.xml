@@ -52,7 +52,7 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
 
-                <ImageView
+                <com.example.comp2100miniproject.CircleAvatarImageView
                     android:id="@+id/imageAvatar"
                     android:layout_width="96dp"
                     android:layout_height="96dp"

@@ -55,6 +55,7 @@ public class ProfileActivity extends AppCompatActivity {
     private Button buttonPrevReplies;
     private Button buttonNextReplies;
     private ActivityResultLauncher<String[]> galleryAvatarLauncher;
+    private ActivityResultLauncher<Intent> avatarCropLauncher;
     private final ArrayList<Post> myPosts = new ArrayList<>();
     private final ArrayList<Message> myReplies = new ArrayList<>();
     private int postsPage = 0;
@@ -71,6 +72,15 @@ public class ProfileActivity extends AppCompatActivity {
         galleryAvatarLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(),
                 this::setGalleryAvatar
+        );
+        avatarCropLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() != RESULT_OK || result.getData() == null) return;
+                    String croppedUri = result.getData().getStringExtra(AvatarCropActivity.EXTRA_CROPPED_URI);
+                    if (croppedUri == null) return;
+                    applyCroppedAvatar(Uri.parse(croppedUri));
+                }
         );
         currentUser = authManager.getUser(readCurrentUserId());
         if (currentUser == null) {
@@ -195,6 +205,13 @@ public class ProfileActivity extends AppCompatActivity {
             // Some document providers return readable URIs without persistable permissions.
         }
 
+        Intent intent = new Intent(this, AvatarCropActivity.class);
+        intent.putExtra(AvatarCropActivity.EXTRA_SOURCE_URI, uri.toString());
+        intent.putExtra(AvatarCropActivity.EXTRA_USER_ID, currentUser.getUUID().toString());
+        avatarCropLauncher.launch(intent);
+    }
+
+    private void applyCroppedAvatar(Uri uri) {
         if (avatarManager.setGalleryAvatar(currentUser, uri)) {
             renderProfile();
             Toast.makeText(this, R.string.avatar_updated, Toast.LENGTH_SHORT).show();
@@ -263,7 +280,7 @@ public class ProfileActivity extends AppCompatActivity {
         repliesPage = clampPage(repliesPage, myReplies.size());
         textNoMyReplies.setVisibility(View.GONE);
         recyclerMyReplies.setVisibility(View.VISIBLE);
-        recyclerMyReplies.setAdapter(new ProfileReplyAdapter(pageReplies(), reply -> openPost(reply.thread())));
+        recyclerMyReplies.setAdapter(new ProfileReplyAdapter(this, pageReplies(), reply -> openPost(reply.thread())));
         updatePager(repliesPage, myReplies.size(), textRepliesPage, buttonPrevReplies, buttonNextReplies);
     }
 
