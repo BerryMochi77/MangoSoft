@@ -19,6 +19,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
+import com.example.comp2100miniproject.reaction.ReactionData;
+import com.example.comp2100miniproject.reaction.ReactionManager;
+import com.example.comp2100miniproject.reaction.ReactionType;
 import com.example.comp2100miniproject.src.MessageAdapter;
 
 import java.util.ArrayList;
@@ -43,6 +46,11 @@ public class PostViewerActivity extends AppCompatActivity {
     private TextView textPostEdited;
     private RecyclerView recyclerMessages;
     private EditText inputReply;
+
+    private Button buttonLike;
+    private Button buttonHeart;
+    private Button buttonLaugh;
+    private Button buttonAngry;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +83,14 @@ public class PostViewerActivity extends AppCompatActivity {
         textPostEdited = findViewById(R.id.textPostEdited);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
+
+        buttonLike = findViewById(R.id.buttonLike);
+        buttonHeart = findViewById(R.id.buttonHeart);
+        buttonLaugh = findViewById(R.id.buttonLaugh);
+        buttonAngry = findViewById(R.id.buttonAngry);
+
+        setupReactionButtons();
+
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
 
         Button buttonBack = findViewById(R.id.buttonBack);
@@ -97,6 +113,41 @@ public class PostViewerActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void setupReactionButtons() {
+        ReactionManager manager = ReactionManager.getInstance();
+
+        updateReactionButtons();
+
+        buttonLike.setOnClickListener(v -> {
+            manager.addReaction(post.getUUID(), ReactionType.LIKE);
+            updateReactionButtons();
+        });
+
+        buttonHeart.setOnClickListener(v -> {
+            manager.addReaction(post.getUUID(), ReactionType.HEART);
+            updateReactionButtons();
+        });
+
+        buttonLaugh.setOnClickListener(v -> {
+            manager.addReaction(post.getUUID(), ReactionType.LAUGH);
+            updateReactionButtons();
+        });
+
+        buttonAngry.setOnClickListener(v -> {
+            manager.addReaction(post.getUUID(), ReactionType.ANGRY);
+            updateReactionButtons();
+        });
+    }
+
+    private void updateReactionButtons() {
+        ReactionData data = ReactionManager.getInstance().getReactionData(post.getUUID());
+
+        buttonLike.setText("👍 " + data.getLikes());
+        buttonHeart.setText("❤️ " + data.getHearts());
+        buttonLaugh.setText("😂 " + data.getLaughs());
+        buttonAngry.setText("😡 " + data.getAngries());
     }
 
     private void renderPost() {
