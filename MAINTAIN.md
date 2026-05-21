@@ -320,6 +320,19 @@ SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
 - 增加模式：在 `ThemeModeManager.Mode` 加 enum 项 + 在 `values/strings.xml`
   加 label
 
+## 字体偏好
+
+字体样式和大小属于 UI preference，和主题、语言、时区一样由 Settings 入口管理，不修改 `User`、`Post`、`Message`。
+
+- UI 入口：`SettingsFragment` 的 `Font style` 和 `Font size` 行。
+- 存储：`AppPreferencesRepository` 的 `font_family` 和 `font_size`，保存在 `ui_preferences`。
+- 应用：`SocialModerationApplication` 注册 Activity lifecycle callback，在 Activity 创建和恢复时调用 `UiFontManager.applyToActivity(...)`。
+- 字体样式当前支持 `System`、`Serif`、`Monospace`。
+- 字体大小当前支持 `Small`、`Default`、`Large`、`Extra large`，通过原始 `TextView` px size 乘缩放比例实现。
+- `UiFontManager` 用 `WeakHashMap` 记住每个 `TextView` 的原始字号和 typeface，避免反复进入页面时重复放大。
+
+新增字体选项时，先在 `AppPreferencesRepository` 增加稳定 key 和 label，再在 `SettingsFragment` 的 picker 中注册。
+
 ## 用户头像
 
 `AvatarManager` 管业务（默认头像、读写、URI），`CircleAvatarImageView` 管圆形

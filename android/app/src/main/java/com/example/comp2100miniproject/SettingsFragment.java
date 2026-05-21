@@ -1,10 +1,13 @@
 package com.example.comp2100miniproject;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.CheckedTextView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -30,6 +33,8 @@ public class SettingsFragment extends Fragment {
 
     // Theme
     private TextView textThemeCurrent;
+    private TextView textFontFamilyCurrent;
+    private TextView textFontSizeCurrent;
 
     // Localisation
     private TextView textLanguageCurrent;
@@ -64,6 +69,10 @@ public class SettingsFragment extends Fragment {
             ThemeModeManager.showModeChooser((AppCompatActivity) requireActivity());
             rowTheme.post(this::refreshLabels);
         });
+        textFontFamilyCurrent = view.findViewById(R.id.textFontFamilyCurrent);
+        textFontSizeCurrent = view.findViewById(R.id.textFontSizeCurrent);
+        view.findViewById(R.id.rowFontFamily).setOnClickListener(v -> showFontFamilyPicker());
+        view.findViewById(R.id.rowFontSize).setOnClickListener(v -> showFontSizePicker());
 
         // Language
         textLanguageCurrent = view.findViewById(R.id.textLanguageCurrent);
@@ -90,11 +99,87 @@ public class SettingsFragment extends Fragment {
 
     private void refreshLabels() {
         textThemeCurrent.setText(ThemeModeManager.getSavedModeLabel(requireContext()));
+        textFontFamilyCurrent.setText(fontFamilyLabel(
+                AppPreferencesRepository.getFontFamily(requireContext())));
+        textFontSizeCurrent.setText(fontSizeLabel(
+                AppPreferencesRepository.getFontSize(requireContext())));
         textLanguageCurrent.setText(languageLabel(
                 AppPreferencesRepository.getLanguage(requireContext())));
         textTimezoneCurrent.setText(timezoneLabel(
                 AppPreferencesRepository.getTimeZone(requireContext())));
         textTimezonePreview.setText(AppTimeFormatter.previewNow(requireContext()));
+    }
+
+    private void showFontFamilyPicker() {
+        String[] values = {
+                AppPreferencesRepository.FONT_SYSTEM,
+                AppPreferencesRepository.FONT_SERIF,
+                AppPreferencesRepository.FONT_MONOSPACE
+        };
+        String[] labels = {
+                getString(R.string.font_family_system),
+                getString(R.string.font_family_serif),
+                getString(R.string.font_family_monospace)
+        };
+        String current = AppPreferencesRepository.getFontFamily(requireContext());
+        int checkedItem = indexOf(values, current);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                requireContext(),
+                android.R.layout.simple_list_item_single_choice,
+                labels
+        ) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                View row = super.getView(position, convertView, parent);
+                if (row instanceof CheckedTextView) {
+                    ((CheckedTextView) row).setTypeface(fontPreviewTypeface(values[position]));
+                }
+                return row;
+            }
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.font_family_title)
+                .setSingleChoiceItems(adapter, checkedItem, (dialog, which) -> {
+                    dialog.dismiss();
+                    AppPreferencesRepository.saveFontFamily(requireContext(), values[which]);
+                    applyFontPreferenceChange();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void showFontSizePicker() {
+        String[] values = {
+                AppPreferencesRepository.FONT_SIZE_SMALL,
+                AppPreferencesRepository.FONT_SIZE_DEFAULT,
+                AppPreferencesRepository.FONT_SIZE_LARGE,
+                AppPreferencesRepository.FONT_SIZE_EXTRA_LARGE
+        };
+        String[] labels = {
+                getString(R.string.font_size_small),
+                getString(R.string.font_size_default),
+                getString(R.string.font_size_large),
+                getString(R.string.font_size_extra_large)
+        };
+        String current = AppPreferencesRepository.getFontSize(requireContext());
+        int checkedItem = indexOf(values, current);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.font_size_title)
+                .setSingleChoiceItems(labels, checkedItem, (dialog, which) -> {
+                    dialog.dismiss();
+                    AppPreferencesRepository.saveFontSize(requireContext(), values[which]);
+                    applyFontPreferenceChange();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void applyFontPreferenceChange() {
+        refreshLabels();
+        UiFontManager.applyToActivity(requireActivity());
     }
 
     // ── Language picker ────────────────────────────────────────────────────────
@@ -182,6 +267,48 @@ public class SettingsFragment extends Fragment {
             case AppPreferencesRepository.TZ_SYDNEY:   return getString(R.string.tz_sydney);
             case AppPreferencesRepository.TZ_SHANGHAI: return getString(R.string.tz_shanghai);
             default:                                    return getString(R.string.tz_local);
+        }
+    }
+
+    private String fontFamilyLabel(String value) {
+        switch (value) {
+            case AppPreferencesRepository.FONT_SERIF:
+                return getString(R.string.font_family_serif);
+            case AppPreferencesRepository.FONT_MONOSPACE:
+                return getString(R.string.font_family_monospace);
+            default:
+                return getString(R.string.font_family_system);
+        }
+    }
+
+    private String fontSizeLabel(String value) {
+        switch (value) {
+            case AppPreferencesRepository.FONT_SIZE_SMALL:
+                return getString(R.string.font_size_small);
+            case AppPreferencesRepository.FONT_SIZE_LARGE:
+                return getString(R.string.font_size_large);
+            case AppPreferencesRepository.FONT_SIZE_EXTRA_LARGE:
+                return getString(R.string.font_size_extra_large);
+            default:
+                return getString(R.string.font_size_default);
+        }
+    }
+
+    private int indexOf(String[] values, String target) {
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].equals(target)) return i;
+        }
+        return 0;
+    }
+
+    private Typeface fontPreviewTypeface(String value) {
+        switch (value) {
+            case AppPreferencesRepository.FONT_SERIF:
+                return Typeface.SERIF;
+            case AppPreferencesRepository.FONT_MONOSPACE:
+                return Typeface.MONOSPACE;
+            default:
+                return Typeface.DEFAULT;
         }
     }
 }

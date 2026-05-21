@@ -22,6 +22,15 @@
     <string name="theme_mode_system">Follow system</string>
     <string name="theme_mode_light">Light</string>
     <string name="theme_mode_dark">Dark</string>
+    <string name="font_family_title">Choose font style</string>
+    <string name="font_family_system">System</string>
+    <string name="font_family_serif">Serif</string>
+    <string name="font_family_monospace">Monospace</string>
+    <string name="font_size_title">Choose font size</string>
+    <string name="font_size_small">Small</string>
+    <string name="font_size_default">Default</string>
+    <string name="font_size_large">Large</string>
+    <string name="font_size_extra_large">Extra large</string>
     <string name="review_reports">Review reports</string>
     <string name="frozen_users">Frozen users</string>
     <string name="signed_in_as">Signed in as %1$s</string>
@@ -155,6 +164,8 @@
     <string name="nav_settings">Settings</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_row_font_family">Font style</string>
+    <string name="settings_row_font_size">Font size</string>
     <string name="settings_row_profile">Edit profile</string>
     <string name="settings_row_logout">Log out</string>
     <string name="settings_logout_confirm">Log out of this account?</string>
