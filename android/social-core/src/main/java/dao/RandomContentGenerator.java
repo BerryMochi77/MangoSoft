@@ -26,7 +26,13 @@ public class RandomContentGenerator {
 			"This post looks like spam to me #spam #moderation",
 			"Design patterns in the mini project #design",
 			"Debugging RecyclerView adapters #android #bug",
-			"Harassment report thread #harassment #abuse #moderation"
+			"Harassment report thread #harassment #abuse #moderation",
+			"Best way to test DAO classes? #testing #dao",
+			"Avatar crop edge cases #android #profile",
+			"How should notifications work? #notification #design",
+			"Data persistence checklist #persistentdata #testing",
+			"Nested replies and moderation UX #threading #moderation",
+			"Good examples for report evidence #reporting #help"
 	};
 
 	private static final String[] REPLIES = {
@@ -81,7 +87,7 @@ public class RandomContentGenerator {
 			"😂 sold."
 	};
 
-	private static final int POST_COUNT = 8;
+	private static final int POST_COUNT = POST_TITLES.length;
 	private static final int MIN_REPLIES_PER_POST = 3;
 	private static final int EXTRA_REPLIES_PER_POST = 3;
 	private static final Random random = new Random(2100);
@@ -122,25 +128,19 @@ public class RandomContentGenerator {
 		if (users.isEmpty()) return;
 
 		for (int i = 0; i < POST_COUNT; i++) {
-			User poster = users.get(i % users.size());
-			String title = POST_TITLES[i % POST_TITLES.length];
-			Post post = new Post(UUID.randomUUID(), poster.getUUID(), title);
-			String body = demoPostBody(i);
-			post.setBody(body);
-			post.setHashtags(HashtagParser.extract(title + " " + body));
-			PostDAO.getInstance().add(post);
-			HashtagService.getInstance().indexPost(post);
-			populateReplies(post, users, i);
+			createDemoPost(users, i);
 		}
 	}
 
 	public static void repairSeededData() {
 		HashtagService hashtags = HashtagService.getInstance();
+		Set<String> existingDemoTopics = new HashSet<>();
 		Iterator<Post> posts = PostDAO.getInstance().getAll();
 		while (posts.hasNext()) {
 			Post post = posts.next();
 			int demoIndex = demoPostIndex(post.topic);
 			if (demoIndex >= 0) {
+				existingDemoTopics.add(post.topic);
 				String body = demoPostBody(demoIndex);
 				if (post.getBody().isEmpty() && !body.isEmpty()) {
 					post.setBody(body);
@@ -149,6 +149,30 @@ public class RandomContentGenerator {
 				}
 			}
 			purgeMisassignedGeneratedReplies(post);
+		}
+		ensureMissingDemoPosts(existingDemoTopics);
+	}
+
+	private static Post createDemoPost(List<User> users, int postIndex) {
+		User poster = users.get(postIndex % users.size());
+		String title = POST_TITLES[postIndex % POST_TITLES.length];
+		Post post = new Post(UUID.randomUUID(), poster.getUUID(), title);
+		String body = demoPostBody(postIndex);
+		post.setBody(body);
+		post.setHashtags(HashtagParser.extract(title + " " + body));
+		PostDAO.getInstance().add(post);
+		HashtagService.getInstance().indexPost(post);
+		populateReplies(post, users, postIndex);
+		return post;
+	}
+
+	private static void ensureMissingDemoPosts(Set<String> existingDemoTopics) {
+		List<User> users = getExistingUsers();
+		if (users.isEmpty()) return;
+		for (int i = 0; i < POST_COUNT; i++) {
+			if (!existingDemoTopics.contains(POST_TITLES[i])) {
+				createDemoPost(users, i);
+			}
 		}
 	}
 

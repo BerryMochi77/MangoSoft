@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.ComposerFormatManager;
+import com.example.comp2100miniproject.ReactionManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -25,6 +26,7 @@ import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
 import hashtag.HashtagParser;
+import postview.PostViewService;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
@@ -116,9 +118,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
             meta.setText(
                     String.format(
-                            "%s - %d messages",
+                            "%s - %d messages - %d views - %d reactions",
                             authorName(user, authManager),
-                            messageCount(post)
+                            messageCount(post),
+                            PostViewService.getInstance().getViewCount(post.id),
+                            ReactionManager.getInstance().getTotalReactionCount(post.id)
                     )
             );
 

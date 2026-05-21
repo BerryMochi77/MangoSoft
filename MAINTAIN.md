@@ -217,6 +217,8 @@ How to add another format option:
 - Seeded posts and replies may include composer-format content such as emoji and `[[image:demo:*]]` image tokens. `ComposerFormatManager` resolves those demo image tokens to bundled drawable resources, so `social-core` still has no Android imports.
 - `RandomContentGenerator.repairSeededData()` runs on app entry to hide old generated replies that were accidentally assigned to non-demo users, and to backfill rich demo bodies onto old seeded posts.
 - Feed cards use `ComposerFormatManager.bindContent(...)` for post body previews, so demo images and emoji are visible before opening the post detail page.
+- Demo engagement is seeded by `DemoEngagementSeeder` in the Android app layer. It adds view counts and post-level emoji reactions to seeded posts without changing `Post` or `Message`.
+- Trends keeps two modes: tapping a tag still filters posts by that tag, while the default entry state shows recommended posts sorted by a simple hot score: views plus weighted post reactions.
 
 ## Rounded media
 

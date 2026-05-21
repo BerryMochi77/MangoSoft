@@ -20,6 +20,8 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import dao.PostDAO;
@@ -29,11 +31,11 @@ import hashtag.HashtagService;
 import hashtag.TagCount;
 import hashtag.search.HashtagSearchStrategy;
 import hashtag.search.PostSearchStrategy;
+import postview.PostViewService;
 
 /**
- * Trends tab: trending hashtag chips, plus an inline results list when a tag
- * is selected. Replaces HashtagSearchActivity. The Feed tab routes hashtag
- * clicks here via {@link TabHost#showTrendsForTag(String)}.
+ * Trends tab: trending hashtag chips, plus an inline results list when a tag is selected.
+ * The default state shows recommended posts based on views and post reactions.
  */
 public class TrendsFragment extends Fragment {
 
@@ -48,7 +50,7 @@ public class TrendsFragment extends Fragment {
     private RecyclerView recyclerSearchResults;
 
     /**
-     * The tag to filter by. {@code null} means "just show trending chips".
+     * The tag to filter by. {@code null} means show the recommendation list.
      * Set via {@link #applyTagFilter(String)}; survives configuration changes.
      */
     @Nullable
@@ -106,10 +108,10 @@ public class TrendsFragment extends Fragment {
             filterByTag(pendingTag);
         } else {
             textSearchTitle.setText(R.string.trending_tags_title);
-            textResultsHeader.setVisibility(View.GONE);
+            textResultsHeader.setText(R.string.recommended_posts);
+            textResultsHeader.setVisibility(View.VISIBLE);
             textNoResults.setVisibility(View.GONE);
-            recyclerSearchResults.setVisibility(View.GONE);
-            recyclerSearchResults.setAdapter(null);
+            renderRecommendedPosts();
         }
     }
 
@@ -119,7 +121,7 @@ public class TrendsFragment extends Fragment {
 
         for (TagCount tc : trending) {
             Chip chip = new Chip(requireContext());
-            chip.setText(String.format("#%s — %d", tc.getTag(), tc.getCount()));
+            chip.setText(String.format("#%s - %d", tc.getTag(), tc.getCount()));
             chip.setClickable(true);
             chip.setFocusable(true);
             chip.setChipBackgroundColorResource(R.color.chip_hashtag_bg);
@@ -168,9 +170,57 @@ public class TrendsFragment extends Fragment {
         }
     }
 
+    private void renderRecommendedPosts() {
+        List<Post> recommended = recommendedPosts();
+
+        if (recommended.isEmpty()) {
+            textNoResults.setText(R.string.no_recommended_posts);
+            textNoResults.setVisibility(View.VISIBLE);
+            recyclerSearchResults.setVisibility(View.GONE);
+            recyclerSearchResults.setAdapter(null);
+            return;
+        }
+
+        textNoResults.setText(R.string.no_results);
+        textNoResults.setVisibility(View.GONE);
+        recyclerSearchResults.setVisibility(View.VISIBLE);
+        recyclerSearchResults.setAdapter(new PostAdapter(
+                requireContext(),
+                recommended,
+                (position, post) -> openPost(post),
+                nextTag -> {
+                    pendingTag = nextTag;
+                    filterByTag(nextTag);
+                },
+                this::openUserProfile
+        ));
+    }
+
+    private List<Post> recommendedPosts() {
+        ArrayList<Post> posts = new ArrayList<>();
+        for (Iterator<Post> it = PostDAO.getInstance().getAll(); it.hasNext(); ) {
+            Post post = it.next();
+            if (!post.isDeleted()) {
+                posts.add(post);
+            }
+        }
+
+        posts.sort(Comparator.comparingInt(this::hotScore).reversed());
+        int limit = Math.min(posts.size(), 8);
+        return new ArrayList<>(posts.subList(0, limit));
+    }
+
+    private int hotScore(Post post) {
+        int views = PostViewService.getInstance().getViewCount(post.id);
+        int reactions = ReactionManager.getInstance().getTotalReactionCount(post.id);
+        return views + reactions * 4;
+    }
+
     private void openPost(Post post) {
         int index = findPostIndex(post);
-        if (index < 0) return;
+        if (index < 0) {
+            return;
+        }
         Intent intent = new Intent(requireContext(), PostViewerActivity.class);
         intent.putExtra("post_index", index);
         User user = host.currentUser();
@@ -194,9 +244,11 @@ public class TrendsFragment extends Fragment {
 
     private int findPostIndex(Post target) {
         int index = 0;
-        for (java.util.Iterator<Post> it = PostDAO.getInstance().getAll(); it.hasNext(); ) {
+        for (Iterator<Post> it = PostDAO.getInstance().getAll(); it.hasNext(); ) {
             Post p = it.next();
-            if (p.id.equals(target.id)) return p.isDeleted() ? -1 : index;
+            if (p.id.equals(target.id)) {
+                return p.isDeleted() ? -1 : index;
+            }
             index++;
         }
         return -1;

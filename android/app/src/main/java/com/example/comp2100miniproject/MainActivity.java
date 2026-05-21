@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             RandomContentGenerator.populateRandomData();
         }
         RandomContentGenerator.repairSeededData();
+        DemoEngagementSeeder.seedIfNeeded();
 
         setupFragments(savedInstanceState);
 

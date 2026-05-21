@@ -158,7 +158,9 @@
     <string name="trending_tags_title">Trending Tags</string>
     <string name="posts_tagged_with">Posts tagged with %1$s</string>
     <string name="results_header">Posts</string>
+    <string name="recommended_posts">Recommended posts</string>
     <string name="no_results">No posts found with this tag.</string>
+    <string name="no_recommended_posts">No recommendations yet.</string>
     <string name="no_trending_yet">No tags yet</string>
     <string name="post_body_hint">Post content (optional, hashtags supported)</string>
     <string name="post_body_label">Post content</string>

@@ -72,6 +72,14 @@ public class ReactionManager {
         return count;
     }
 
+    public int getTotalReactionCount(UUID postId) {
+        int total = 0;
+        for (String emoji : getReactionOptions(postId)) {
+            total += getReactionCount(postId, emoji);
+        }
+        return total;
+    }
+
     public void toggleReaction(UUID postId, UUID userId, String emoji) {
         if (postId == null || userId == null || emoji == null || emoji.trim().isEmpty()) return;
         String cleanEmoji = emoji.trim();
@@ -97,5 +105,22 @@ public class ReactionManager {
         if (selected.isEmpty()) {
             byUser.remove(userId);
         }
+    }
+
+    public void addUserReaction(UUID postId, UUID userId, String emoji) {
+        if (postId == null || userId == null || emoji == null || emoji.trim().isEmpty()) return;
+        String cleanEmoji = emoji.trim();
+        getReactionOptions(postId).add(cleanEmoji);
+        HashMap<UUID, LinkedHashSet<String>> byUser = userReactions.get(postId);
+        if (byUser == null) {
+            byUser = new HashMap<>();
+            userReactions.put(postId, byUser);
+        }
+        LinkedHashSet<String> selected = byUser.get(userId);
+        if (selected == null) {
+            selected = new LinkedHashSet<>();
+            byUser.put(userId, selected);
+        }
+        selected.add(cleanEmoji);
     }
 }
