@@ -104,6 +104,17 @@ public class AuthManager {
         return new ProfileBackground(source, value);
     }
 
+    public ProfileVisibility getProfileVisibility(User user) {
+        if (user == null) return ProfileVisibility.publicVisibility();
+        JSONObject json = findStoredUserJson(user.getUUID());
+        if (json == null) return ProfileVisibility.publicVisibility();
+
+        return new ProfileVisibility(
+                json.optBoolean("publicPosts", true),
+                json.optBoolean("publicReplies", true)
+        );
+    }
+
     public boolean updateAvatar(UUID userId, String source, String value) {
         if (userId == null || source == null || value == null || source.trim().isEmpty() || value.trim().isEmpty()) {
             return false;
@@ -139,6 +150,26 @@ public class AuthManager {
             try {
                 json.put("profileBackgroundSource", source);
                 json.put("profileBackgroundValue", value);
+                writeUsers(users);
+                return true;
+            } catch (JSONException ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public boolean updateProfileVisibility(UUID userId, boolean publicPosts, boolean publicReplies) {
+        if (userId == null) return false;
+
+        JSONArray users = readUsers();
+        for (int i = 0; i < users.length(); i++) {
+            JSONObject json = users.optJSONObject(i);
+            if (json == null || !userId.toString().equals(json.optString("id"))) continue;
+
+            try {
+                json.put("publicPosts", publicPosts);
+                json.put("publicReplies", publicReplies);
                 writeUsers(users);
                 return true;
             } catch (JSONException ignored) {
@@ -290,6 +321,8 @@ public class AuthManager {
             json.put("avatarValue", Avatar.DEFAULT_VALUE);
             json.put("profileBackgroundSource", ProfileBackground.SOURCE_DEFAULT);
             json.put("profileBackgroundValue", ProfileBackground.DEFAULT_VALUE);
+            json.put("publicPosts", true);
+            json.put("publicReplies", true);
         } catch (JSONException ignored) {
         }
         return json;
@@ -329,6 +362,12 @@ public class AuthManager {
 
         public static ProfileBackground defaultBackground() {
             return new ProfileBackground(SOURCE_DEFAULT, DEFAULT_VALUE);
+        }
+    }
+
+    public record ProfileVisibility(boolean publicPosts, boolean publicReplies) {
+        public static ProfileVisibility publicVisibility() {
+            return new ProfileVisibility(true, true);
         }
     }
 }

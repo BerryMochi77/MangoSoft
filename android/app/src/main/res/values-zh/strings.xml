@@ -58,6 +58,11 @@
     <string name="new_password">新密码</string>
     <string name="change_display_name">修改显示名称</string>
     <string name="change_password">修改密码</string>
+    <string name="change_profile_visibility">资料可见性</string>
+    <string name="profile_visibility">资料可见性</string>
+    <string name="public_posts">在公开资料页显示我的帖子</string>
+    <string name="public_replies">在公开资料页显示我的回复</string>
+    <string name="profile_visibility_saved">资料可见性已保存</string>
     <string name="save_profile">保存资料</string>
     <string name="profile_saved">资料已保存</string>
     <string name="profile_save_failed">显示名称不能为空，新密码至少4位。</string>
@@ -66,6 +71,8 @@
     <string name="my_replies">我的回复</string>
     <string name="no_posts_yet">暂无帖子</string>
     <string name="no_replies_yet">暂无回复</string>
+    <string name="user_posts_private">该用户已隐藏帖子。</string>
+    <string name="user_replies_private">该用户已隐藏回复。</string>
     <string name="previous">上一页</string>
     <string name="next">下一页</string>
     <string name="page_format">第 %1$d / %2$d 页</string>

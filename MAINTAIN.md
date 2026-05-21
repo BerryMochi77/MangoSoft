@@ -120,7 +120,9 @@ Storage:
 
 - Avatar state is stored in `users.json` as `avatarSource` and `avatarValue`.
 - Profile background state is stored in `users.json` as `profileBackgroundSource` and `profileBackgroundValue`.
+- Public profile visibility is stored in `users.json` as `publicPosts` and `publicReplies`.
 - Existing users without background fields fall back to `profile_background_default_1`.
+- Existing users without visibility fields fall back to public posts and public replies.
 - Album images are copied into app-private storage before saving the file URI, because Photo Picker URIs are temporary.
 
 Code ownership:
@@ -129,6 +131,8 @@ Code ownership:
 - `ProfileBackgroundManager` handles default/gallery profile background display and persistence calls.
 - `AuthManager` owns reading/writing the user JSON appearance fields.
 - `ProfileFragment` owns the menu flow and screen refresh.
+- `SettingsFragment` owns the user-facing visibility toggles in Account -> `Profile visibility`.
+- `UserProfileActivity` reads `AuthManager.getProfileVisibility(...)` and hides another user's posts/replies when those sections are not public. The owner can still see their own content in the normal Profile tab.
 
 How to add a default profile background:
 

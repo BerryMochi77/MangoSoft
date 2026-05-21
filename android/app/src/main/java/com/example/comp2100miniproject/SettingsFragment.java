@@ -8,7 +8,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckedTextView;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +22,10 @@ import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
 
 import java.util.Locale;
+
+import com.example.comp2100miniproject.auth.AuthManager;
+
+import dao.model.User;
 
 /**
  * Settings tab: theme, language, time zone, and log out.
@@ -83,7 +90,8 @@ public class SettingsFragment extends Fragment {
         textTimezonePreview  = view.findViewById(R.id.textTimezonePreview);
         view.findViewById(R.id.rowTimezone).setOnClickListener(v -> showTimezonePicker());
 
-        // Log out
+        // Account
+        view.findViewById(R.id.rowProfileVisibility).setOnClickListener(v -> showProfileVisibilityDialog());
         view.findViewById(R.id.rowLogout).setOnClickListener(v -> confirmLogout());
 
         refreshLabels();
@@ -252,6 +260,44 @@ public class SettingsFragment extends Fragment {
     }
 
     // ── Label helpers ─────────────────────────────────────────────────────────
+
+    private void showProfileVisibilityDialog() {
+        User currentUser = host.currentUser();
+        AuthManager authManager = new AuthManager(requireContext());
+        AuthManager.ProfileVisibility visibility = authManager.getProfileVisibility(currentUser);
+
+        CheckBox posts = new CheckBox(requireContext());
+        posts.setText(R.string.public_posts);
+        posts.setChecked(visibility.publicPosts());
+
+        CheckBox replies = new CheckBox(requireContext());
+        replies.setText(R.string.public_replies);
+        replies.setChecked(visibility.publicReplies());
+
+        LinearLayout container = new LinearLayout(requireContext());
+        container.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        container.setPadding(padding, 0, padding, 0);
+        container.addView(posts);
+        container.addView(replies);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.profile_visibility)
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.submit, (dialog, which) -> {
+                    boolean saved = authManager.updateProfileVisibility(
+                            currentUser.getUUID(),
+                            posts.isChecked(),
+                            replies.isChecked()
+                    );
+                    int message = saved
+                            ? R.string.profile_visibility_saved
+                            : R.string.profile_save_failed;
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
 
     /** Human-readable label for a language code. */
     private String languageLabel(String code) {

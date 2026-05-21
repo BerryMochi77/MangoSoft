@@ -64,6 +64,11 @@
     <string name="edit_profile">Edit profile</string>
     <string name="change_display_name">Change display name</string>
     <string name="change_password">Change password</string>
+    <string name="change_profile_visibility">Profile visibility</string>
+    <string name="profile_visibility">Profile visibility</string>
+    <string name="public_posts">Show my posts on public profile</string>
+    <string name="public_replies">Show my replies on public profile</string>
+    <string name="profile_visibility_saved">Profile visibility saved</string>
     <string name="save_profile">Save profile</string>
     <string name="my_posts">My posts</string>
     <string name="my_replies">My replies</string>
@@ -103,6 +108,8 @@
     <string name="no_replies_yet">No replies yet</string>
     <string name="no_user_posts">No posts from this user yet</string>
     <string name="no_user_replies">No replies from this user yet</string>
+    <string name="user_posts_private">This user has hidden their posts.</string>
+    <string name="user_replies_private">This user has hidden their replies.</string>
     <string name="post_not_found">Post not found</string>
     <string name="post_deleted_unavailable">This post has been deleted. Refreshing the list.</string>
     <string name="new_post">New post</string>

@@ -50,6 +50,8 @@ public class UserProfileActivity extends AppCompatActivity {
 
     private final ArrayList<Post> userPosts = new ArrayList<>();
     private final ArrayList<Message> userReplies = new ArrayList<>();
+    private boolean postsPublic = true;
+    private boolean repliesPublic = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,29 +119,46 @@ public class UserProfileActivity extends AppCompatActivity {
     private void collectUserContent() {
         userPosts.clear();
         userReplies.clear();
+        AuthManager.ProfileVisibility visibility = authManager.getProfileVisibility(profileUser);
+        boolean ownerViewing = currentUser != null && currentUser.getUUID().equals(profileUser.getUUID());
+        postsPublic = ownerViewing || visibility.publicPosts();
+        repliesPublic = ownerViewing || visibility.publicReplies();
 
-        Iterator<Post> posts = PostDAO.getInstance().getAll();
-        while (posts.hasNext()) {
-            Post post = posts.next();
-            if (!post.isDeleted() && profileUser.getUUID().equals(post.poster)) {
-                userPosts.add(post);
+        if (postsPublic) {
+            Iterator<Post> posts = PostDAO.getInstance().getAll();
+            while (posts.hasNext()) {
+                Post post = posts.next();
+                if (!post.isDeleted() && profileUser.getUUID().equals(post.poster)) {
+                    userPosts.add(post);
+                }
             }
         }
 
-        MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
-        Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
-        while (messages.hasNext()) {
-            Message message = messages.next();
-            if (!deletions.isDeleted(message.id())
-                    && profileUser.getUUID().equals(message.poster())
-                    && isPostVisible(message.thread())) {
-                userReplies.add(message);
+        if (repliesPublic) {
+            MessageDeletionRegistry deletions = MessageDeletionRegistry.getInstance();
+            Iterator<Message> messages = PostDAO.getInstance().getAllMessages();
+            while (messages.hasNext()) {
+                Message message = messages.next();
+                if (!deletions.isDeleted(message.id())
+                        && profileUser.getUUID().equals(message.poster())
+                        && isPostVisible(message.thread())) {
+                    userReplies.add(message);
+                }
             }
         }
     }
 
     private void renderPosts() {
+        if (!postsPublic) {
+            textNoUserPosts.setText(R.string.user_posts_private);
+            textNoUserPosts.setVisibility(View.VISIBLE);
+            recyclerUserPosts.setVisibility(View.GONE);
+            recyclerUserPosts.setAdapter(null);
+            return;
+        }
+
         boolean empty = userPosts.isEmpty();
+        textNoUserPosts.setText(R.string.no_user_posts);
         textNoUserPosts.setVisibility(empty ? View.VISIBLE : View.GONE);
         recyclerUserPosts.setVisibility(empty ? View.GONE : View.VISIBLE);
         recyclerUserPosts.setAdapter(empty
@@ -154,7 +173,16 @@ public class UserProfileActivity extends AppCompatActivity {
     }
 
     private void renderReplies() {
+        if (!repliesPublic) {
+            textNoUserReplies.setText(R.string.user_replies_private);
+            textNoUserReplies.setVisibility(View.VISIBLE);
+            recyclerUserReplies.setVisibility(View.GONE);
+            recyclerUserReplies.setAdapter(null);
+            return;
+        }
+
         boolean empty = userReplies.isEmpty();
+        textNoUserReplies.setText(R.string.no_user_replies);
         textNoUserReplies.setVisibility(empty ? View.VISIBLE : View.GONE);
         recyclerUserReplies.setVisibility(empty ? View.GONE : View.VISIBLE);
         recyclerUserReplies.setAdapter(empty
