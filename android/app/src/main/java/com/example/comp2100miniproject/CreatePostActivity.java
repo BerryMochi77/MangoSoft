@@ -25,6 +25,7 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
 import android.net.Uri;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,6 +49,7 @@ public class CreatePostActivity extends AppCompatActivity {
     private ImageView imageAttachmentPreview;
     private Uri attachedImageUri;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
+    private boolean updatingSuggestedTags = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,18 +75,45 @@ public class CreatePostActivity extends AppCompatActivity {
         attachmentPreviewCard = findViewById(R.id.attachmentPreviewCard);
         imageAttachmentPreview = findViewById(R.id.imageAttachmentPreview);
         inputBody.setGravity(Gravity.TOP | Gravity.START);
+
         inputTags.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
                 renderTagPreview();
             }
         });
+
+        TextWatcher aiTagWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                updateAiSuggestedTags();
+            }
+        };
+
+        inputTitle.addTextChangedListener(aiTagWatcher);
+        inputBody.addTextChangedListener(aiTagWatcher);
 
         ImageButton buttonBack = findViewById(R.id.buttonBackCreatePost);
         Button buttonPublish = findViewById(R.id.buttonPublishPost);
         ImageButton buttonComposerOptions = findViewById(R.id.buttonComposerOptions);
         ImageButton buttonRemoveAttachment = findViewById(R.id.buttonRemoveAttachment);
+
         buttonBack.setOnClickListener(v -> finish());
         buttonPublish.setOnClickListener(v -> publishPost());
         buttonComposerOptions.setOnClickListener(v -> chooseComposerImage());
@@ -97,6 +126,56 @@ public class CreatePostActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void updateAiSuggestedTags() {
+        if (updatingSuggestedTags) {
+            return;
+        }
+
+        String suggestion = generateSuggestedTags(
+                inputTitle.getText().toString(),
+                inputBody.getText().toString()
+        );
+
+        if (suggestion.isEmpty()) {
+            return;
+        }
+
+        updatingSuggestedTags = true;
+        inputTags.setText(suggestion);
+        inputTags.setSelection(inputTags.getText().length());
+        updatingSuggestedTags = false;
+    }
+
+    private String generateSuggestedTags(String title, String body) {
+        String text = (title + " " + body).toLowerCase();
+        LinkedHashSet<String> tags = new LinkedHashSet<>();
+
+        if (text.contains("android")) tags.add("android");
+        if (text.contains("layout") || text.contains("ui")) tags.add("ui");
+        if (text.contains("profile")) tags.add("profile");
+        if (text.contains("moderation")) tags.add("moderation");
+        if (text.contains("report")) tags.add("report");
+        if (text.contains("harassment") || text.contains("abuse")) tags.add("abuse");
+        if (text.contains("study")) tags.add("study");
+        if (text.contains("test") || text.contains("junit")) tags.add("testing");
+        if (text.contains("database") || text.contains("dao")) tags.add("database");
+        if (text.contains("game")) tags.add("game");
+        if (text.contains("bug") || text.contains("error")) tags.add("bug");
+        if (text.contains("help")) tags.add("help");
+        if (text.contains("admin")) tags.add("admin");
+
+        StringBuilder result = new StringBuilder();
+
+        for (String tag : tags) {
+            if (result.length() > 0) {
+                result.append(" ");
+            }
+            result.append("#").append(tag);
+        }
+
+        return result.toString();
     }
 
     private void chooseComposerImage() {
@@ -127,7 +206,6 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void publishPost() {
-        // Banned users may not create new posts.
         if (BanRepository.getInstance().isBanned(currentUser.getUUID())) {
             Toast.makeText(this, R.string.you_are_banned, Toast.LENGTH_LONG).show();
             return;
@@ -141,26 +219,38 @@ public class CreatePostActivity extends AppCompatActivity {
 
         String cleanBody = buildPostBody();
         List<String> tags = normalizedTags(inputTags.getText().toString(), cleanTitle, cleanBody);
+
         Post post = new Post(UUID.randomUUID(), currentUser.getUUID(), cleanTitle);
         post.setBody(cleanBody);
         post.setHashtags(tags);
+
         PostDAO.getInstance().add(post);
         HashtagService.getInstance().indexPost(post);
         AndroidPostStore.saveAll(this);
+
         Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();
         finish();
     }
 
     private String buildPostBody() {
         String cleanBody = inputBody.getText().toString().trim();
-        if (attachedImageUri == null) return cleanBody;
+
+        if (attachedImageUri == null) {
+            return cleanBody;
+        }
+
         String imageToken = ComposerFormatManager.imageToken(attachedImageUri);
-        if (cleanBody.isEmpty()) return imageToken;
+
+        if (cleanBody.isEmpty()) {
+            return imageToken;
+        }
+
         return cleanBody + "\n\n" + imageToken;
     }
 
     private void renderTagPreview() {
         chipGroupTags.removeAllViews();
+
         for (String tag : normalizedTags(inputTags.getText().toString(), "", "")) {
             Chip chip = new Chip(this);
             chip.setText("#" + tag);
@@ -177,29 +267,44 @@ public class CreatePostActivity extends AppCompatActivity {
 
         if (rawTags != null) {
             String[] parts = rawTags.split("[,\\s]+");
+
             for (String part : parts) {
                 String clean = normalizeTag(part);
-                if (!clean.isEmpty()) tags.add(clean);
+
+                if (!clean.isEmpty()) {
+                    tags.add(clean);
+                }
             }
         }
 
         tags.addAll(HashtagParser.extract(title + " " + body));
+
         return new ArrayList<>(tags);
     }
 
     private String normalizeTag(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
+
         String clean = value.trim();
+
         while (clean.startsWith("#")) {
             clean = clean.substring(1);
         }
+
         clean = clean.replaceAll("[^A-Za-z0-9_]", "").toLowerCase();
+
         return clean;
     }
 
     private UUID readCurrentUserId() {
         String value = getIntent().getStringExtra(AuthManager.EXTRA_USER_ID);
-        if (value == null) return null;
+
+        if (value == null) {
+            return null;
+        }
+
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException ignored) {
