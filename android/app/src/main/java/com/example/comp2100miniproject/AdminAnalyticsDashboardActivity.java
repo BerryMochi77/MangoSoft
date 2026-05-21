@@ -16,6 +16,8 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import dao.model.User;
+import com.example.comp2100miniproject.ai.AIAnalyticsSummary;
+import com.example.comp2100miniproject.ai.AIAnalyticsService;
 
 /**
  * Admin-only Data Analytics Dashboard — now a navigation hub.
@@ -84,10 +86,11 @@ public class AdminAnalyticsDashboardActivity extends AppCompatActivity {
         click(R.id.rowPostsToday,     () -> openPostList(AdminPostListActivity.MODE_TODAY));
         click(R.id.rowPendingReports, this::openReportManagement);
 
-        // Section headers (Most Viewed, Most Reacted, Active Users)
+        // Section headers (Most Viewed, Most Reacted, Active Users, AI Analytics)
         click(R.id.headerMostViewed,  () -> openPostList(AdminPostListActivity.MODE_POPULAR_VIEWS));
         click(R.id.headerMostReacted, () -> openPostList(AdminPostListActivity.MODE_POPULAR_REACTED));
         click(R.id.headerActiveUsers, () -> openUserList(AdminUserListActivity.MODE_RANKING));
+        click(R.id.headerAiAnalytics, this::openAiAnalytics);
     }
 
     private void click(int viewId, Runnable action) {
@@ -121,6 +124,12 @@ public class AdminAnalyticsDashboardActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void openAiAnalytics() {
+        Intent intent = new Intent(this, AdminAiAnalyticsActivity.class);
+        putAdminExtras(intent);
+        startActivity(intent);
+    }
+
     private void putAdminExtras(Intent intent) {
         intent.putExtra(AuthManager.EXTRA_USER_ID,  currentUser.getUUID().toString());
         intent.putExtra(AuthManager.EXTRA_IS_ADMIN, true);
@@ -140,6 +149,26 @@ public class AdminAnalyticsDashboardActivity extends AppCompatActivity {
         bindPostCard(R.id.cardMostViewed,  stats.mostViewedPosts,  true);
         bindPostCard(R.id.cardMostReacted, stats.mostReactedPosts, false);
         bindUserCard(stats.activeUsers);
+        bindAiSummaryCard();
+    }
+
+    private void bindAiSummaryCard() {
+        LinearLayout card = findViewById(R.id.cardAiAnalytics);
+        if (card == null) return;
+        card.removeAllViews();
+        AIAnalyticsSummary ai = AIAnalyticsService.computeSummary();
+        if (ai.totalScoredPosts == 0) {
+            card.addView(emptyRow());
+            return;
+        }
+        card.addView(hRow(getString(R.string.ai_total_scored),
+                String.valueOf(ai.totalScoredPosts)));
+        card.addView(divider());
+        card.addView(hRow(getString(R.string.ai_hidden_collapsed),
+                String.valueOf(ai.hiddenCollapsedPosts)));
+        card.addView(divider());
+        card.addView(hRow(getString(R.string.ai_avg_score),
+                String.format("%.1f/10", ai.averageRelevanceScore)));
     }
 
     private void bindPostCard(int cardId, java.util.List<PostStat> posts, boolean showViews) {

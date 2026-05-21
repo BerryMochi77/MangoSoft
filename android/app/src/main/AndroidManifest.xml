@@ -29,6 +29,9 @@
             android:name=".AdminAnalyticsDashboardActivity"
             android:exported="false" />
         <activity
+            android:name=".AdminAiAnalyticsActivity"
+            android:exported="false" />
+        <activity
             android:name=".AdminUserListActivity"
             android:exported="false" />
         <activity

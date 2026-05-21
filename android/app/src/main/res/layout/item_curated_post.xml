@@ -51,13 +51,27 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textCuratedTitle" />
 
+    <!-- "Not relevant" feedback button — small, end-aligned, unobtrusive. -->
+    <Button
+        android:id="@+id/buttonNotRelevant"
+        style="?attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginTop="4dp"
+        android:text="@string/ai_not_relevant"
+        android:textAllCaps="false"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textCuratedSummary" />
+
     <View
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="4dp"
         android:background="@color/border"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textCuratedSummary" />
+        app:layout_constraintTop_toBottomOf="@+id/buttonNotRelevant" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -333,4 +333,22 @@
     <string name="dash_status_reported">%1$d REPORTS</string>
     <string name="dash_reactions_label">Reactions</string>
     <string name="dash_reports_label">Reports</string>
+    <!-- ── AI Filter Analytics ──────────────────────────────────────── -->
+    <string name="ai_analytics_title">AI Filter Analytics</string>
+    <string name="ai_analytics_overview">AI Overview</string>
+    <string name="ai_filtering_pattern">Filtering Pattern</string>
+    <string name="ai_user_feedback">User Feedback</string>
+    <string name="ai_total_scored">Total AI-scored posts</string>
+    <string name="ai_hidden_collapsed">Hidden / collapsed posts</string>
+    <string name="ai_avg_score">Average relevance score</string>
+    <string name="ai_most_filtered_category">Most filtered category</string>
+    <string name="ai_feedback_count">User feedback count</string>
+    <string name="ai_not_relevant_count">Not relevant clicks</string>
+    <string name="ai_show_anyway_count">Show anyway clicks</string>
+    <string name="ai_no_data">No AI data yet — run curation in the AI tab first.</string>
+    <string name="ai_no_category">No category data</string>
+    <string name="ai_not_relevant">👎 Not relevant</string>
+    <string name="ai_show_anyway">Show anyway</string>
+    <string name="ai_filtered_section_title">Filtered by AI</string>
+    <string name="ai_feedback_not_relevant_thanks">Feedback recorded</string>
 </resources>

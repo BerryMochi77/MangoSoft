@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +21,9 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.comp2100miniproject.ai.AIAnalyticsRepository;
+import com.example.comp2100miniproject.ai.AIFeedbackType;
+import com.example.comp2100miniproject.ai.AiPostCurationStrategy;
 import com.example.comp2100miniproject.ai.AiUserPreferences;
 import com.example.comp2100miniproject.ai.CuratedPost;
 import com.example.comp2100miniproject.ai.PostCurationStrategy;
@@ -224,17 +228,22 @@ public class AiFragment extends Fragment {
     }
 
     private void showCurated(List<CuratedPost> curated) {
+        // Record all verdicts (including filtered) in the analytics repository.
+        AIAnalyticsRepository.getInstance().recordBatch(curated);
+
         if (curated == null || curated.isEmpty()) {
             showStatus(getString(R.string.ai_no_results));
             recyclerCurated.setAdapter(null);
+            showFilteredSection(new ArrayList<>());
             return;
         }
 
-        List<CuratedPost> worth = new ArrayList<>();
+        // Split into worth-reading and filtered lists.
+        List<CuratedPost> worth    = new ArrayList<>();
+        List<CuratedPost> filtered = new ArrayList<>();
         for (CuratedPost c : curated) {
-            if (c.worthReading) {
-                worth.add(c);
-            }
+            if (c.worthReading) worth.add(c);
+            else                filtered.add(c);
         }
 
         worth.sort(Comparator.<CuratedPost>comparingInt(c -> c.score).reversed());
@@ -242,11 +251,79 @@ public class AiFragment extends Fragment {
         if (worth.isEmpty()) {
             showStatus(getString(R.string.ai_no_results));
             recyclerCurated.setAdapter(null);
-            return;
+        } else {
+            showStatus(buildAiFeedSummary(worth));
+            UUID uid = userId();
+            recyclerCurated.setAdapter(new CuratedPostAdapter(worth, this::openPost,
+                    (post) -> {
+                        // "Not relevant" feedback: AI recommended it but user disagrees.
+                        AIAnalyticsRepository.getInstance().recordFeedback(
+                                post.id, uid, AIFeedbackType.NOT_RELEVANT);
+                        Toast.makeText(requireContext(),
+                                R.string.ai_feedback_not_relevant_thanks, Toast.LENGTH_SHORT).show();
+                    }));
         }
 
-        showStatus(buildAiFeedSummary(worth));
-        recyclerCurated.setAdapter(new CuratedPostAdapter(worth, this::openPost));
+        showFilteredSection(filtered);
+    }
+
+    /** Populate or hide the "Filtered by AI" section below the RecyclerView. */
+    private void showFilteredSection(List<CuratedPost> filtered) {
+        View root = getView();
+        if (root == null) return;
+        LinearLayout container = root.findViewById(R.id.containerFilteredPosts);
+        View section           = root.findViewById(R.id.sectionFilteredPosts);
+        if (container == null || section == null) return;
+
+        container.removeAllViews();
+        if (filtered.isEmpty()) {
+            section.setVisibility(View.GONE);
+            return;
+        }
+        section.setVisibility(View.VISIBLE);
+
+        UUID uid = userId();
+        int dp = (int) (getResources().getDisplayMetrics().density);
+        for (CuratedPost c : filtered) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(12 * dp, 8 * dp, 12 * dp, 8 * dp);
+
+            TextView titleTv = new TextView(requireContext());
+            String rawTitle = (c.post != null && c.post.topic != null) ? c.post.topic : "—";
+            titleTv.setText(rawTitle.length() > 50
+                    ? rawTitle.substring(0, 47) + "…" : rawTitle);
+            titleTv.setTextSize(13f);
+            titleTv.setTextColor(requireContext().getColor(R.color.text_primary));
+            row.addView(titleTv);
+
+            if (!c.summary.isEmpty()) {
+                TextView sumTv = new TextView(requireContext());
+                sumTv.setText(c.summary);
+                sumTv.setTextSize(11f);
+                sumTv.setTextColor(requireContext().getColor(R.color.text_secondary));
+                row.addView(sumTv);
+            }
+
+            Button showBtn = new Button(requireContext());
+            showBtn.setText(R.string.ai_show_anyway);
+            showBtn.setAllCaps(false);
+            showBtn.setTextSize(12f);
+            showBtn.setOnClickListener(v -> {
+                AIAnalyticsRepository.getInstance().recordFeedback(
+                        c.post.id, uid, AIFeedbackType.SHOW_ANYWAY);
+                openPost(c.post);
+            });
+            row.addView(showBtn);
+
+            container.addView(row);
+
+            View divider = new View(requireContext());
+            divider.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            divider.setBackgroundColor(requireContext().getColor(R.color.border));
+            container.addView(divider);
+        }
     }
 
     private String buildAiFeedSummary(List<CuratedPost> worth) {

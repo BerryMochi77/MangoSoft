@@ -272,4 +272,24 @@
     <string name="dash_reactions_label">点赞数</string>
     <string name="dash_reports_label">举报数</string>
 
+
+    <!-- ── AI Filter Analytics ──────────────────────────────────────── -->
+    <string name="ai_analytics_title">AI 过滤数据面板</string>
+    <string name="ai_analytics_overview">AI 概览</string>
+    <string name="ai_filtering_pattern">过滤模式</string>
+    <string name="ai_user_feedback">用户反馈</string>
+    <string name="ai_total_scored">AI 已打分帖子总数</string>
+    <string name="ai_hidden_collapsed">已隐藏/折叠帖子数</string>
+    <string name="ai_avg_score">平均相关度分数</string>
+    <string name="ai_most_filtered_category">最常被过滤分类</string>
+    <string name="ai_feedback_count">用户反馈次数</string>
+    <string name="ai_not_relevant_count">"不相关"点击次数</string>
+    <string name="ai_show_anyway_count">"仍然查看"点击次数</string>
+    <string name="ai_no_data">暂无 AI 数据 — 请先在 AI 标签页运行智能整理。</string>
+    <string name="ai_no_category">暂无分类数据</string>
+    <string name="ai_not_relevant">👎 不相关</string>
+    <string name="ai_show_anyway">仍然查看</string>
+    <string name="ai_filtered_section_title">被 AI 过滤的帖子</string>
+    <string name="ai_feedback_not_relevant_thanks">反馈已记录</string>
+
 </resources>
