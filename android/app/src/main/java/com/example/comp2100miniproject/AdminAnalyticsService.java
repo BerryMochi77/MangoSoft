@@ -9,11 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import java.util.LinkedHashMap;
+
 import dao.PostDAO;
 import dao.UserDAO;
 import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
+import messagestate.MessageDeletionRegistry;
+import messagestate.MessageEditRegistry;
+import moderation.BanRepository;
 import moderation.PostReportRepository;
 import postview.PostViewService;
 
@@ -166,6 +171,108 @@ public final class AdminAnalyticsService {
         stats.sort((a, b) -> Integer.compare(b.postCount, a.postCount));
         return Collections.unmodifiableList(
                 stats.subList(0, Math.min(limit, stats.size())));
+    }
+
+    // ── Full-list admin data (used by management list pages) ─────────────────
+
+    /**
+     * All users alphabetically — enriched with post count, reply count, ban status.
+     * Reads UserDAO, PostDAO.getAllMessages() — Message.java NOT modified.
+     */
+    public static List<UserAdminSummary> getAllUsersForAdmin() {
+        // Build reply counts per user by scanning messages once
+        Map<UUID, Integer> repliesByUser = new HashMap<>();
+        for (Iterator<Message> it = PostDAO.getInstance().getAllMessages(); it.hasNext(); ) {
+            Message m = it.next();
+            repliesByUser.merge(m.poster(), 1, Integer::sum);
+        }
+        // Build post counts per user by scanning posts once
+        Map<UUID, Integer> postsByUser = new HashMap<>();
+        for (Iterator<Post> it = PostDAO.getInstance().getAll(); it.hasNext(); ) {
+            Post p = it.next();
+            if (!p.isDeleted() && p.poster != null)
+                postsByUser.merge(p.poster, 1, Integer::sum);
+        }
+
+        List<UserAdminSummary> result = new ArrayList<>();
+        BanRepository bans = BanRepository.getInstance();
+        for (Iterator<User> it = UserDAO.getInstance().getAll(); it.hasNext(); ) {
+            User u = it.next();
+            result.add(new UserAdminSummary(
+                    u.getUUID(),
+                    u.username(),
+                    u.role() == User.Role.Admin ? "Admin" : "Member",
+                    postsByUser.getOrDefault(u.getUUID(), 0),
+                    repliesByUser.getOrDefault(u.getUUID(), 0),
+                    bans.isBanned(u.getUUID())
+            ));
+        }
+        result.sort((a, b) -> a.username.compareToIgnoreCase(b.username));
+        return Collections.unmodifiableList(result);
+    }
+
+    /** Same as {@link #getAllUsersForAdmin()} but sorted by post count descending. */
+    public static List<UserAdminSummary> getActiveUsersRankingFull() {
+        List<UserAdminSummary> ranked = new ArrayList<>(getAllUsersForAdmin());
+        ranked.sort((a, b) -> Integer.compare(b.postCount, a.postCount));
+        return Collections.unmodifiableList(ranked);
+    }
+
+    /**
+     * All posts (including deleted) with admin metadata.
+     * The {@code postIndex} field in each summary is the raw PostDAO iteration index
+     * used by PostViewerActivity's "post_index" extra.
+     * Message.java is not modified — reply counts read raw message storage.
+     */
+    public static List<PostAdminSummary> getAllPostsForAdmin() {
+        ReactionManager rm = ReactionManager.getInstance();
+        PostViewService  pv = PostViewService.getInstance();
+        List<PostAdminSummary> result = new ArrayList<>();
+        int rawIndex = 0;
+        for (Iterator<Post> it = PostDAO.getInstance().getAll(); it.hasNext(); rawIndex++) {
+            Post p = it.next();
+            User author = UserDAO.getInstance().getByUUID(p.poster);
+            String authorName = author != null ? author.username() : "?";
+            int replyCount = 0;
+            for (Iterator<Message> mi = p.messages.getAll(); mi.hasNext(); mi.next()) replyCount++;
+            int reportCount = PostReportRepository.getInstance().getReportsForPost(p.id).size();
+            result.add(new PostAdminSummary(
+                    p.id, p.topic, authorName,
+                    p.getCreatedAt(), pv.getViewCount(p.id), rm.getTotalReactionCount(p.id),
+                    replyCount, reportCount, p.isDeleted(),
+                    p.isDeleted() ? -1 : rawIndex,
+                    p.getHashtags()
+            ));
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    /** Only today's non-deleted posts. */
+    public static List<PostAdminSummary> getTodaysPostsForAdmin() {
+        Calendar today = Calendar.getInstance();
+        int year = today.get(Calendar.YEAR);
+        int day  = today.get(Calendar.DAY_OF_YEAR);
+        List<PostAdminSummary> today_list = new ArrayList<>();
+        for (PostAdminSummary ps : getAllPostsForAdmin()) {
+            if (ps.deleted) continue;
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(ps.createdAt);
+            if (c.get(Calendar.YEAR) == year && c.get(Calendar.DAY_OF_YEAR) == day)
+                today_list.add(ps);
+        }
+        return Collections.unmodifiableList(today_list);
+    }
+
+    /** Non-deleted posts sorted by (views + reactions) descending. */
+    public static List<PostAdminSummary> getPopularPostsForAdmin() {
+        List<PostAdminSummary> pop = new ArrayList<>();
+        for (PostAdminSummary ps : getAllPostsForAdmin()) {
+            if (!ps.deleted) pop.add(ps);
+        }
+        pop.sort((a, b) -> Integer.compare(
+                b.viewCount + b.totalReactions,
+                a.viewCount + a.totalReactions));
+        return Collections.unmodifiableList(pop);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────

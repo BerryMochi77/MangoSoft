@@ -26,6 +26,15 @@
             android:name=".AdminAnalyticsDashboardActivity"
             android:exported="false" />
         <activity
+            android:name=".AdminUserListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminPostListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminReplyListActivity"
+            android:exported="false" />
+        <activity
             android:name=".AdminPostReportsActivity"
             android:exported="false" />
         <activity

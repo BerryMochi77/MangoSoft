@@ -267,4 +267,33 @@
     <string name="dash_views_format">%1$d views</string>
     <string name="dash_reactions_format">%1$d likes</string>
     <string name="dash_posts_format">%1$d posts</string>
+    <!-- ── Admin Management Hub (clickable dashboard) ───────────── -->
+    <string name="dash_view_all">View all ›</string>
+    <string name="dash_user_database">User Database</string>
+    <string name="dash_active_users_ranking">Active Users Ranking</string>
+    <string name="dash_post_database">Post Database</string>
+    <string name="dash_todays_posts">Today\'s Posts</string>
+    <string name="dash_most_viewed_posts">Most Viewed Posts</string>
+    <string name="dash_most_liked_posts">Most Liked Posts</string>
+    <string name="dash_reply_database">Reply Database</string>
+    <string name="dash_reply_detail">Reply Detail</string>
+    <string name="dash_view_post">View post</string>
+    <string name="dash_delete_reply">Delete reply</string>
+    <string name="dash_user_meta">Role: %1$s · Posts: %2$d · Replies: %3$d</string>
+    <string name="dash_post_stats">%1$d views · %2$d likes · %3$d replies · %4$d reports</string>
+    <string name="dash_detail_username">Username</string>
+    <string name="dash_detail_role">Role</string>
+    <string name="dash_detail_status">Status</string>
+    <string name="dash_detail_author">Author</string>
+    <string name="dash_detail_created">Created</string>
+    <string name="dash_detail_post">Post</string>
+    <string name="dash_detail_time">Time</string>
+    <string name="dash_banned">Banned</string>
+    <string name="dash_active">Active</string>
+    <string name="dash_unban_user">Unban user</string>
+    <string name="dash_user_unbanned">User unbanned</string>
+    <string name="dash_status_deleted">DELETED</string>
+    <string name="dash_status_reported">%1$d REPORTS</string>
+    <string name="dash_reactions_label">Reactions</string>
+    <string name="dash_reports_label">Reports</string>
 </resources>

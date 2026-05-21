@@ -72,9 +72,12 @@
                 android:orientation="vertical"
                 android:padding="4dp">
 
+                <!-- Total Users row — clickable → User Database -->
                 <LinearLayout
+                    android:id="@+id/rowTotalUsers"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="12dp">
                     <TextView
@@ -88,17 +91,23 @@
                         android:id="@+id/statTotalUsers"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
                         android:textColor="@color/accent"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="›" android:textColor="@color/text_secondary" android:textSize="18sp" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:layout_marginHorizontal="12dp" android:background="@color/border" />
 
+                <!-- Total Posts row — clickable → Post Database -->
                 <LinearLayout
+                    android:id="@+id/rowTotalPosts"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="12dp">
                     <TextView
@@ -112,17 +121,23 @@
                         android:id="@+id/statTotalPosts"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
                         android:textColor="@color/accent"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="›" android:textColor="@color/text_secondary" android:textSize="18sp" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:layout_marginHorizontal="12dp" android:background="@color/border" />
 
+                <!-- Total Replies row — clickable → Reply Database -->
                 <LinearLayout
+                    android:id="@+id/rowTotalReplies"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="12dp">
                     <TextView
@@ -136,17 +151,23 @@
                         android:id="@+id/statTotalReplies"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
                         android:textColor="@color/accent"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="›" android:textColor="@color/text_secondary" android:textSize="18sp" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:layout_marginHorizontal="12dp" android:background="@color/border" />
 
+                <!-- Posts Today row — clickable → Today's Posts -->
                 <LinearLayout
+                    android:id="@+id/rowPostsToday"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="12dp">
                     <TextView
@@ -160,17 +181,23 @@
                         android:id="@+id/statPostsToday"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
                         android:textColor="@color/accent"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="›" android:textColor="@color/text_secondary" android:textSize="18sp" />
                 </LinearLayout>
 
                 <View android:layout_width="match_parent" android:layout_height="1dp"
                     android:layout_marginHorizontal="12dp" android:background="@color/border" />
 
+                <!-- Pending Reports row — clickable → Report Management -->
                 <LinearLayout
+                    android:id="@+id/rowPendingReports"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
+                    android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="12dp">
                     <TextView
@@ -184,23 +211,39 @@
                         android:id="@+id/statPendingReports"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
                         android:textColor="@color/warning"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="›" android:textColor="@color/text_secondary" android:textSize="18sp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ── Most Viewed Posts ────────────────────────────────────── -->
-            <TextView
+            <!-- ── Most Viewed Posts (clickable header + card) ──────────── -->
+            <LinearLayout
+                android:id="@+id/headerMostViewed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="@string/dash_most_viewed"
-                android:textAllCaps="true"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/dash_most_viewed"
+                    android:textAllCaps="true"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/dash_view_all"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/cardMostViewed"
@@ -210,17 +253,30 @@
                 android:orientation="vertical"
                 android:padding="4dp" />
 
-            <!-- ── Most Liked Posts ─────────────────────────────────────── -->
-            <TextView
+            <!-- ── Most Liked Posts (clickable header + card) ───────────── -->
+            <LinearLayout
+                android:id="@+id/headerMostReacted"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="@string/dash_most_reacted"
-                android:textAllCaps="true"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/dash_most_reacted"
+                    android:textAllCaps="true"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/dash_view_all"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/cardMostReacted"
@@ -230,17 +286,30 @@
                 android:orientation="vertical"
                 android:padding="4dp" />
 
-            <!-- ── Active Users ─────────────────────────────────────────── -->
-            <TextView
+            <!-- ── Active Users (clickable header + card) ───────────────── -->
+            <LinearLayout
+                android:id="@+id/headerActiveUsers"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="@string/dash_active_users"
-                android:textAllCaps="true"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/dash_active_users"
+                    android:textAllCaps="true"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/dash_view_all"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/cardActiveUsers"

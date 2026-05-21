@@ -241,4 +241,35 @@
     <string name="dash_reactions_format">%1$d 次点赞</string>
     <string name="dash_posts_format">%1$d 篇帖子</string>
 
+
+    <!-- ── Admin Management Hub ──────────────────────────────────────── -->
+    <string name="dash_view_all">查看全部 ›</string>
+    <string name="dash_user_database">用户库</string>
+    <string name="dash_active_users_ranking">活跃用户排行</string>
+    <string name="dash_post_database">帖子库</string>
+    <string name="dash_todays_posts">今日帖子</string>
+    <string name="dash_most_viewed_posts">最多阅读帖子</string>
+    <string name="dash_most_liked_posts">最多点赞帖子</string>
+    <string name="dash_reply_database">评论库</string>
+    <string name="dash_reply_detail">评论详情</string>
+    <string name="dash_view_post">查看帖子</string>
+    <string name="dash_delete_reply">删除评论</string>
+    <string name="dash_user_meta">角色：%1$s · 帖子：%2$d · 回复：%3$d</string>
+    <string name="dash_post_stats">%1$d 次浏览 · %2$d 点赞 · %3$d 回复 · %4$d 举报</string>
+    <string name="dash_detail_username">用户名</string>
+    <string name="dash_detail_role">角色</string>
+    <string name="dash_detail_status">状态</string>
+    <string name="dash_detail_author">作者</string>
+    <string name="dash_detail_created">发布时间</string>
+    <string name="dash_detail_post">帖子</string>
+    <string name="dash_detail_time">时间</string>
+    <string name="dash_banned">已封禁</string>
+    <string name="dash_active">正常</string>
+    <string name="dash_unban_user">解封用户</string>
+    <string name="dash_user_unbanned">用户已解封</string>
+    <string name="dash_status_deleted">已删除</string>
+    <string name="dash_status_reported">%1$d 条举报</string>
+    <string name="dash_reactions_label">点赞数</string>
+    <string name="dash_reports_label">举报数</string>
+
 </resources>
