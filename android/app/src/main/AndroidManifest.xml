@@ -23,6 +23,9 @@
             android:name=".CreatePostActivity"
             android:exported="false" />
         <activity
+            android:name=".AdminPostReportsActivity"
+            android:exported="false" />
+        <activity
             android:name=".FrozenUsersActivity"
             android:exported="true" />
         <activity

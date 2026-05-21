@@ -214,4 +214,34 @@
     <string name="unsave_message">Unsave</string>
     <string name="message_saved">Saved</string>
     <string name="message_unsaved">Removed from saved</string>
+    <!-- ── Admin Post Moderation ──────────────────────────────────────── -->
+    <string name="settings_section_admin">Admin</string>
+    <string name="admin_dashboard">Admin Dashboard</string>
+    <string name="admin_pending_count">%1$d pending</string>
+    <string name="admin_report_detail">Report Detail</string>
+    <string name="admin_pending_reports">Pending reports</string>
+    <string name="no_pending_reports">No pending reports</string>
+    <string name="report_post">Report post</string>
+    <string name="submit_report">Submit report</string>
+    <string name="report_submitted">Report submitted</string>
+    <string name="report_already_submitted">You have already reported this post</string>
+    <string name="report_meta_format">Reporter: %1$s  →  Author: %2$s</string>
+    <string name="no_reason_provided">No reason provided</string>
+    <string name="reported_post">Reported post</string>
+    <string name="report_detail_reporter">Reporter</string>
+    <string name="reported_author">Reported author</string>
+    <string name="report_reason">Reason</string>
+    <string name="report_time">Reported at</string>
+    <string name="status_pending">PENDING</string>
+    <string name="dismiss_report">Dismiss report</string>
+    <string name="delete_post_action">Delete post</string>
+    <string name="ban_author">Ban author</string>
+    <string name="confirm">Confirm</string>
+    <string name="confirm_dismiss_report">Dismiss this report? The post will remain visible.</string>
+    <string name="confirm_delete_post_report">Delete this post? It will no longer appear in the feed.</string>
+    <string name="confirm_ban_author">Ban this author? They will be blocked from creating new posts.</string>
+    <string name="report_dismissed">Report dismissed</string>
+    <string name="post_deleted_by_admin">Post has been deleted</string>
+    <string name="author_banned">Author has been banned</string>
+    <string name="you_are_banned">Your account has been banned from creating posts</string>
 </resources>

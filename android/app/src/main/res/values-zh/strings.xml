@@ -192,4 +192,36 @@
     <string name="tz_sydney">悉尼（澳大利亚）</string>
     <string name="tz_shanghai">上海（中国）</string>
 
+
+    <!-- ── Admin Post Moderation ──────────────────────────────────────── -->
+    <string name="settings_section_admin">管理员</string>
+    <string name="admin_dashboard">管理员面板</string>
+    <string name="admin_pending_count">%1$d 条待处理</string>
+    <string name="admin_report_detail">举报详情</string>
+    <string name="admin_pending_reports">待处理举报</string>
+    <string name="no_pending_reports">暂无待处理举报</string>
+    <string name="report_post">举报帖子</string>
+    <string name="submit_report">提交举报</string>
+    <string name="report_submitted">举报已提交</string>
+    <string name="report_already_submitted">您已经举报过该帖子</string>
+    <string name="report_meta_format">举报人：%1$s  →  作者：%2$s</string>
+    <string name="no_reason_provided">未提供原因</string>
+    <string name="reported_post">被举报帖子</string>
+    <string name="report_detail_reporter">举报人</string>
+    <string name="reported_author">被举报作者</string>
+    <string name="report_reason">举报原因</string>
+    <string name="report_time">举报时间</string>
+    <string name="status_pending">待处理</string>
+    <string name="dismiss_report">驳回举报</string>
+    <string name="delete_post_action">删除帖子</string>
+    <string name="ban_author">封禁作者</string>
+    <string name="confirm">确认</string>
+    <string name="confirm_dismiss_report">驳回此举报？该帖子将继续显示。</string>
+    <string name="confirm_delete_post_report">删除该帖子？它将不再出现在信息流中。</string>
+    <string name="confirm_ban_author">封禁该作者？他们将无法发布新帖子。</string>
+    <string name="report_dismissed">举报已驳回</string>
+    <string name="post_deleted_by_admin">帖子已被删除</string>
+    <string name="author_banned">作者已被封禁</string>
+    <string name="you_are_banned">您的账号已被封禁，无法发布帖子</string>
+
 </resources>

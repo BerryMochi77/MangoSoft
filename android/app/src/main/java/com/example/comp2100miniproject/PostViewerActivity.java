@@ -62,7 +62,10 @@ import dao.model.Post;
 import dao.model.User;
 import hashtag.HashtagParser;
 import hashtag.HashtagService;
+import moderation.AdminModerationService;
+import moderation.BanRepository;
 import moderation.ModerationTools;
+import moderation.PostReportRepository;
 import postview.PostViewService;
 
 public class PostViewerActivity extends AppCompatActivity {
@@ -87,6 +90,9 @@ public class PostViewerActivity extends AppCompatActivity {
     private RecyclerView recyclerMessages;
     private LinearLayout postOwnerActions;
     private LinearLayout reactionBar;
+    private Button buttonEditPost;
+    private Button buttonDeletePost;
+    private Button buttonReportPost;
     /** Held so reaction taps can refresh exactly one row instead of the whole adapter. */
     private MessageAdapter messageAdapter;
     private EditText inputReply;
@@ -201,10 +207,23 @@ public class PostViewerActivity extends AppCompatActivity {
 
         postOwnerActions = findViewById(R.id.postOwnerActions);
         reactionBar = findViewById(R.id.reactionBar);
+        buttonEditPost   = findViewById(R.id.buttonEditPost);
+        buttonDeletePost = findViewById(R.id.buttonDeletePost);
+        buttonReportPost = findViewById(R.id.buttonReportPost);
+
         boolean ownsPost = currentUser.getUUID().equals(post.poster);
-        postOwnerActions.setVisibility(ownsPost ? View.VISIBLE : View.GONE);
-        findViewById(R.id.buttonEditPost).setOnClickListener(v -> showEditPostDialog());
-        findViewById(R.id.buttonDeletePost).setOnClickListener(v -> confirmDeletePost());
+        boolean isAdmin  = currentUser.role() == User.Role.Admin;
+        // Owners see Edit + Delete; regular non-owners see Report Post; admins see neither here
+        boolean canReport = !ownsPost && !isAdmin;
+        postOwnerActions.setVisibility(ownsPost || canReport ? View.VISIBLE : View.GONE);
+        buttonEditPost  .setVisibility(ownsPost   ? View.VISIBLE : View.GONE);
+        buttonDeletePost.setVisibility(ownsPost   ? View.VISIBLE : View.GONE);
+        buttonReportPost.setVisibility(canReport  ? View.VISIBLE : View.GONE);
+        updateReportButtonState();
+
+        buttonEditPost  .setOnClickListener(v -> showEditPostDialog());
+        buttonDeletePost.setOnClickListener(v -> confirmDeletePost());
+        buttonReportPost.setOnClickListener(v -> showReportPostDialog());
 
         // Record one view per fresh open. savedInstanceState != null means the OS
         // recreated the activity, so do not count that again.
@@ -288,8 +307,15 @@ public class PostViewerActivity extends AppCompatActivity {
         imagePostAttachment.setVisibility(!collapsed && ComposerFormatManager.hasImage(post.getBody())
                 ? View.VISIBLE : View.GONE);
         reactionBar.setVisibility(detailVisibility);
-        postOwnerActions.setVisibility(!collapsed && currentUser.getUUID().equals(post.poster)
-                ? View.VISIBLE : View.GONE);
+        boolean isOwner  = currentUser.getUUID().equals(post.poster);
+        boolean isAdmin  = currentUser.role() == User.Role.Admin;
+        boolean canReport = !isOwner && !isAdmin;
+        postOwnerActions.setVisibility(!collapsed && (isOwner || canReport) ? View.VISIBLE : View.GONE);
+        if (buttonEditPost != null) {
+            buttonEditPost  .setVisibility(isOwner   ? View.VISIBLE : View.GONE);
+            buttonDeletePost.setVisibility(isOwner   ? View.VISIBLE : View.GONE);
+            buttonReportPost.setVisibility(canReport ? View.VISIBLE : View.GONE);
+        }
 
         textPostTitle.setMaxLines(collapsed ? 1 : 2);
         textPostTitle.setTextSize(collapsed ? 18f : 22f);
@@ -404,6 +430,7 @@ public class PostViewerActivity extends AppCompatActivity {
         renderHashtagChips();
         String body = post.getBody();
         ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
+        updateReportButtonState();
         if (postHeaderCollapsed) {
             applyPostHeaderCollapsedState(true, false);
         }
@@ -770,6 +797,52 @@ public class PostViewerActivity extends AppCompatActivity {
                     finish();
                 })
                 .show();
+    }
+
+    // ── Post-level reporting ──────────────────────────────────────────────────
+
+    /**
+     * Show a dialog letting the current user report the post with a typed reason.
+     * Delegates entirely to {@link AdminModerationService} — no report state in Activity.
+     */
+    private void showReportPostDialog() {
+        if (PostReportRepository.getInstance().hasReported(post.id, currentUser.getUUID())) {
+            Toast.makeText(this, R.string.report_already_submitted, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        EditText input = new EditText(this);
+        input.setHint(R.string.report_reason_hint);
+        input.setMinLines(2);
+        int dp16 = (int) (16 * getResources().getDisplayMetrics().density);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp16, dp16 / 2, dp16, 0);
+        container.addView(input);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.report_post)
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.submit_report, (dialog, which) -> {
+                    String reason = input.getText().toString().trim();
+                    boolean ok = AdminModerationService.getInstance().submitReport(
+                            post.id, currentUser.getUUID(), post.poster, reason);
+                    Toast.makeText(this,
+                            ok ? R.string.report_submitted : R.string.report_already_submitted,
+                            Toast.LENGTH_SHORT).show();
+                    if (ok) updateReportButtonState();
+                })
+                .show();
+    }
+
+    /** Dim the Report button once the user has already submitted a report for this post. */
+    private void updateReportButtonState() {
+        if (buttonReportPost == null || post == null || currentUser == null) return;
+        boolean alreadyReported = PostReportRepository.getInstance()
+                .hasReported(post.id, currentUser.getUUID());
+        buttonReportPost.setAlpha(alreadyReported ? 0.45f : 1f);
+        buttonReportPost.setEnabled(!alreadyReported);
     }
 
     private void showEditReplyDialog(Message message) {

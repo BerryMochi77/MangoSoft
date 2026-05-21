@@ -206,6 +206,17 @@
                 android:layout_weight="1"
                 android:text="@string/delete"
                 android:textAllCaps="false" />
+
+        <!-- Report button: only visible for non-owner, non-admin users -->
+        <Button
+                android:id="@+id/buttonReportPost"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="@string/report_post"
+                android:textAllCaps="false"
+                android:textColor="@color/warning"
+                android:visibility="gone" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
