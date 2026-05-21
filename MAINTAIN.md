@@ -360,25 +360,28 @@ Hackathon 2 brief 的硬约束：
 
 也就是说，[`Message`](android/social-core/src/main/java/dao/model/Message.java) 只保留 Hackathon 1 时就有的字段（id / poster / thread / timestamp / message / hidden），所有 Hackathon 1 之后新增的 per-message 状态都走 **sidecar registry**，放在 social-core 的 `messagestate/` 包里。
 
-当前已有三个 sidecar：
+当前已有五个 sidecar：
 
 | Registry | 职责 | 例子 |
 |---|---|---|
 | [`MessageEditRegistry`](android/social-core/src/main/java/messagestate/MessageEditRegistry.java) | 记录哪些 message 被编辑过 + 当前内容 | `recordEdit(id, newContent)` / `currentContent(id, original)` |
 | [`MessageDeletionRegistry`](android/social-core/src/main/java/messagestate/MessageDeletionRegistry.java) | 软删除标记 | `markDeleted(id)` / `isDeleted(id)` |
 | [`MessageThreadRegistry`](android/social-core/src/main/java/messagestate/MessageThreadRegistry.java) | Reddit 风格嵌套回帖的父子关系 | `setParent(child, parent)` / `depthOf(id)` / `flatten(list, idOf)` |
+| [`MessageReactionRegistry`](android/social-core/src/main/java/messagestate/MessageReactionRegistry.java) | 评论级别的 thumbs-up / thumbs-down，按 (message × user) 记录 | `toggle(messageId, userId, LIKE)` / `likeCount(id)` |
+| [`MessageBookmarkRegistry`](android/social-core/src/main/java/messagestate/MessageBookmarkRegistry.java) | 用户收藏的消息 | `toggle(userId, messageId)` / `isBookmarked(userId, messageId)` |
 
 **约定**：
 
-- Registry 是单例（`getInstance()`），key 永远是 `Message.id()`
+- Registry 是单例（`getInstance()`），key 永远是 `Message.id()`（按 user 维度切分时再加 userId）
 - UI 显示消息时调 `MessageEditRegistry.currentContent(id, msg.message())`，不要直接用 `msg.message()`
 - 过滤可见消息走 [`Post.getVisibleMessages(isAdmin)`](android/social-core/src/main/java/dao/model/Post.java)，它内部会查 `MessageDeletionRegistry`
 - 渲染线程时先用 `MessageThreadRegistry.flatten(timeSorted, Message::id)` 重排成深度优先列表，再交给 `MessageAdapter`；adapter 让 `ThreadIndentView` 按 `depthOf` 占宽度，而连接父子头像的 L 线由 `ThreadConnectorDecoration`（一个 `RecyclerView.ItemDecoration`）在 RecyclerView 画布上跨行绘制 —— View 不能画到自己边界外，所以这部分用 ItemDecoration
+- 点赞/收藏按钮的状态在 `MessageAdapter.bindReactions` 里查 `MessageReactionRegistry`、`MessageBookmarkRegistry` 重新绘制 —— 用 `notifyItemChanged(index)` 单独刷新一行，避免触发整个列表重建
 - `Message` 模型保持 6 字段 + `hidden`，**不要加新字段**
 
-**新增 per-message 特性**（点赞、收藏、置顶、reaction、…）一律按同款 sidecar 模板：social-core 下加一个新的 `*Registry` singleton，key 是 `Message.id()`，UI 层在渲染时按需查。Message 模型保持不变。
+**新增 per-message 特性**（置顶、私聊、举报详情、…）一律按同款 sidecar 模板：social-core 下加一个新的 `*Registry` singleton，key 是 `Message.id()`（per-user 切分就再加 userId），UI 层在渲染时按需查。Message 模型保持不变。
 
-> 注：reactions 当前的 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java) 在 app 模块下而不是 social-core，是历史遗留——它的 key 实际上是 post UUID 而不是 message UUID。如果以后要做 per-message reactions，新写一个 social-core 下的 `MessageReactionRegistry` 跟当前两个 sidecar 同款即可。
+> 注：post 层级的 emoji 反应仍然走 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java)（key 是 post UUID），跟评论 thumbs-up/down 是两套独立机制——前者是帖子级别的情绪聚合，后者是评论级别的投票。
 
 ## Moderation 当前入口
 

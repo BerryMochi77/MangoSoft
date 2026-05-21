@@ -194,4 +194,12 @@
     <string name="tz_sydney">Australia / Sydney</string>
     <string name="tz_shanghai">Asia / Shanghai</string>
     <string name="posted_by">Posted by %1$s</string>
+    <string name="like">Like</string>
+    <string name="dislike">Dislike</string>
+    <string name="comment_on">Comment on this reply</string>
+    <string name="message_options">More options</string>
+    <string name="save_message">Save</string>
+    <string name="unsave_message">Unsave</string>
+    <string name="message_saved">Saved</string>
+    <string name="message_unsaved">Removed from saved</string>
 </resources>

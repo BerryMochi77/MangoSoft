@@ -5,10 +5,16 @@
     android:layout_height="wrap_content">
 
     <!--
-        Reddit-style thread row: vertical "thread lines" on the left whose
-        count == nesting depth (set by MessageAdapter via
-        ThreadIndentView.setDepth). No card background; comments separate
-        from one another via a thin bottom divider instead.
+        Comment row.
+          • threadIndent draws the indent rail on the left (depth set by adapter).
+          • Top-right has a single ⋮ overflow button. Tapping it opens a
+            PopupMenu wired in MessageAdapter -> PostViewerActivity:
+            Save / Unsave, Report, Edit (own only), Delete (own only).
+          • Bottom-right has the primary actions: 👍 count 👎 count 💬.
+            All three are visible to every viewer.
+          • Counts come from MessageReactionRegistry, bookmark state from
+            MessageBookmarkRegistry — both sidecars under
+            messagestate/ so Message itself stays untouched.
     -->
 
     <com.example.comp2100miniproject.ThreadIndentView
@@ -41,7 +47,7 @@
         android:textColor="@color/text_primary"
         android:textSize="13sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/buttonReplyMessage"
+        app:layout_constraintEnd_toStartOf="@+id/buttonMessageOverflow"
         app:layout_constraintStart_toEndOf="@+id/imageMessageAvatar"
         app:layout_constraintTop_toTopOf="@+id/imageMessageAvatar" />
 
@@ -56,37 +62,23 @@
         android:textColor="@color/text_secondary"
         android:textSize="11sp"
         app:layout_constraintBottom_toBottomOf="@+id/imageMessageAvatar"
-        app:layout_constraintEnd_toStartOf="@+id/buttonReplyMessage"
+        app:layout_constraintEnd_toStartOf="@+id/buttonMessageOverflow"
         app:layout_constraintStart_toStartOf="@+id/textMessageAuthor" />
 
     <ImageButton
-        android:id="@+id/buttonReplyMessage"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="10dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/reply"
-        android:padding="6dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/ic_reply"
-        app:layout_constraintEnd_toStartOf="@+id/buttonReportMessage"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/text_secondary" />
-
-    <ImageButton
-        android:id="@+id/buttonReportMessage"
+        android:id="@+id/buttonMessageOverflow"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginTop="10dp"
         android:layout_marginEnd="8dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/report"
-        android:padding="6dp"
+        android:contentDescription="@string/message_options"
+        android:padding="4dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_report_flag"
+        android:src="@drawable/ic_more_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/warning" />
+        app:tint="@color/text_secondary" />
 
     <TextView
         android:id="@+id/textMessageContent"
@@ -116,55 +108,81 @@
         app:layout_constraintTop_toBottomOf="@+id/textMessageContent" />
 
     <LinearLayout
-        android:id="@+id/messageOwnerActions"
-        android:layout_width="0dp"
-        android:layout_height="34dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="14dp"
-        android:gravity="end"
+        android:id="@+id/messageActionRow"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="6dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
         app:layout_constraintTop_toBottomOf="@+id/imageMessageAttachment">
 
-        <Button
-            android:id="@+id/buttonEditMessage"
-            android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_weight="1"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:text="@string/edit"
-            android:textAllCaps="false"
-            android:textSize="11sp" />
+        <ImageButton
+            android:id="@+id/buttonLikeMessage"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/like"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_thumb_up"
+            app:tint="@color/text_secondary" />
 
-        <Button
-            android:id="@+id/buttonDeleteMessage"
-            android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:text="@string/delete"
-            android:textAllCaps="false"
-            android:textSize="11sp" />
+        <TextView
+            android:id="@+id/textLikeCount"
+            android:layout_width="22dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="6dp"
+            android:gravity="center_vertical|start"
+            android:includeFontPadding="false"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <ImageButton
+            android:id="@+id/buttonDislikeMessage"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/dislike"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_thumb_down"
+            app:tint="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/textDislikeCount"
+            android:layout_width="22dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="6dp"
+            android:gravity="center_vertical|start"
+            android:includeFontPadding="false"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <ImageButton
+            android:id="@+id/buttonCommentMessage"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/comment_on"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_comment"
+            app:tint="@color/text_secondary" />
     </LinearLayout>
 
     <View
         android:id="@+id/messageDivider"
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="14dp"
         android:background="@color/border"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
-        app:layout_constraintTop_toBottomOf="@+id/messageOwnerActions" />
+        app:layout_constraintTop_toBottomOf="@+id/messageActionRow" />
 </androidx.constraintlayout.widget.ConstraintLayout>

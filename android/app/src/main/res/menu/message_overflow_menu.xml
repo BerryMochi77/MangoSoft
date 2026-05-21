@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Items are toggled visible/invisible by MessageAdapter based on whether
+    the current user owns the message and whether it's already bookmarked.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_save_message"
+        android:title="@string/save_message" />
+    <item
+        android:id="@+id/menu_unsave_message"
+        android:title="@string/unsave_message" />
+    <item
+        android:id="@+id/menu_report_message"
+        android:title="@string/report" />
+    <item
+        android:id="@+id/menu_edit_message"
+        android:title="@string/edit" />
+    <item
+        android:id="@+id/menu_delete_message"
+        android:title="@string/delete" />
+</menu>

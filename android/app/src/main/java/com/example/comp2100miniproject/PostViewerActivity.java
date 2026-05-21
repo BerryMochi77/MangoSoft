@@ -13,6 +13,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,8 +36,10 @@ import com.example.comp2100miniproject.src.ThreadConnectorDecoration;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
+import messagestate.MessageBookmarkRegistry;
 import messagestate.MessageDeletionRegistry;
 import messagestate.MessageEditRegistry;
+import messagestate.MessageReactionRegistry;
 import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
@@ -70,6 +73,8 @@ public class PostViewerActivity extends AppCompatActivity {
     private ChipGroup chipGroupPostHashtags;
     private ImageView imagePostAuthorAvatar;
     private RecyclerView recyclerMessages;
+    /** Held so reaction taps can refresh exactly one row instead of the whole adapter. */
+    private MessageAdapter messageAdapter;
     private EditText inputReply;
     private EditText activeComposerInput;
     private UUID activeReplyParentId;
@@ -149,6 +154,17 @@ public class PostViewerActivity extends AppCompatActivity {
         setupReactionButtons();
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        // Disable the default DefaultItemAnimator change cross-fade. When
+        // notifyItemChanged fires (e.g. after a like tap) the old and new
+        // ViewHolders are drawn semi-transparently on top of each other,
+        // which on TextViews containing emoji visibly thins / blurs the
+        // text. Keep add / remove animations, drop change cross-fade.
+        androidx.recyclerview.widget.RecyclerView.ItemAnimator animator =
+                recyclerMessages.getItemAnimator();
+        if (animator instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
+            ((androidx.recyclerview.widget.SimpleItemAnimator) animator)
+                    .setSupportsChangeAnimations(false);
+        }
         // ItemDecoration paints the parent-to-child L connectors. It reads
         // the current threaded list via a method reference so it stays in
         // sync as loadMessages() rebuilds the list after edits/replies.
@@ -344,16 +360,80 @@ public class PostViewerActivity extends AppCompatActivity {
         threadedMessages = new ArrayList<>(
                 MessageThreadRegistry.getInstance().flatten(timeSorted, Message::id));
 
-        recyclerMessages.setAdapter(new MessageAdapter(
+        messageAdapter = new MessageAdapter(
                 this,
                 threadedMessages,
                 currentUser.getUUID(),
-                this::showReportDialog,
-                this::showEditReplyDialog,
-                this::confirmDeleteReply,
                 this::startReplyToMessage,
+                this::handleMessageReaction,
+                this::showMessageOverflow,
                 this::openUserProfile
-        ));
+        );
+        recyclerMessages.setAdapter(messageAdapter);
+    }
+
+    /**
+     * Toggle the current user's like / dislike on a message and refresh
+     * just that row. The reaction itself lives in
+     * {@link MessageReactionRegistry} — Message stays untouched.
+     */
+    private void handleMessageReaction(Message message,
+                                       MessageReactionRegistry.Direction direction) {
+        MessageReactionRegistry.getInstance()
+                .toggle(message.id(), currentUser.getUUID(), direction);
+        int index = indexOfThreaded(message.id());
+        if (index >= 0 && messageAdapter != null) {
+            messageAdapter.notifyItemChanged(index);
+        }
+    }
+
+    /**
+     * Open the ⋮ overflow menu for a message: Save / Unsave, Report (non-
+     * owner only), Edit / Delete (owner only). Reuses the existing flows
+     * that previously sat on inline buttons.
+     */
+    private void showMessageOverflow(Message message, View anchor) {
+        boolean mine = currentUser.getUUID().equals(message.poster());
+        boolean bookmarked = MessageBookmarkRegistry.getInstance()
+                .isBookmarked(currentUser.getUUID(), message.id());
+
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.inflate(R.menu.message_overflow_menu);
+        popup.getMenu().findItem(R.id.menu_save_message).setVisible(!bookmarked);
+        popup.getMenu().findItem(R.id.menu_unsave_message).setVisible(bookmarked);
+        popup.getMenu().findItem(R.id.menu_report_message).setVisible(!mine);
+        popup.getMenu().findItem(R.id.menu_edit_message).setVisible(mine);
+        popup.getMenu().findItem(R.id.menu_delete_message).setVisible(mine);
+
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_save_message || id == R.id.menu_unsave_message) {
+                boolean nowSaved = MessageBookmarkRegistry.getInstance()
+                        .toggle(currentUser.getUUID(), message.id());
+                Toast.makeText(this,
+                        nowSaved ? R.string.message_saved : R.string.message_unsaved,
+                        Toast.LENGTH_SHORT).show();
+                return true;
+            } else if (id == R.id.menu_report_message) {
+                showReportDialog(message);
+                return true;
+            } else if (id == R.id.menu_edit_message) {
+                showEditReplyDialog(message);
+                return true;
+            } else if (id == R.id.menu_delete_message) {
+                confirmDeleteReply(message);
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    private int indexOfThreaded(UUID messageId) {
+        for (int i = 0; i < threadedMessages.size(); i++) {
+            if (threadedMessages.get(i).id().equals(messageId)) return i;
+        }
+        return -1;
     }
 
     /** Lookup used by {@link ThreadConnectorDecoration}. */
