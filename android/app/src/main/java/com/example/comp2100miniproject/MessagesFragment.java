@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +41,7 @@ public class MessagesFragment extends Fragment {
     private TabHost host;
     private AuthManager authManager;
     private TextView textMessagesTitle;
+    private ImageButton buttonMessagesBack;
     private LinearLayout listMessages;
     private LinearLayout emptyMessages;
     private Folder folder = Folder.HOME;
@@ -68,6 +70,11 @@ public class MessagesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         authManager = new AuthManager(requireContext());
         textMessagesTitle = view.findViewById(R.id.textMessagesTitle);
+        buttonMessagesBack = view.findViewById(R.id.buttonMessagesBack);
+        buttonMessagesBack.setOnClickListener(v -> {
+            folder = Folder.HOME;
+            renderMessages();
+        });
         listMessages = view.findViewById(R.id.listMessages);
         emptyMessages = view.findViewById(R.id.emptyMessages);
         renderMessages();
@@ -100,6 +107,7 @@ public class MessagesFragment extends Fragment {
         textMessagesTitle.setText(R.string.messages);
         textMessagesTitle.setOnClickListener(null);
         textMessagesTitle.setClickable(false);
+        buttonMessagesBack.setVisibility(View.GONE);
         emptyMessages.setVisibility(View.GONE);
 
         List<MentionNotificationRegistry.MentionNotification> replies =
@@ -152,11 +160,9 @@ public class MessagesFragment extends Fragment {
                             ? R.string.folder_title_replies
                             : R.string.folder_title_mentions));
         }
-        textMessagesTitle.setClickable(true);
-        textMessagesTitle.setOnClickListener(v -> {
-            folder = Folder.HOME;
-            renderMessages();
-        });
+        textMessagesTitle.setOnClickListener(null);
+        textMessagesTitle.setClickable(false);
+        buttonMessagesBack.setVisibility(View.VISIBLE);
         emptyMessages.setVisibility(notifications.isEmpty() ? View.VISIBLE : View.GONE);
 
         for (MentionNotificationRegistry.MentionNotification notification : notifications) {

@@ -180,9 +180,9 @@
     <string name="reply_notification_preview">%1$s replied: %2$s</string>
     <string name="mention_notification_preview">%1$s mentioned you: %2$s</string>
     <string name="back_to_messages">&lt; Messages</string>
-    <string name="folder_title_replies">&lt; Replies</string>
-    <string name="folder_title_mentions">&lt; @ Me</string>
-    <string name="folder_title_chats">&lt; Chats</string>
+    <string name="folder_title_replies">Replies</string>
+    <string name="folder_title_mentions">@ Me</string>
+    <string name="folder_title_chats">Chats</string>
     <string name="unknown_user">Unknown user</string>
     <string name="trending_tags">Trending Tags</string>
     <string name="trending_tags_title">Trending Tags</string>
