@@ -101,6 +101,7 @@ public class AdminReportsActivity extends AppCompatActivity {
                 R.string.hide_message,
                 message -> {
                     boolean hidden = ModerationTools.setHidden(message.id(), currentUser.getUUID(), true);
+                    if (hidden) AndroidPostStore.saveAll(this);
                     Toast.makeText(
                             AdminReportsActivity.this,
                             hidden ? R.string.message_hidden : R.string.report_failed,
@@ -119,6 +120,7 @@ public class AdminReportsActivity extends AppCompatActivity {
                 R.string.unhide_message,
                 message -> {
                     boolean unhidden = ModerationTools.setHidden(message.id(), currentUser.getUUID(), false);
+                    if (unhidden) AndroidPostStore.saveAll(this);
                     Toast.makeText(
                             AdminReportsActivity.this,
                             unhidden ? R.string.message_unhidden : R.string.report_failed,

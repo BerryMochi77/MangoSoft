@@ -74,10 +74,12 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             return;
         }
 
-        if (!PostDAO.getInstance().getAll().hasNext()) {
+        boolean loadedSavedPosts = AndroidPostStore.loadAll(this);
+        if (!loadedSavedPosts && !PostDAO.getInstance().getAll().hasNext()) {
             RandomContentGenerator.populateRandomData();
         }
         RandomContentGenerator.repairSeededData();
+        AndroidPostStore.saveAll(this);
         DemoEngagementSeeder.seedIfNeeded();
 
         setupFragments(savedInstanceState);

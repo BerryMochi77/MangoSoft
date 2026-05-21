@@ -690,6 +690,7 @@ public class PostViewerActivity extends AppCompatActivity {
         if (parentMessageId != null) {
             MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
         }
+        AndroidPostStore.saveAll(this);
         notifyMentionedUsers(content, newId, timestamp);
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
@@ -932,6 +933,7 @@ public class PostViewerActivity extends AppCompatActivity {
         post.setHashtags(HashtagParser.extract(cleanTopic + " " + post.getBody()));
         post.setEdited(true);
         HashtagService.getInstance().indexPost(post);
+        AndroidPostStore.saveAll(this);
         renderPost();
         Toast.makeText(this, R.string.post_updated, Toast.LENGTH_SHORT).show();
     }
@@ -942,6 +944,8 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
                     post.setDeleted(true);
+                    HashtagService.getInstance().removePost(post);
+                    AndroidPostStore.saveAll(this);
                     Toast.makeText(this, R.string.post_deleted, Toast.LENGTH_SHORT).show();
                     finish();
                 })
@@ -1019,6 +1023,7 @@ public class PostViewerActivity extends AppCompatActivity {
 
         // Per-message state lives in sidecars, not on Message itself.
         MessageEditRegistry.getInstance().recordEdit(message.id(), cleanContent);
+        AndroidPostStore.saveAll(this);
         Toast.makeText(this, R.string.reply_updated, Toast.LENGTH_SHORT).show();
         loadMessages();
     }
@@ -1029,6 +1034,7 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
                     MessageDeletionRegistry.getInstance().markDeleted(message.id());
+                    AndroidPostStore.saveAll(this);
                     Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                     loadMessages();
                 })
