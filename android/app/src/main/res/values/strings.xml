@@ -238,6 +238,10 @@
     <string name="unsave_message">Unsave</string>
     <string name="message_saved">Saved</string>
     <string name="message_unsaved">Removed from saved</string>
+    <plurals name="collapsed_reply_count">
+        <item quantity="one">%d reply hidden — tap to show</item>
+        <item quantity="other">%d replies hidden — tap to show</item>
+    </plurals>
     <!-- ── Admin Post Moderation ──────────────────────────────────────── -->
     <string name="settings_section_admin">Admin</string>
     <string name="admin_dashboard">Admin Dashboard</string>

@@ -25,6 +25,7 @@ import com.example.comp2100miniproject.auth.AuthManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import dao.UserDAO;
@@ -61,6 +62,14 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         void onOverflow(Message message, View anchor);
     }
 
+    /**
+     * How many of a message's direct replies are currently collapsed
+     * (hidden) beneath it. 0 means none are hidden — the indicator stays off.
+     */
+    public interface HiddenReplyCount {
+        int hiddenReplies(Message message);
+    }
+
     private final List<Message> items;
     private final UUID currentUserId;
     private final OnMessageActionClick onReplyClick;
@@ -68,6 +77,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     private final OnOverflowClick onOverflowClick;
     private final OnUserClick onUserClick;
     private final OnMessageActionClick onContentClick;
+    private final HiddenReplyCount hiddenReplyCount;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
     private final int accentColor;
@@ -81,7 +91,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             OnReactionClick onReactionClick,
             OnOverflowClick onOverflowClick,
             OnUserClick onUserClick,
-            OnMessageActionClick onContentClick
+            OnMessageActionClick onContentClick,
+            HiddenReplyCount hiddenReplyCount
     ) {
         this.items = new ArrayList<>(items);
         this.currentUserId = currentUserId;
@@ -90,6 +101,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         this.onOverflowClick = onOverflowClick;
         this.onUserClick = onUserClick;
         this.onContentClick = onContentClick;
+        this.hiddenReplyCount = hiddenReplyCount;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
         this.accentColor = ContextCompat.getColor(context, R.color.accent);
@@ -110,6 +122,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         private final ImageButton dislikeButton;
         private final TextView dislikeCount;
         private final ImageButton commentButton;
+        private final TextView collapsedReplies;
         private final View divider;
 
         public ViewHolder(View view) {
@@ -127,6 +140,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             dislikeButton = view.findViewById(R.id.buttonDislikeMessage);
             dislikeCount = view.findViewById(R.id.textDislikeCount);
             commentButton = view.findViewById(R.id.buttonCommentMessage);
+            collapsedReplies = view.findViewById(R.id.textCollapsedReplies);
             divider = view.findViewById(R.id.messageDivider);
         }
 
@@ -138,6 +152,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 OnOverflowClick onOverflowClick,
                 OnUserClick onUserClick,
                 OnMessageActionClick onContentClick,
+                HiddenReplyCount hiddenReplyCount,
                 AuthManager authManager,
                 AvatarManager avatarManager,
                 int accentColor,
@@ -193,6 +208,19 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 attachment.setOnClickListener(null);
                 attachment.setClickable(false);
             }
+
+            int hidden = hiddenReplyCount == null ? 0 : hiddenReplyCount.hiddenReplies(message);
+            if (hidden > 0) {
+                collapsedReplies.setText(itemView.getResources()
+                        .getQuantityString(R.plurals.collapsed_reply_count, hidden, hidden));
+                collapsedReplies.setVisibility(View.VISIBLE);
+                collapsedReplies.setOnClickListener(onContentClick == null
+                        ? null : v -> onContentClick.onAction(message));
+            } else {
+                collapsedReplies.setVisibility(View.GONE);
+                collapsedReplies.setOnClickListener(null);
+            }
+
             divider.setVisibility(View.VISIBLE);
         }
 
@@ -202,8 +230,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             MessageReactionRegistry reactions = MessageReactionRegistry.getInstance();
             int likes = reactions.likeCount(message.id());
             int dislikes = reactions.dislikeCount(message.id());
-            likeCount.setText(likes == 0 ? "" : String.valueOf(likes));
-            dislikeCount.setText(dislikes == 0 ? "" : String.valueOf(dislikes));
+            likeCount.setText(likes == 0 ? "" : formatCount(likes));
+            dislikeCount.setText(dislikes == 0 ? "" : formatCount(dislikes));
 
             MessageReactionRegistry.Direction mine =
                     reactions.reactionOf(message.id(), currentUserId);
@@ -213,6 +241,18 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             ImageViewCompat.setImageTintList(dislikeButton,
                     ColorStateList.valueOf(mine == MessageReactionRegistry.Direction.DISLIKE
                             ? accentColor : neutralColor));
+        }
+
+        /** Compact reaction counts: 1000 -> "1k", 1200 -> "1.2k", 1_000_000 -> "1m". */
+        private static String formatCount(int count) {
+            if (count < 1000) return String.valueOf(count);
+            if (count < 1_000_000) return trimTrailingZero(count / 1000.0) + "k";
+            return trimTrailingZero(count / 1_000_000.0) + "m";
+        }
+
+        private static String trimTrailingZero(double value) {
+            String text = String.format(Locale.US, "%.1f", value);
+            return text.endsWith(".0") ? text.substring(0, text.length() - 2) : text;
         }
     }
 
@@ -235,6 +275,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 onOverflowClick,
                 onUserClick,
                 onContentClick,
+                hiddenReplyCount,
                 authManager,
                 avatarManager,
                 accentColor,

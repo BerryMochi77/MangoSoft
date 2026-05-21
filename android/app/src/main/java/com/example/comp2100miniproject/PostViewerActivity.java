@@ -496,7 +496,8 @@ public class PostViewerActivity extends AppCompatActivity {
                 this::handleMessageReaction,
                 this::showMessageOverflow,
                 this::openUserProfile,
-                this::toggleReplyThread
+                this::toggleReplyThread,
+                this::hiddenReplyCount
         );
         recyclerMessages.setAdapter(messageAdapter);
     }
@@ -574,6 +575,14 @@ public class PostViewerActivity extends AppCompatActivity {
             expandedReplyLimits.remove(message.id());
         }
         loadMessages();
+    }
+
+    /** Direct replies currently hidden beneath {@code message} (0 if fully expanded). */
+    private int hiddenReplyCount(Message message) {
+        Integer total = messageChildCount.get(message.id());
+        if (total == null || total == 0) return 0;
+        int visible = Math.min(expandedReplyLimits.getOrDefault(message.id(), total), total);
+        return total - visible;
     }
 
     /**

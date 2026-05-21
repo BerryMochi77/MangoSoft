@@ -131,10 +131,10 @@
 
         <TextView
             android:id="@+id/textLikeCount"
-            android:layout_width="22dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="10dp"
             android:gravity="center_vertical|start"
             android:includeFontPadding="false"
             android:textColor="@color/text_secondary"
@@ -153,10 +153,10 @@
 
         <TextView
             android:id="@+id/textDislikeCount"
-            android:layout_width="22dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="10dp"
             android:gravity="center_vertical|start"
             android:includeFontPadding="false"
             android:textColor="@color/text_secondary"
@@ -173,6 +173,23 @@
             android:src="@drawable/ic_comment"
             app:tint="@color/text_secondary" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/textCollapsedReplies"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textColor="@color/accent"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/messageActionRow"
+        app:layout_constraintEnd_toStartOf="@+id/messageActionRow"
+        app:layout_constraintStart_toStartOf="@+id/textMessageAuthor"
+        app:layout_constraintTop_toTopOf="@+id/messageActionRow" />
 
     <View
         android:id="@+id/messageDivider"
