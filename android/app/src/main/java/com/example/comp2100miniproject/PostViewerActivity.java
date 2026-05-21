@@ -9,6 +9,7 @@ import android.transition.AutoTransition;
 import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -253,7 +254,14 @@ public class PostViewerActivity extends AppCompatActivity {
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            // Leave the top unpadded so the orange title bar draws behind the
+            // status bar (Reddit-style continuous band). The header content is
+            // pushed below the status icons via the back button's top margin.
+            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
+            ViewGroup.MarginLayoutParams backParams =
+                    (ViewGroup.MarginLayoutParams) buttonBack.getLayoutParams();
+            backParams.topMargin = systemBars.top + dp(12);
+            buttonBack.setLayoutParams(backParams);
             return insets;
         });
     }
@@ -344,6 +352,7 @@ public class PostViewerActivity extends AppCompatActivity {
             constraints.clear(R.id.textPostTitle, ConstraintSet.START);
             constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
             constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.postScrollView, ConstraintSet.TOP);
             constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
 
             constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
@@ -354,6 +363,8 @@ public class PostViewerActivity extends AppCompatActivity {
                     R.id.imagePostAuthorAvatar, ConstraintSet.TOP);
             constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
                     R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.postScrollView, ConstraintSet.TOP,
+                    R.id.textPostTitle, ConstraintSet.BOTTOM);
             constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
                     R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM, dp(10));
         } else {
@@ -361,6 +372,7 @@ public class PostViewerActivity extends AppCompatActivity {
             constraints.clear(R.id.textPostTitle, ConstraintSet.START);
             constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
             constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.postScrollView, ConstraintSet.TOP);
             constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
 
             constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
@@ -369,8 +381,8 @@ public class PostViewerActivity extends AppCompatActivity {
                     R.id.buttonBack, ConstraintSet.END, dp(4));
             constraints.connect(R.id.textPostTitle, ConstraintSet.TOP,
                     R.id.buttonBack, ConstraintSet.TOP);
-            constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
-                    R.id.buttonBack, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.postScrollView, ConstraintSet.TOP,
+                    R.id.textPostTitle, ConstraintSet.BOTTOM);
             constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
                     R.id.postOwnerActions, ConstraintSet.BOTTOM, dp(14));
         }

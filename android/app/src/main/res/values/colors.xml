@@ -12,4 +12,5 @@
     <color name="warning">#B42318</color>
     <color name="warning_soft">#FEE4E2</color>
     <color name="chip_hashtag_bg">#FFF0C7</color>
+    <color name="title_bar_bg">#E07C00</color>
 </resources>

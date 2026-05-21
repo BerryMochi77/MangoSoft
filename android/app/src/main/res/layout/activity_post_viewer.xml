@@ -30,6 +30,16 @@
                                                    android:background="@drawable/bg_screen"
                                                    tools:context=".PostViewerActivity">
 
+    <View
+            android:id="@+id/postTitleBar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/bg_post_title_bar"
+            app:layout_constraintBottom_toBottomOf="@+id/textPostTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
     <ImageButton
             android:id="@+id/buttonBack"
             android:layout_width="44dp"
@@ -51,12 +61,12 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="20dp"
+            android:paddingBottom="14dp"
             android:ellipsize="end"
             android:maxLines="2"
             android:textColor="@color/text_primary"
             android:textSize="22sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@+id/buttonBack"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/buttonBack"
             app:layout_constraintTop_toTopOf="@+id/buttonBack" />
@@ -70,7 +80,7 @@
             app:layout_constraintBottom_toTopOf="@+id/replyBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/buttonBack">
+            app:layout_constraintTop_toBottomOf="@+id/postTitleBar">
 
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
