@@ -2,9 +2,12 @@ package com.example.comp2100miniproject;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -79,16 +82,6 @@ public class PostViewerActivity extends AppCompatActivity {
     private EditText activeComposerInput;
     private UUID activeReplyParentId;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
-    private static final String[] QUICK_REACTION_EMOJIS = {
-            "\uD83D\uDE00",
-            "\uD83E\uDD73",
-            "\uD83D\uDE05",
-            "\uD83D\uDE22",
-            "\uD83D\uDE2E",
-            "\uD83D\uDE4C",
-            "\uD83D\uDD25",
-            "\uD83C\uDF89"
-    };
 
     /**
      * Threaded (depth-first) list of currently-visible messages. Updated on
@@ -151,7 +144,7 @@ public class PostViewerActivity extends AppCompatActivity {
         reactionChipGroup = findViewById(R.id.reactionChipGroup);
         emojiReactionTray = findViewById(R.id.emojiReactionTray);
 
-        setupReactionButtons();
+        updateReactionButtons();
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
         // Disable the default DefaultItemAnimator change cross-fade. When
@@ -177,7 +170,10 @@ public class PostViewerActivity extends AppCompatActivity {
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
         buttonSendReply.setOnClickListener(v -> addReply());
         ImageButton buttonReplyMore = findViewById(R.id.buttonReplyMore);
-        buttonReplyMore.setOnClickListener(v -> showComposerMenu(inputReply));
+        buttonReplyMore.setOnClickListener(v -> {
+            activeComposerInput = inputReply;
+            chooseComposerImage();
+        });
 
         LinearLayout postOwnerActions = findViewById(R.id.postOwnerActions);
         boolean ownsPost = currentUser.getUUID().equals(post.poster);
@@ -218,11 +214,6 @@ public class PostViewerActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(event);
     }
 
-    private void setupReactionButtons() {
-        setupEmojiReactionTray();
-        updateReactionButtons();
-    }
-
     private void updateReactionButtons() {
         ReactionManager manager = ReactionManager.getInstance();
         Set<String> options = manager.getReactionOptions(post.getUUID());
@@ -233,6 +224,7 @@ public class PostViewerActivity extends AppCompatActivity {
             boolean selected = manager.hasUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
             chip.setChecked(selected);
             chip.setAlpha(selected ? 1f : 0.82f);
+            styleReactionChip(chip, selected);
             chip.setOnClickListener(v -> {
                 manager.toggleReaction(post.getUUID(), currentUser.getUUID(), emoji);
                 updateReactionButtons();
@@ -241,8 +233,9 @@ public class PostViewerActivity extends AppCompatActivity {
         }
 
         Chip addChip = reactionChip("+");
+        styleReactionChip(addChip, false);
         addChip.setContentDescription(getString(R.string.custom_reaction_title));
-        addChip.setOnClickListener(v -> toggleEmojiReactionTray());
+        addChip.setOnClickListener(v -> showCustomReactionDialog());
         reactionChipGroup.addView(addChip);
     }
 
@@ -260,23 +253,61 @@ public class PostViewerActivity extends AppCompatActivity {
         return chip;
     }
 
-    private void setupEmojiReactionTray() {
-        emojiReactionTray.removeAllViews();
-        for (String emoji : QUICK_REACTION_EMOJIS) {
-            Chip chip = reactionChip(emoji);
-            chip.setOnClickListener(v -> {
-                ReactionManager.getInstance().toggleReaction(
-                        post.getUUID(), currentUser.getUUID(), emoji);
-                emojiReactionTray.setVisibility(View.GONE);
-                updateReactionButtons();
-            });
-            emojiReactionTray.addView(chip);
-        }
+    private void styleReactionChip(Chip chip, boolean selected) {
+        float density = getResources().getDisplayMetrics().density;
+        chip.setChipStrokeColor(ColorStateList.valueOf(
+                getColor(selected ? R.color.accent : R.color.border)));
+        chip.setChipStrokeWidth((selected ? 2f : 1f) * density);
     }
 
-    private void toggleEmojiReactionTray() {
-        int nextVisibility = emojiReactionTray.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE;
-        emojiReactionTray.setVisibility(nextVisibility);
+    private void showCustomReactionDialog() {
+        EditText input = new EditText(this);
+        input.setHint(R.string.custom_reaction_hint);
+        input.setSingleLine(true);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.custom_reaction_title)
+                .setView(input)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+
+        input.addTextChangedListener(new TextWatcher() {
+            private boolean handled;
+
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (handled) return;
+                String emoji = s == null ? "" : s.toString().trim();
+                if (!emoji.isEmpty()) {
+                    handled = true;
+                    addCustomReaction(emoji);
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        dialog.setOnShowListener(d -> {
+            input.requestFocus();
+            dialog.getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        });
+        dialog.show();
+    }
+
+    private void addCustomReaction(String emoji) {
+        if (emoji.isEmpty()) {
+            Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ReactionManager.getInstance()
+                .addUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
+        if (emojiReactionTray != null) {
+            emojiReactionTray.setVisibility(View.GONE);
+        }
+        updateReactionButtons();
     }
 
     private void renderPost() {
@@ -296,7 +327,10 @@ public class PostViewerActivity extends AppCompatActivity {
             imagePostAuthorAvatar.setClickable(false);
             textPostAuthor.setClickable(false);
         }
-        textPostAuthor.setText(getString(R.string.posted_by, authorName(poster)));
+        textPostAuthor.setText(
+                getString(R.string.posted_by, authorName(poster))
+                        + " - "
+                        + PostEngagement.formatCreatedAt(post));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         // View count is delegated entirely to PostViewService.
         int views = PostViewService.getInstance().getViewCount(post.id);
@@ -497,25 +531,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    private void showComposerMenu(EditText input) {
-        activeComposerInput = input;
-        String[] options = {
-                getString(R.string.add_image),
-                getString(R.string.add_emoji)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.more_composer_options)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        chooseComposerImage();
-                    } else if (which == 1) {
-                        showEmojiChooser(input);
-                    }
-                })
-                .show();
-    }
-
     private void chooseComposerImage() {
         composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
@@ -533,10 +548,6 @@ public class PostViewerActivity extends AppCompatActivity {
 
         ComposerFormatManager.insertImage(activeComposerInput, copied);
         Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
-    }
-
-    private void showEmojiChooser(EditText input) {
-        ComposerFormatManager.showEmojiChooser(this, input);
     }
 
     private void showEditPostDialog() {

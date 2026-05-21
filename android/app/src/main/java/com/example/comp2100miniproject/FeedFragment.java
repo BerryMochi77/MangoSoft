@@ -25,6 +25,7 @@ import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.src.PostAdapter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +45,12 @@ public class FeedFragment extends Fragment {
 
     private final ArrayList<Post> allPosts = new ArrayList<>();
     private String currentQuery = "";
+    private SortMode sortMode = SortMode.TIME;
+
+    private enum SortMode {
+        TIME,
+        HOT
+    }
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -90,6 +97,12 @@ public class FeedFragment extends Fragment {
 
         ImageButton buttonSearchToggle = view.findViewById(R.id.buttonSearchToggle);
         buttonSearchToggle.setOnClickListener(v -> toggleSearchInput());
+
+        Button buttonSortTime = view.findViewById(R.id.buttonSortTime);
+        Button buttonSortHot = view.findViewById(R.id.buttonSortHot);
+        buttonSortTime.setOnClickListener(v -> setSortMode(SortMode.TIME));
+        buttonSortHot.setOnClickListener(v -> setSortMode(SortMode.HOT));
+        updateSortButtons(buttonSortTime, buttonSortHot);
 
         recyclerPosts = view.findViewById(R.id.recyclerPosts);
         recyclerPosts.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -139,9 +152,37 @@ public class FeedFragment extends Fragment {
 
         recyclerPosts.setAdapter(new PostAdapter(
                 requireContext(),
-                new ArrayList<>(visible),
+                sortedPosts(visible),
                 (position, post) -> openPost(post.id),
                 tag -> host.showTrendsForTag(tag)));
+    }
+
+    private ArrayList<Post> sortedPosts(List<Post> posts) {
+        ArrayList<Post> sorted = new ArrayList<>(posts);
+        if (sortMode == SortMode.HOT) {
+            sorted.sort(Comparator.comparingInt(PostEngagement::hotScore).reversed());
+        } else {
+            sorted.sort(Comparator.comparingLong(Post::getCreatedAt).reversed());
+        }
+        return sorted;
+    }
+
+    private void setSortMode(SortMode sortMode) {
+        this.sortMode = sortMode;
+        View view = getView();
+        if (view != null) {
+            updateSortButtons(
+                    view.findViewById(R.id.buttonSortTime),
+                    view.findViewById(R.id.buttonSortHot));
+        }
+        renderPosts();
+    }
+
+    private void updateSortButtons(Button buttonSortTime, Button buttonSortHot) {
+        buttonSortTime.setSelected(sortMode == SortMode.TIME);
+        buttonSortHot.setSelected(sortMode == SortMode.HOT);
+        buttonSortTime.setAlpha(sortMode == SortMode.TIME ? 1f : 0.68f);
+        buttonSortHot.setAlpha(sortMode == SortMode.HOT ? 1f : 0.68f);
     }
 
     private boolean matchesQuery(Post post, String query) {

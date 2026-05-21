@@ -15,7 +15,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -87,7 +86,7 @@ public class CreatePostActivity extends AppCompatActivity {
         ImageButton buttonRemoveAttachment = findViewById(R.id.buttonRemoveAttachment);
         buttonBack.setOnClickListener(v -> finish());
         buttonPublish.setOnClickListener(v -> publishPost());
-        buttonComposerOptions.setOnClickListener(v -> showComposerMenu());
+        buttonComposerOptions.setOnClickListener(v -> chooseComposerImage());
         buttonRemoveAttachment.setOnClickListener(v -> clearAttachmentPreview());
         imageAttachmentPreview.setOnClickListener(v ->
                 ComposerFormatManager.showImagePreview(this, attachedImageUri));
@@ -97,24 +96,6 @@ public class CreatePostActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-    }
-
-    private void showComposerMenu() {
-        String[] options = {
-                getString(R.string.add_image),
-                getString(R.string.add_emoji)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.more_composer_options)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        chooseComposerImage();
-                    } else if (which == 1) {
-                        showEmojiChooser();
-                    }
-                })
-                .show();
     }
 
     private void chooseComposerImage() {
@@ -142,10 +123,6 @@ public class CreatePostActivity extends AppCompatActivity {
         attachedImageUri = null;
         imageAttachmentPreview.setImageDrawable(null);
         attachmentPreviewCard.setVisibility(View.GONE);
-    }
-
-    private void showEmojiChooser() {
-        ComposerFormatManager.showEmojiChooser(this, inputBody);
     }
 
     private void publishPost() {

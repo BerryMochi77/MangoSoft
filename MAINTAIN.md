@@ -182,11 +182,12 @@ Post creation and reply composition share a small "more options" composer menu. 
 - In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
 - In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
 - Reply-to-message dialogs also expose the same plus menu.
+- Current shortcut behavior is image-first: the plus button in `CreatePostActivity` and the bottom reply bar opens the Android image picker directly. Text emoji should be typed with the normal keyboard/IME instead of going through a custom composer menu.
 
 Current options:
 
-- `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
-- `Add emoji`: inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
+- Image attachment opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
+- Text emoji and stickers should stay keyboard-driven unless a future feature needs a richer media/sticker gallery.
 - The emoji/sticker picker is a flat grid. Saved stickers render as thumbnail-only cells.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
 - Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
@@ -203,7 +204,7 @@ Architecture:
 How to add another format option:
 
 1. Add the option label in `strings.xml`.
-2. Add a branch in `showComposerMenu(...)` for both `CreatePostActivity` and `PostViewerActivity`.
+2. Add the entry point directly to the relevant composer button or screen; the old shared `showComposerMenu(...)` flow has been removed.
 3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
 4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
 
@@ -219,6 +220,8 @@ How to add another format option:
 - Feed cards use `ComposerFormatManager.bindContent(...)` for post body previews, so demo images and emoji are visible before opening the post detail page.
 - Demo engagement is seeded by `DemoEngagementSeeder` in the Android app layer. It adds view counts and post-level emoji reactions to seeded posts without changing `Post` or `Message`.
 - Trends keeps two modes: tapping a tag still filters posts by that tag, while the default entry state shows recommended posts sorted by a simple hot score: views plus weighted post reactions.
+- `Post.createdAt` records post publish time. New posts use the constructor timestamp automatically; demo posts are assigned stable demo times in `RandomContentGenerator`.
+- Feed supports Latest and Hot ordering. Latest sorts by `Post.createdAt`; Hot sorts through `PostEngagement.hotScore(...)` so Feed and Trends use the same scoring rule.
 
 ## Rounded media
 
@@ -440,7 +443,8 @@ Post reactions are per-post, per-user emoji toggles:
 
 - Each emoji can be selected once per user. Tapping the same emoji again removes that user's reaction.
 - Selecting one emoji must not clear other selected emojis from the same user.
-- The `+` chip expands a quick emoji tray directly on the post detail page; avoid adding an extra submit dialog for quick reactions.
+- Selected reaction chips use a stronger accent border; unselected chips keep a quieter border so the selected state is visually obvious.
+- The `+` chip opens a focused emoji input. Choosing/typing an emoji adds it immediately and closes the dialog; do not add an extra Submit step.
 - `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.
 
 Threaded replies use one composer:

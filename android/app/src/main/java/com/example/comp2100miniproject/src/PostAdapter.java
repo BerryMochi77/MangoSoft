@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.ComposerFormatManager;
-import com.example.comp2100miniproject.ReactionManager;
+import com.example.comp2100miniproject.PostEngagement;
 import com.example.comp2100miniproject.auth.AuthManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -26,7 +26,6 @@ import dao.model.Message;
 import dao.model.Post;
 import dao.model.User;
 import hashtag.HashtagParser;
-import postview.PostViewService;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
@@ -74,6 +73,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
         private final TextView title;
         private final TextView meta;
+        private final TextView stats;
         private final TextView edited;
         private final TextView body;
         private final ImageView avatar;
@@ -85,6 +85,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             avatar = view.findViewById(R.id.imagePostAvatar);
             title = view.findViewById(R.id.textPostItemTitle);
             meta = view.findViewById(R.id.textPostItemMeta);
+            stats = view.findViewById(R.id.textPostItemStats);
             edited = view.findViewById(R.id.textPostEdited);
             body = view.findViewById(R.id.textPostItemBody);
             chipGroupHashtags = view.findViewById(R.id.chipGroupHashtags);
@@ -118,13 +119,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
 
             meta.setText(
                     String.format(
-                            "%s - %d messages - %d views - %d reactions",
+                            "%s - %s - %d messages",
                             authorName(user, authManager),
-                            messageCount(post),
-                            PostViewService.getInstance().getViewCount(post.id),
-                            ReactionManager.getInstance().getTotalReactionCount(post.id)
+                            PostEngagement.formatCreatedAt(post),
+                            messageCount(post)
                     )
             );
+            stats.setText(PostEngagement.statsLine(post));
 
             edited.setVisibility(
                     post.isEdited()

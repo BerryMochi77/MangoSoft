@@ -181,6 +181,8 @@
     <string name="reply">Reply</string>
     <string name="search">Search</string>
     <string name="search_posts_hint">Search posts…</string>
+    <string name="sort_time">Latest</string>
+    <string name="sort_hot">Hot</string>
     <string name="view_count">%1$d views</string>
     <string name="view_count_icon_desc">View count</string>
     <string name="settings_section_localisation">Localisation</string>

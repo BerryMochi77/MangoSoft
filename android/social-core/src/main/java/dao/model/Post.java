@@ -19,6 +19,7 @@ public class Post implements HasUUID {
 	private boolean deleted;
 	private List<String> hashtags;
 	private String body;
+	private long createdAt;
 
 	public Post(UUID id, UUID poster, String topic) {
 		this.id = id;
@@ -27,12 +28,18 @@ public class Post implements HasUUID {
 		this.messages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
 		this.hashtags = new ArrayList<>();
 		this.body = "";
+		this.createdAt = System.currentTimeMillis();
 	}
 
 	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
 		this(id, poster, topic);
 		this.edited = edited;
 		this.deleted = deleted;
+	}
+
+	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted, long createdAt) {
+		this(id, poster, topic, edited, deleted);
+		setCreatedAt(createdAt);
 	}
 
 	public Post(UUID id) {
@@ -93,6 +100,14 @@ public class Post implements HasUUID {
 
 	public void setDeleted(boolean deleted) {
 		this.deleted = deleted;
+	}
+
+	public long getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(long createdAt) {
+		this.createdAt = createdAt > 0 ? createdAt : System.currentTimeMillis();
 	}
 	
 }

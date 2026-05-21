@@ -90,6 +90,8 @@ public class RandomContentGenerator {
 	private static final int POST_COUNT = POST_TITLES.length;
 	private static final int MIN_REPLIES_PER_POST = 3;
 	private static final int EXTRA_REPLIES_PER_POST = 3;
+	private static final long DEMO_POST_BASE_TIME = 1_768_780_800_000L;
+	private static final long DEMO_POST_INTERVAL_MS = 43_200_000L;
 	private static final Random random = new Random(2100);
 	private static final Set<String> DEMO_USERNAMES = new HashSet<>(Arrays.asList(
 			"alex",
@@ -141,6 +143,7 @@ public class RandomContentGenerator {
 			int demoIndex = demoPostIndex(post.topic);
 			if (demoIndex >= 0) {
 				existingDemoTopics.add(post.topic);
+				post.setCreatedAt(demoPostTime(demoIndex));
 				String body = demoPostBody(demoIndex);
 				if (post.getBody().isEmpty() && !body.isEmpty()) {
 					post.setBody(body);
@@ -157,6 +160,7 @@ public class RandomContentGenerator {
 		User poster = users.get(postIndex % users.size());
 		String title = POST_TITLES[postIndex % POST_TITLES.length];
 		Post post = new Post(UUID.randomUUID(), poster.getUUID(), title);
+		post.setCreatedAt(demoPostTime(postIndex));
 		String body = demoPostBody(postIndex);
 		post.setBody(body);
 		post.setHashtags(HashtagParser.extract(title + " " + body));
@@ -313,6 +317,10 @@ public class RandomContentGenerator {
 			if (POST_TITLES[i].equals(topic)) return i;
 		}
 		return -1;
+	}
+
+	private static long demoPostTime(int postIndex) {
+		return DEMO_POST_BASE_TIME - postIndex * DEMO_POST_INTERVAL_MS;
 	}
 
 	private static boolean isDemoUsername(String username) {
