@@ -197,6 +197,9 @@
     <string name="settings_row_logout">Log out</string>
     <string name="settings_logout_confirm">Log out of this account?</string>
     <string name="reply">Reply</string>
+    <string name="expand_replies">Expand %1$d replies</string>
+    <string name="expand_more_replies">Expand more</string>
+    <string name="collapse_replies">Collapse</string>
     <string name="search">Search</string>
     <string name="search_posts_hint">Search posts…</string>
     <string name="view_count">%1$d views</string>

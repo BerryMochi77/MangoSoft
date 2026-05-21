@@ -49,9 +49,12 @@ import messagestate.MessageThreadRegistry;
 import notification.MentionNotificationRegistry;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -75,6 +78,7 @@ public class PostViewerActivity extends AppCompatActivity {
     public static final String EXTRA_TARGET_MESSAGE_ID = "target_message_id";
     private static final int HEADER_COLLAPSE_GESTURE_DP = 28;
     private static final int HEADER_EXPAND_GESTURE_DP = 112;
+    private static final int REPLIES_PER_EXPANSION = 3;
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private FrozenUserManager frozenUserManager;
@@ -113,6 +117,8 @@ public class PostViewerActivity extends AppCompatActivity {
      * and as the lookup for {@link ThreadConnectorDecoration}.
      */
     private ArrayList<Message> threadedMessages = new ArrayList<>();
+    private ArrayList<UUID> adapterMessageIds = new ArrayList<>();
+    private final Map<UUID, Integer> expandedReplyLimits = new HashMap<>();
 
     private ChipGroup reactionChipGroup;
 
@@ -487,24 +493,95 @@ public class PostViewerActivity extends AppCompatActivity {
             timeSorted.add(it.next());
         }
 
-        // Reorder time-sorted messages into Reddit-style depth-first order so
-        // every reply sits directly under its parent. MessageAdapter picks
-        // depth back out of MessageThreadRegistry when computing indent, and
-        // ThreadConnectorDecoration uses threadedMessages to find each
-        // child's parent View when painting the L connector.
-        threadedMessages = new ArrayList<>(
-                MessageThreadRegistry.getInstance().flatten(timeSorted, Message::id));
+        List<MessageAdapter.ThreadListItem> displayItems = buildThreadDisplayItems(timeSorted);
 
         messageAdapter = new MessageAdapter(
                 this,
-                threadedMessages,
+                displayItems,
                 currentUser.getUUID(),
                 this::startReplyToMessage,
                 this::handleMessageReaction,
                 this::showMessageOverflow,
-                this::openUserProfile
+                this::openUserProfile,
+                this::expandReplyThread,
+                this::collapseReplyThread
         );
         recyclerMessages.setAdapter(messageAdapter);
+    }
+
+    private List<MessageAdapter.ThreadListItem> buildThreadDisplayItems(List<Message> timeSorted) {
+        MessageThreadRegistry threads = MessageThreadRegistry.getInstance();
+        Set<UUID> present = new LinkedHashSet<>();
+        for (Message message : timeSorted) {
+            present.add(message.id());
+        }
+
+        Map<UUID, List<Message>> childrenByParent = new LinkedHashMap<>();
+        ArrayList<Message> roots = new ArrayList<>();
+        for (Message message : timeSorted) {
+            UUID parent = threads.parentOf(message.id());
+            if (parent == null || !present.contains(parent)) {
+                roots.add(message);
+            } else {
+                childrenByParent.computeIfAbsent(parent, ignored -> new ArrayList<>()).add(message);
+            }
+        }
+
+        Comparator<Message> byPopularity = Comparator
+                .comparingInt((Message message) ->
+                        MessageReactionRegistry.getInstance().likeCount(message.id()))
+                .reversed()
+                .thenComparingLong(Message::timestamp);
+        for (List<Message> children : childrenByParent.values()) {
+            children.sort(byPopularity);
+        }
+
+        ArrayList<MessageAdapter.ThreadListItem> items = new ArrayList<>();
+        threadedMessages = new ArrayList<>();
+        adapterMessageIds = new ArrayList<>();
+        for (Message root : roots) {
+            appendThreadItems(root, childrenByParent, items);
+        }
+        return items;
+    }
+
+    private void appendThreadItems(Message message,
+                                   Map<UUID, List<Message>> childrenByParent,
+                                   List<MessageAdapter.ThreadListItem> items) {
+        items.add(MessageAdapter.ThreadListItem.message(message));
+        threadedMessages.add(message);
+        adapterMessageIds.add(message.id());
+
+        List<Message> children = childrenByParent.get(message.id());
+        if (children == null || children.isEmpty()) return;
+
+        int visible = Math.min(expandedReplyLimits.getOrDefault(message.id(), 0), children.size());
+        for (int i = 0; i < visible; i++) {
+            appendThreadItems(children.get(i), childrenByParent, items);
+        }
+
+        int remaining = children.size() - visible;
+        items.add(MessageAdapter.ThreadListItem.control(
+                new MessageAdapter.ThreadControlItem(
+                        message.id(),
+                        children.size(),
+                        visible,
+                        remaining
+                )
+        ));
+        adapterMessageIds.add(null);
+    }
+
+    private void expandReplyThread(MessageAdapter.ThreadControlItem item) {
+        int current = expandedReplyLimits.getOrDefault(item.parentMessageId(), 0);
+        int next = Math.min(item.totalReplies(), current + REPLIES_PER_EXPANSION);
+        expandedReplyLimits.put(item.parentMessageId(), next);
+        loadMessages();
+    }
+
+    private void collapseReplyThread(MessageAdapter.ThreadControlItem item) {
+        expandedReplyLimits.remove(item.parentMessageId());
+        loadMessages();
     }
 
     /**
@@ -565,16 +642,16 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private int indexOfThreaded(UUID messageId) {
-        for (int i = 0; i < threadedMessages.size(); i++) {
-            if (threadedMessages.get(i).id().equals(messageId)) return i;
+        for (int i = 0; i < adapterMessageIds.size(); i++) {
+            if (messageId.equals(adapterMessageIds.get(i))) return i;
         }
         return -1;
     }
 
     /** Lookup used by {@link ThreadConnectorDecoration}. */
     private UUID messageIdAt(int position) {
-        if (position < 0 || position >= threadedMessages.size()) return null;
-        return threadedMessages.get(position).id();
+        if (position < 0 || position >= adapterMessageIds.size()) return null;
+        return adapterMessageIds.get(position);
     }
 
     private void addReply() {

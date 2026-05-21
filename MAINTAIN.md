@@ -525,3 +525,7 @@ Threaded replies use one composer:
 - Sending through the bottom reply bar records the parent in `MessageThreadRegistry`, then clears the reply target back to the post-level default.
 - Plain post replies keep the normal `Write a reply` hint and use a null parent id.
 - Thread indentation is visually capped at three levels with an 18dp step so nested replies keep enough width for content and owner action buttons.
+- Comment threads are collapsed by default in `PostViewerActivity`. A top-level comment with replies shows an expand row instead of rendering every child immediately.
+- Expanding a thread reveals replies in batches of three, ordered by `MessageReactionRegistry.likeCount(...)` descending and then timestamp ascending.
+- The expand / collapse row is represented by `MessageAdapter.ThreadControlItem`, not by fake `Message` objects. Keep this control UI in the adapter layer; do not add collapsed/expanded state to `Message`.
+- `PostViewerActivity.expandedReplyLimits` is transient screen state. It should not be persisted unless the product explicitly needs remembered thread expansion.
