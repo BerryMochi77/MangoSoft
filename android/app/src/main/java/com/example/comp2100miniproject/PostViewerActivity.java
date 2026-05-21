@@ -114,20 +114,9 @@ public class PostViewerActivity extends AppCompatActivity {
     private float headerGestureStartY;
     private boolean headerGestureHandled;
 
-    /**
-     * Threaded (depth-first) list of currently-visible messages. Updated on
-     * every {@link #loadMessages()}. Used both as the adapter's data source
-     * and as the lookup for {@link ThreadConnectorDecoration}.
-     */
     private ArrayList<Message> threadedMessages = new ArrayList<>();
     private ArrayList<UUID> adapterMessageIds = new ArrayList<>();
-    /** Parent message id -> number of direct replies. Populated each {@link #loadMessages()}. */
     private final Map<UUID, Integer> messageChildCount = new HashMap<>();
-    /**
-     * Parent message id -> explicitly set visible-reply count. A missing
-     * entry means "show all" — replies are expanded by default and the
-     * user collapses by tapping the parent's body.
-     */
     private final Map<UUID, Integer> expandedReplyLimits = new HashMap<>();
 
     private ChipGroup reactionChipGroup;
@@ -202,20 +191,13 @@ public class PostViewerActivity extends AppCompatActivity {
         setupReactionButtons();
 
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
-        // Disable the default DefaultItemAnimator change cross-fade. When
-        // notifyItemChanged fires (e.g. after a like tap) the old and new
-        // ViewHolders are drawn semi-transparently on top of each other,
-        // which on TextViews containing emoji visibly thins / blurs the
-        // text. Keep add / remove animations, drop change cross-fade.
         androidx.recyclerview.widget.RecyclerView.ItemAnimator animator =
                 recyclerMessages.getItemAnimator();
         if (animator instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
             ((androidx.recyclerview.widget.SimpleItemAnimator) animator)
                     .setSupportsChangeAnimations(false);
         }
-        // ItemDecoration paints the parent-to-child L connectors. It reads
-        // the current threaded list via a method reference so it stays in
-        // sync as loadMessages() rebuilds the list after edits/replies.
+
         recyclerMessages.addItemDecoration(
                 new ThreadConnectorDecoration(this, this::messageIdAt));
         recyclerMessages.setOnTouchListener((view, event) -> {
@@ -243,21 +225,17 @@ public class PostViewerActivity extends AppCompatActivity {
         buttonPostOverflow = findViewById(R.id.buttonPostOverflow);
         buttonPostOverflow.setOnClickListener(this::showPostOverflow);
 
-        // Record one view per fresh open. savedInstanceState != null means the OS
-        // recreated the activity, so do not count that again.
         if (savedInstanceState == null) {
             PostViewService.getInstance().recordView(post.id);
         }
 
         renderPost();
+        showAiRelatedPostsPreview();
         loadMessages();
         scrollToTargetMessage(getIntent().getStringExtra(EXTRA_TARGET_MESSAGE_ID));
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            // Leave the top unpadded so the orange title bar draws behind the
-            // status bar (Reddit-style continuous band). The header content is
-            // pushed below the status icons via the back button's top margin.
             v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
             ViewGroup.MarginLayoutParams backParams =
                     (ViewGroup.MarginLayoutParams) buttonBack.getLayoutParams();
@@ -452,7 +430,6 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void renderPost() {
-        // Strip #tags out of the title - they render as chips below.
         textPostTitle.setText(HashtagParser.stripTags(post.topic));
         User poster = UserDAO.getInstance().getByUUID(post.poster);
         if (poster != null) {
@@ -470,7 +447,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
         textPostAuthor.setText(authorName(poster));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
-        // View count is delegated entirely to PostViewService.
         int views = PostViewService.getInstance().getViewCount(post.id);
         textViewCount.setText(getString(R.string.view_count, views));
         renderHashtagChips();
@@ -504,13 +480,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Tapping a hashtag chip in a post detail returns to MainActivity and
-     * switches it to the Trends tab filtered by {@code tag}. CLEAR_TOP +
-     * SINGLE_TOP pops PostViewerActivity (and anything above MainActivity)
-     * and delivers the intent via onNewIntent rather than recreating
-     * MainActivity, so the rest of the tab state is preserved.
-     */
     private void openTrendsForTag(String tag) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -603,10 +572,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Tap on a parent comment's body collapses its visible replies, or
-     * re-expands them if already collapsed. Leaf comments do nothing.
-     */
     private void toggleReplyThread(Message message) {
         Integer total = messageChildCount.get(message.id());
         if (total == null || total == 0) return;
@@ -619,7 +584,6 @@ public class PostViewerActivity extends AppCompatActivity {
         loadMessages();
     }
 
-    /** Direct replies currently hidden beneath {@code message} (0 if fully expanded). */
     private int hiddenReplyCount(Message message) {
         Integer total = messageChildCount.get(message.id());
         if (total == null || total == 0) return 0;
@@ -627,11 +591,6 @@ public class PostViewerActivity extends AppCompatActivity {
         return total - visible;
     }
 
-    /**
-     * Toggle the current user's like / dislike on a message and refresh
-     * just that row. The reaction itself lives in
-     * {@link MessageReactionRegistry} — Message stays untouched.
-     */
     private void handleMessageReaction(Message message,
                                        MessageReactionRegistry.Direction direction) {
         MessageReactionRegistry.getInstance()
@@ -642,11 +601,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Open the ⋮ overflow menu for a message: Save / Unsave, Report (non-
-     * owner only), Edit / Delete (owner only). Reuses the existing flows
-     * that previously sat on inline buttons.
-     */
     private void showMessageOverflow(Message message, View anchor) {
         boolean mine = currentUser.getUUID().equals(message.poster());
         boolean bookmarked = MessageBookmarkRegistry.getInstance()
@@ -684,11 +638,6 @@ public class PostViewerActivity extends AppCompatActivity {
         popup.show();
     }
 
-    /**
-     * Top-right ⋮ menu for the whole post: Save / Unsave (everyone),
-     * Report (non-owner, non-admin), Edit / Delete (owner). Mirrors the
-     * per-comment overflow in {@link #showMessageOverflow}.
-     */
     private void showPostOverflow(View anchor) {
         boolean owner = currentUser.getUUID().equals(post.poster);
         boolean admin = currentUser.role() == User.Role.Admin;
@@ -728,12 +677,6 @@ public class PostViewerActivity extends AppCompatActivity {
         popup.show();
     }
 
-    /**
-     * Vertically center the back arrow on the title's first text line. The
-     * title shares its top edge with the back button, but the arrow is
-     * centered inside a 44dp touch target and so reads as sitting below a
-     * single line of title text — this nudges it up to align.
-     */
     private void alignBackButtonToTitleFirstLine() {
         textPostTitle.post(() -> {
             android.text.Layout layout = textPostTitle.getLayout();
@@ -751,7 +694,6 @@ public class PostViewerActivity extends AppCompatActivity {
         return -1;
     }
 
-    /** Lookup used by {@link ThreadConnectorDecoration}. */
     private UUID messageIdAt(int position) {
         if (position < 0 || position >= adapterMessageIds.size()) return null;
         return adapterMessageIds.get(position);
@@ -765,11 +707,6 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Insert a reply. If {@code parentMessageId} is non-null, record the
-     * parent/child relationship in {@link MessageThreadRegistry} so the
-     * new message renders indented beneath the message it replies to.
-     */
     private boolean addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
         String content = rawContent == null ? "" : rawContent.trim();
         if (replyAttachmentUri != null) {
@@ -1070,7 +1007,6 @@ public class PostViewerActivity extends AppCompatActivity {
 
         HashtagService.getInstance().removePost(post);
         post.topic = cleanTopic;
-        // Re-extract hashtags from title + existing body when editing.
         post.setHashtags(HashtagParser.extract(cleanTopic + " " + post.getBody()));
         post.setEdited(true);
         HashtagService.getInstance().indexPost(post);
@@ -1093,12 +1029,6 @@ public class PostViewerActivity extends AppCompatActivity {
                 .show();
     }
 
-    // ── Post-level reporting ──────────────────────────────────────────────────
-
-    /**
-     * Show a dialog letting the current user report the post with a typed reason.
-     * Delegates entirely to {@link AdminModerationService} — no report state in Activity.
-     */
     private void showReportPostDialog() {
         if (PostReportRepository.getInstance().hasReported(post.id, currentUser.getUUID())) {
             Toast.makeText(this, R.string.report_already_submitted, Toast.LENGTH_SHORT).show();
@@ -1131,7 +1061,6 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void showEditReplyDialog(Message message) {
         EditText input = new EditText(this);
-        // Show the latest edited content if any, otherwise the original.
         input.setText(MessageEditRegistry.getInstance()
                 .currentContent(message.id(), message.message()));
         input.setSelection(input.getText().length());
@@ -1152,7 +1081,6 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
-        // Per-message state lives in sidecars, not on Message itself.
         MessageEditRegistry.getInstance().recordEdit(message.id(), cleanContent);
         AndroidPostStore.saveAll(this);
         Toast.makeText(this, R.string.reply_updated, Toast.LENGTH_SHORT).show();
@@ -1225,6 +1153,105 @@ public class PostViewerActivity extends AppCompatActivity {
         );
         int messageId = reported ? R.string.report_sent : R.string.report_failed;
         Toast.makeText(PostViewerActivity.this, messageId, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showAiRelatedPostsPreview() {
+        ArrayList<Post> related = getAiRelatedPosts();
+
+        if (related.isEmpty()) {
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("AI found related discussions based on shared hashtags and keywords.\n\n");
+
+        int limit = Math.min(3, related.size());
+        for (int i = 0; i < limit; i++) {
+            builder.append("• ");
+            builder.append(HashtagParser.stripTags(related.get(i).topic));
+            builder.append("\n");
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("AI Related Posts")
+                .setMessage(builder.toString())
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private ArrayList<Post> getAiRelatedPosts() {
+        ArrayList<ScoredPost> scored = new ArrayList<>();
+
+        Iterator<Post> iterator = PostDAO.getInstance().getAll();
+
+        while (iterator.hasNext()) {
+            Post candidate = iterator.next();
+
+            if (candidate == null
+                    || candidate.isDeleted()
+                    || candidate.id.equals(post.id)) {
+                continue;
+            }
+
+            int score = relatedScore(post, candidate);
+
+            if (score > 0) {
+                scored.add(new ScoredPost(candidate, score));
+            }
+        }
+
+        scored.sort((a, b) -> b.score - a.score);
+
+        ArrayList<Post> related = new ArrayList<>();
+        for (ScoredPost item : scored) {
+            related.add(item.post);
+        }
+
+        return related;
+    }
+
+    private int relatedScore(Post current, Post candidate) {
+        int score = 0;
+
+        for (String tag : current.getHashtags()) {
+            if (candidate.getHashtags().contains(tag)) {
+                score += 3;
+            }
+        }
+
+        String currentText = (
+                current.topic + " " + current.getBody()
+        ).toLowerCase(Locale.ROOT);
+
+        String candidateText = (
+                candidate.topic + " " + candidate.getBody()
+        ).toLowerCase(Locale.ROOT);
+
+        if (containsSharedKeyword(currentText, candidateText, "android")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "moderation")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "report")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "study")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "test")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "layout")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "profile")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "admin")) score++;
+        if (containsSharedKeyword(currentText, candidateText, "database")) score++;
+
+        return score;
+    }
+
+    private boolean containsSharedKeyword(String first, String second, String word) {
+        return first.contains(word) && second.contains(word);
+    }
+
+    private static class ScoredPost {
+        final Post post;
+        final int score;
+
+        ScoredPost(Post post, int score) {
+            this.post = post;
+            this.score = score;
+        }
     }
 
     private int dp(int value) {
