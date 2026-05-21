@@ -74,6 +74,14 @@
     <string name="my_replies">My replies</string>
     <string name="user_posts">Posts</string>
     <string name="user_replies">Replies</string>
+    <string name="follow_user">Follow</string>
+    <string name="unfollow_user">Following</string>
+    <string name="add_friend">Add friend</string>
+    <string name="remove_friend">Friends</string>
+    <string name="followed_user">Followed</string>
+    <string name="unfollowed_user">Unfollowed</string>
+    <string name="friend_added">Friend added</string>
+    <string name="friend_removed">Friend removed</string>
     <string name="profile_saved">Profile saved</string>
     <string name="profile_save_failed">Display name is required. New password must be at least 4 characters.</string>
     <string name="profile_avatar">Profile avatar</string>

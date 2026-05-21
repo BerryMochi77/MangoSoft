@@ -165,6 +165,30 @@ Read-only profile behavior:
 - It lists the target user's visible posts and visible replies using existing `PostDAO` data and `MessageDeletionRegistry`.
 - It does not edit `User`, `Post`, or `Message`, and does not create any new per-message state.
 
+## User relationships
+
+Following and friendship are user-to-user social relationships. They must not be stored on the `User` model.
+
+Core ownership:
+
+- `userrelation.UserRelationshipRegistry` lives in `android/social-core`.
+- Following is directional: user A can follow user B without B following A.
+- Friendship is mutual: adding a friend stores one normalized unordered pair.
+
+Android ownership:
+
+- `RelationshipStore` loads/saves relationship ids in app-local `SharedPreferences`.
+- `UserProfileActivity` shows `Follow` / `Following` and `Add friend` / `Friends` buttons only when viewing another user's profile.
+- Tapping the buttons updates `UserRelationshipRegistry`, persists the state, and refreshes the labels.
+
+How to use relationships elsewhere:
+
+```java
+RelationshipStore store = new RelationshipStore(context);
+boolean following = store.isFollowing(currentUserId, targetUserId);
+boolean friends = store.areFriends(currentUserId, targetUserId);
+```
+
 How to add this navigation somewhere else:
 
 ```java

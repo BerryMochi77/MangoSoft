@@ -3,7 +3,9 @@ package com.example.comp2100miniproject;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,11 +38,15 @@ public class UserProfileActivity extends AppCompatActivity {
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private ProfileBackgroundManager profileBackgroundManager;
+    private RelationshipStore relationshipStore;
     private User currentUser;
     private User profileUser;
 
     private ImageView imageAvatar;
     private ImageView imageProfileBackground;
+    private LinearLayout relationshipActions;
+    private Button buttonFollowUser;
+    private Button buttonFriendUser;
     private TextView textProfileTitle;
     private TextView textUsername;
     private TextView textNoUserPosts;
@@ -62,6 +68,7 @@ public class UserProfileActivity extends AppCompatActivity {
         authManager = new AuthManager(this);
         avatarManager = new AvatarManager(authManager);
         profileBackgroundManager = new ProfileBackgroundManager(authManager);
+        relationshipStore = new RelationshipStore(this);
 
         currentUser = authManager.getUser(readUuidExtra(AuthManager.EXTRA_USER_ID));
         profileUser = authManager.getUser(readUuidExtra(EXTRA_PROFILE_USER_ID));
@@ -73,6 +80,9 @@ public class UserProfileActivity extends AppCompatActivity {
 
         imageAvatar = findViewById(R.id.imageAvatar);
         imageProfileBackground = findViewById(R.id.imageProfileBackground);
+        relationshipActions = findViewById(R.id.relationshipActions);
+        buttonFollowUser = findViewById(R.id.buttonFollowUser);
+        buttonFriendUser = findViewById(R.id.buttonFriendUser);
         textProfileTitle = findViewById(R.id.textProfileTitle);
         textUsername = findViewById(R.id.textUsername);
         textNoUserPosts = findViewById(R.id.textNoUserPosts);
@@ -84,8 +94,11 @@ public class UserProfileActivity extends AppCompatActivity {
         recyclerUserReplies.setLayoutManager(new LinearLayoutManager(this));
 
         findViewById(R.id.buttonBack).setOnClickListener(v -> finish());
+        buttonFollowUser.setOnClickListener(v -> toggleFollow());
+        buttonFriendUser.setOnClickListener(v -> toggleFriend());
 
         renderProfile();
+        renderRelationshipActions();
         refreshContent();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
@@ -108,6 +121,37 @@ public class UserProfileActivity extends AppCompatActivity {
         textUsername.setText(getString(R.string.username_value, profileUser.username()));
         avatarManager.displayAvatar(profileUser, imageAvatar);
         profileBackgroundManager.displayBackground(profileUser, imageProfileBackground);
+    }
+
+    private void renderRelationshipActions() {
+        if (currentUser == null || currentUser.getUUID().equals(profileUser.getUUID())) {
+            relationshipActions.setVisibility(View.GONE);
+            return;
+        }
+
+        relationshipActions.setVisibility(View.VISIBLE);
+        boolean following = relationshipStore.isFollowing(currentUser.getUUID(), profileUser.getUUID());
+        boolean friends = relationshipStore.areFriends(currentUser.getUUID(), profileUser.getUUID());
+        buttonFollowUser.setText(following ? R.string.unfollow_user : R.string.follow_user);
+        buttonFriendUser.setText(friends ? R.string.remove_friend : R.string.add_friend);
+    }
+
+    private void toggleFollow() {
+        if (currentUser == null || profileUser == null) return;
+        boolean following = relationshipStore.toggleFollow(currentUser.getUUID(), profileUser.getUUID());
+        renderRelationshipActions();
+        Toast.makeText(this,
+                following ? R.string.followed_user : R.string.unfollowed_user,
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void toggleFriend() {
+        if (currentUser == null || profileUser == null) return;
+        boolean friends = relationshipStore.toggleFriend(currentUser.getUUID(), profileUser.getUUID());
+        renderRelationshipActions();
+        Toast.makeText(this,
+                friends ? R.string.friend_added : R.string.friend_removed,
+                Toast.LENGTH_SHORT).show();
     }
 
     private void refreshContent() {
