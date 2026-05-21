@@ -2,6 +2,9 @@ package com.example.comp2100miniproject;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.ImageView;
@@ -13,6 +16,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 import dao.model.User;
 
@@ -30,6 +36,41 @@ public class AvatarManager {
             new AvatarOption("avatar_default_3", R.string.avatar_default_3, R.drawable.avatar_default_3),
             new AvatarOption("avatar_default_4", R.string.avatar_default_4, R.drawable.avatar_default_4)
     };
+
+    /**
+     * Curated set of friendly single-codepoint emoji used to render the
+     * "default" avatar instead of the bland coloured-disc drawables.
+     * Each user's emoji is chosen deterministically from their UUID, so
+     * the same user always sees the same character.
+     */
+    private static final String[] EMOJI_PALETTE = {
+            "🦊", // fox
+            "🐱", // cat
+            "🐼", // panda
+            "🐧", // penguin
+            "🦁", // lion
+            "🐸", // frog
+            "🐵", // monkey
+            "🦄", // unicorn
+            "🐢", // turtle
+            "🦋", // butterfly
+            "🐝", // bee
+            "🦉", // owl
+            "🐳", // whale
+            "🦝", // raccoon
+            "🐶", // dog
+            "🦒"  // giraffe
+    };
+
+    /** Soft pastel background palette so adjacent avatars look distinct. */
+    private static final int[] BG_PALETTE = {
+            0xFF6CACE4, 0xFFFFB07A, 0xFFA8E6CF, 0xFFFFD3B6,
+            0xFFFFAAA5, 0xFFE0BBE4, 0xFFB5EAD7, 0xFFFFDAC1,
+            0xFFC7CEEA, 0xFF95B8D1, 0xFFFEC8D8, 0xFFFFDFD3
+    };
+
+    /** Cache of generated bitmaps so RecyclerView scrolling stays smooth. */
+    private static final Map<UUID, Bitmap> emojiBitmapCache = new HashMap<>();
 
     private final AuthManager authManager;
 
@@ -49,7 +90,53 @@ public class AvatarManager {
             return;
         }
 
-        imageView.setImageResource(defaultAvatarResId(avatar.value()));
+        // Default avatar: render an emoji-on-coloured-circle bitmap whose
+        // emoji and background colour are derived deterministically from
+        // the user's UUID. The four legacy drawable options (Blue / Green
+        // / Purple / Rose) are intentionally bypassed — they read as
+        // robotic placeholders. Users can still upload their own via
+        // Photo Picker (handled in the gallery branch above).
+        imageView.setImageBitmap(getOrCreateEmojiAvatar(user.getUUID()));
+    }
+
+    private Bitmap getOrCreateEmojiAvatar(UUID userId) {
+        Bitmap cached = emojiBitmapCache.get(userId);
+        if (cached != null) return cached;
+        Bitmap bmp = createEmojiAvatar(userId);
+        emojiBitmapCache.put(userId, bmp);
+        return bmp;
+    }
+
+    private static Bitmap createEmojiAvatar(UUID userId) {
+        // 256 px keeps the avatar sharp at any size the layouts use today
+        // (32 dp in message rows up to ~70 dp in post cards). One bitmap
+        // per user ≈ 256 kB so even 100 users would stay under 30 MB.
+        final int size = 256;
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+
+        // Hash the two halves of the UUID independently so the emoji and
+        // colour don't correlate — feels more random to the eye.
+        long hi = userId.getMostSignificantBits();
+        long lo = userId.getLeastSignificantBits();
+        int emojiIndex = Math.floorMod(hi, EMOJI_PALETTE.length);
+        int colorIndex = Math.floorMod(lo, BG_PALETTE.length);
+
+        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bgPaint.setColor(BG_PALETTE[colorIndex]);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint);
+
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextSize(size * 0.55f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        // Centre the emoji vertically using the font metrics rather than
+        // the View's own y/2, so different emoji with different visual
+        // heights stay optically centred.
+        float baselineY = size / 2f - (fm.ascent + fm.descent) / 2f;
+        canvas.drawText(EMOJI_PALETTE[emojiIndex], size / 2f, baselineY, textPaint);
+
+        return bmp;
     }
 
     public boolean setDefaultAvatar(User user, AvatarOption option) {
@@ -101,15 +188,6 @@ public class AvatarManager {
             labels[i] = context.getString(DEFAULT_AVATARS[i].labelResId());
         }
         return labels;
-    }
-
-    private int defaultAvatarResId(String key) {
-        for (AvatarOption option : DEFAULT_AVATARS) {
-            if (option.key().equals(key)) {
-                return option.drawableResId();
-            }
-        }
-        return DEFAULT_AVATARS[0].drawableResId();
     }
 
     public record AvatarOption(String key, int labelResId, int drawableResId) {
