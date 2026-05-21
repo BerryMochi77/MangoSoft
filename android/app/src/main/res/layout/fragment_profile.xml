@@ -17,9 +17,29 @@
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/buttonEditProfile"
+        app:layout_constraintEnd_toStartOf="@+id/buttonProfileSettings"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <!--
+        Settings was demoted from the bottom nav because Material caps it
+        at 5 items and the AI tab took the open slot. The gear here is its
+        primary entry point.
+    -->
+    <ImageButton
+        android:id="@+id/buttonProfileSettings"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="6dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/settings"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_tab_settings"
+        app:layout_constraintEnd_toStartOf="@+id/buttonEditProfile"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/text_primary" />
 
     <Button
         android:id="@+id/buttonEditProfile"

@@ -20,9 +20,11 @@ import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.ComposerFormatManager;
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.ThreadIndentView;
+import com.example.comp2100miniproject.UiFontManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import dao.UserDAO;
@@ -59,12 +61,13 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         void onOverflow(Message message, View anchor);
     }
 
-    private final Message[] messages;
+    private final List<Message> items;
     private final UUID currentUserId;
     private final OnMessageActionClick onReplyClick;
     private final OnReactionClick onReactionClick;
     private final OnOverflowClick onOverflowClick;
     private final OnUserClick onUserClick;
+    private final OnMessageActionClick onContentClick;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
     private final int accentColor;
@@ -72,19 +75,21 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
     public MessageAdapter(
             Context context,
-            ArrayList<Message> dataSet,
+            List<Message> items,
             UUID currentUserId,
             OnMessageActionClick onReplyClick,
             OnReactionClick onReactionClick,
             OnOverflowClick onOverflowClick,
-            OnUserClick onUserClick
+            OnUserClick onUserClick,
+            OnMessageActionClick onContentClick
     ) {
-        messages = dataSet.toArray(new Message[0]);
+        this.items = new ArrayList<>(items);
         this.currentUserId = currentUserId;
         this.onReplyClick = onReplyClick;
         this.onReactionClick = onReactionClick;
         this.onOverflowClick = onOverflowClick;
         this.onUserClick = onUserClick;
+        this.onContentClick = onContentClick;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
         this.accentColor = ContextCompat.getColor(context, R.color.accent);
@@ -105,6 +110,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         private final ImageButton dislikeButton;
         private final TextView dislikeCount;
         private final ImageButton commentButton;
+        private final View divider;
 
         public ViewHolder(View view) {
             super(view);
@@ -121,6 +127,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             dislikeButton = view.findViewById(R.id.buttonDislikeMessage);
             dislikeCount = view.findViewById(R.id.textDislikeCount);
             commentButton = view.findViewById(R.id.buttonCommentMessage);
+            divider = view.findViewById(R.id.messageDivider);
         }
 
         public void display(
@@ -130,6 +137,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 OnReactionClick onReactionClick,
                 OnOverflowClick onOverflowClick,
                 OnUserClick onUserClick,
+                OnMessageActionClick onContentClick,
                 AuthManager authManager,
                 AvatarManager avatarManager,
                 int accentColor,
@@ -175,6 +183,17 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                     onReactionClick.onReaction(message, MessageReactionRegistry.Direction.DISLIKE));
             commentButton.setOnClickListener(v -> onReplyClick.onAction(message));
             overflowButton.setOnClickListener(v -> onOverflowClick.onOverflow(message, v));
+            if (onContentClick != null) {
+                View.OnClickListener toggle = v -> onContentClick.onAction(message);
+                content.setOnClickListener(toggle);
+                attachment.setOnClickListener(toggle);
+            } else {
+                content.setOnClickListener(null);
+                content.setClickable(false);
+                attachment.setOnClickListener(null);
+                attachment.setClickable(false);
+            }
+            divider.setVisibility(View.VISIBLE);
         }
 
         /** Sync the like / dislike icon tints and counts with the registry. */
@@ -202,18 +221,20 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
                 .inflate(R.layout.fragment_message, viewGroup, false);
+        UiFontManager.applyToViewTree(viewGroup.getContext(), view);
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
-        viewHolder.display(
-                messages[position],
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        holder.display(
+                items.get(position),
                 currentUserId,
                 onReplyClick,
                 onReactionClick,
                 onOverflowClick,
                 onUserClick,
+                onContentClick,
                 authManager,
                 avatarManager,
                 accentColor,
@@ -223,6 +244,6 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
 
     @Override
     public int getItemCount() {
-        return messages.length;
+        return items.size();
     }
 }

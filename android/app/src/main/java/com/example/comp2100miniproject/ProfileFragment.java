@@ -143,6 +143,10 @@ public class ProfileFragment extends Fragment {
         renderContentPages();
 
         view.findViewById(R.id.buttonEditProfile).setOnClickListener(v -> showEditProfileChooser());
+        // Settings was demoted from the bottom nav; the gear in the header
+        // is now its main entry point.
+        view.findViewById(R.id.buttonProfileSettings)
+                .setOnClickListener(v -> host.openSettings());
         buttonPrevPosts.setOnClickListener(v -> {
             postsPage--;
             renderPostsPage();

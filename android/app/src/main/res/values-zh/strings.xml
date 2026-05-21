@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Chinese (Simplified) translations for the Social Moderation app.
+  Chinese (Simplified) translations for the MangoSoft app.
   Covers every visible UI string so switching to Chinese in Settings
   fully localises the UI without an app rebuild.
 
@@ -10,10 +10,10 @@
 <resources>
 
     <!-- ── App name ──────────────────────────────────────────────────────── -->
-    <string name="app_name">社交审核</string>
+    <string name="app_name">MangoSoft</string>
 
     <!-- ── Login screen ──────────────────────────────────────────────────── -->
-    <string name="login_subtitle">登录以查看帖子和举报消息</string>
+    <string name="login_subtitle">登录 MangoSoft 以查看帖子和举报消息</string>
     <string name="username">用户名</string>
     <string name="password">密码</string>
     <string name="login">登录</string>
@@ -191,5 +191,85 @@
     <string name="tz_utc">协调世界时（UTC）</string>
     <string name="tz_sydney">悉尼（澳大利亚）</string>
     <string name="tz_shanghai">上海（中国）</string>
+
+
+    <!-- ── Admin Post Moderation ──────────────────────────────────────── -->
+    <string name="settings_section_admin">管理员</string>
+    <string name="admin_dashboard">管理员面板</string>
+    <string name="admin_pending_count">%1$d 条待处理</string>
+    <string name="admin_report_detail">举报详情</string>
+    <string name="admin_pending_reports">待处理举报</string>
+    <string name="no_pending_reports">暂无待处理举报</string>
+    <string name="report_post">举报帖子</string>
+    <string name="submit_report">提交举报</string>
+    <string name="report_submitted">举报已提交</string>
+    <string name="report_already_submitted">您已经举报过该帖子</string>
+    <string name="report_meta_format">举报人：%1$s  →  作者：%2$s</string>
+    <string name="no_reason_provided">未提供原因</string>
+    <string name="reported_post">被举报帖子</string>
+    <string name="report_detail_reporter">举报人</string>
+    <string name="reported_author">被举报作者</string>
+    <string name="report_reason">举报原因</string>
+    <string name="report_time">举报时间</string>
+    <string name="status_pending">待处理</string>
+    <string name="dismiss_report">驳回举报</string>
+    <string name="delete_post_action">删除帖子</string>
+    <string name="ban_author">封禁作者</string>
+    <string name="confirm">确认</string>
+    <string name="confirm_dismiss_report">驳回此举报？该帖子将继续显示。</string>
+    <string name="confirm_delete_post_report">删除该帖子？它将不再出现在信息流中。</string>
+    <string name="confirm_ban_author">封禁该作者？他们将无法发布新帖子。</string>
+    <string name="report_dismissed">举报已驳回</string>
+    <string name="post_deleted_by_admin">帖子已被删除</string>
+    <string name="author_banned">作者已被封禁</string>
+    <string name="you_are_banned">您的账号已被封禁，无法发布帖子</string>
+
+
+    <!-- ── Admin Data Analytics Dashboard ───────────────────────────── -->
+    <string name="data_dashboard">数据统计面板</string>
+    <string name="dash_system_overview">系统概览</string>
+    <string name="dash_total_users">总用户数</string>
+    <string name="dash_total_posts">总帖子数</string>
+    <string name="dash_total_replies">总评论数</string>
+    <string name="dash_posts_today">今日新增帖子</string>
+    <string name="dash_pending_reports">待处理举报数量</string>
+    <string name="dash_most_viewed">最多阅读帖子</string>
+    <string name="dash_most_reacted">最多点赞帖子</string>
+    <string name="dash_active_users">活跃用户排行</string>
+    <string name="dash_no_data">暂无数据</string>
+    <string name="dash_views_format">%1$d 次浏览</string>
+    <string name="dash_reactions_format">%1$d 次点赞</string>
+    <string name="dash_posts_format">%1$d 篇帖子</string>
+
+
+    <!-- ── Admin Management Hub ──────────────────────────────────────── -->
+    <string name="dash_view_all">查看全部 ›</string>
+    <string name="dash_user_database">用户库</string>
+    <string name="dash_active_users_ranking">活跃用户排行</string>
+    <string name="dash_post_database">帖子库</string>
+    <string name="dash_todays_posts">今日帖子</string>
+    <string name="dash_most_viewed_posts">最多阅读帖子</string>
+    <string name="dash_most_liked_posts">最多点赞帖子</string>
+    <string name="dash_reply_database">评论库</string>
+    <string name="dash_reply_detail">评论详情</string>
+    <string name="dash_view_post">查看帖子</string>
+    <string name="dash_delete_reply">删除评论</string>
+    <string name="dash_user_meta">角色：%1$s · 帖子：%2$d · 回复：%3$d</string>
+    <string name="dash_post_stats">%1$d 次浏览 · %2$d 点赞 · %3$d 回复 · %4$d 举报</string>
+    <string name="dash_detail_username">用户名</string>
+    <string name="dash_detail_role">角色</string>
+    <string name="dash_detail_status">状态</string>
+    <string name="dash_detail_author">作者</string>
+    <string name="dash_detail_created">发布时间</string>
+    <string name="dash_detail_post">帖子</string>
+    <string name="dash_detail_time">时间</string>
+    <string name="dash_banned">已封禁</string>
+    <string name="dash_active">正常</string>
+    <string name="dash_unban_user">解封用户</string>
+    <string name="dash_user_unbanned">用户已解封</string>
+    <string name="dash_status_deleted">已删除</string>
+    <string name="dash_status_reported">%1$d 条举报</string>
+    <string name="dash_reactions_label">点赞数</string>
+    <string name="dash_reports_label">举报数</string>
 
 </resources>

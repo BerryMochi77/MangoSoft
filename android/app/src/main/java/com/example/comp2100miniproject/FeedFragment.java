@@ -34,6 +34,7 @@ import java.util.UUID;
 import dao.PostDAO;
 import dao.model.Post;
 import dao.model.User;
+import moderation.BanRepository;
 
 /** Feed tab: list of posts + create post + admin entry. */
 public class FeedFragment extends Fragment {

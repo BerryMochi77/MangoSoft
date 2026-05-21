@@ -24,7 +24,7 @@ import dao.RandomContentGenerator;
 import dao.model.User;
 
 /**
- * Single-Activity host for the four bottom-nav tabs. Tab taps swap the
+ * Single-Activity host for the bottom-nav tabs. Tab taps swap the
  * visible Fragment via show/hide so each tab keeps its scroll position and
  * internal state — no "enter / exit" Activity transitions, no rebuilt UI.
  *
@@ -41,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
     private static final String TAG_FEED = "tab_feed";
     private static final String TAG_TRENDS = "tab_trends";
+    private static final String TAG_AI = "tab_ai";
+    private static final String TAG_MESSAGES = "tab_messages";
     private static final String TAG_PROFILE = "tab_profile";
     private static final String TAG_SETTINGS = "tab_settings";
 
@@ -49,11 +51,15 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
     private FeedFragment feedFragment;
     private TrendsFragment trendsFragment;
+    private AiFragment aiFragment;
+    private MessagesFragment messagesFragment;
     private ProfileFragment profileFragment;
     private SettingsFragment settingsFragment;
 
     private BottomNavigationView bottomNav;
     private int currentTabId = 0;
+    /** True while {@link SettingsFragment} is overlaid on top of the current tab. */
+    private boolean settingsOverlayShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +143,8 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
         feedFragment = (FeedFragment) fm.findFragmentByTag(TAG_FEED);
         trendsFragment = (TrendsFragment) fm.findFragmentByTag(TAG_TRENDS);
+        aiFragment = (AiFragment) fm.findFragmentByTag(TAG_AI);
+        messagesFragment = (MessagesFragment) fm.findFragmentByTag(TAG_MESSAGES);
         profileFragment = (ProfileFragment) fm.findFragmentByTag(TAG_PROFILE);
         settingsFragment = (SettingsFragment) fm.findFragmentByTag(TAG_SETTINGS);
 
@@ -147,22 +155,28 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
         feedFragment = new FeedFragment();
         trendsFragment = new TrendsFragment();
+        aiFragment = new AiFragment();
+        messagesFragment = new MessagesFragment();
         profileFragment = new ProfileFragment();
         settingsFragment = new SettingsFragment();
 
         FragmentTransaction tx = fm.beginTransaction();
         tx.add(R.id.fragmentContainer, feedFragment, TAG_FEED);
         tx.add(R.id.fragmentContainer, trendsFragment, TAG_TRENDS);
+        tx.add(R.id.fragmentContainer, aiFragment, TAG_AI);
+        tx.add(R.id.fragmentContainer, messagesFragment, TAG_MESSAGES);
         tx.add(R.id.fragmentContainer, profileFragment, TAG_PROFILE);
         tx.add(R.id.fragmentContainer, settingsFragment, TAG_SETTINGS);
         tx.hide(trendsFragment);
+        tx.hide(aiFragment);
+        tx.hide(messagesFragment);
         tx.hide(profileFragment);
         tx.hide(settingsFragment);
         tx.commit();
     }
 
     private void showTab(@IdRes int itemId, @Nullable String trendsTag, boolean forceTrendsFilter) {
-        boolean sameTab = itemId == currentTabId;
+        boolean sameTab = itemId == currentTabId && !settingsOverlayShown;
         Fragment target;
         if (itemId == R.id.navFeed) {
             target = feedFragment;
@@ -171,10 +185,12 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             if (trendsFragment != null && (forceTrendsFilter || trendsTag != null)) {
                 trendsFragment.applyTagFilter(trendsTag);
             }
+        } else if (itemId == R.id.navAi) {
+            target = aiFragment;
+        } else if (itemId == R.id.navMessages) {
+            target = messagesFragment;
         } else if (itemId == R.id.navProfile) {
             target = profileFragment;
-        } else if (itemId == R.id.navSettings) {
-            target = settingsFragment;
         } else {
             return;
         }
@@ -183,16 +199,28 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             return;
         }
 
+        swapVisibleFragmentTo(target);
+        settingsOverlayShown = false;
+        currentTabId = itemId;
+    }
+
+    private void swapVisibleFragmentTo(Fragment target) {
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction tx = fm.beginTransaction();
         tx.setReorderingAllowed(true);
-        for (Fragment f : new Fragment[]{feedFragment, trendsFragment, profileFragment, settingsFragment}) {
+        for (Fragment f : new Fragment[]{
+                feedFragment,
+                trendsFragment,
+                aiFragment,
+                messagesFragment,
+                profileFragment,
+                settingsFragment
+        }) {
             if (f == null) continue;
             if (f == target) tx.show(f);
             else tx.hide(f);
         }
         tx.commit();
-        currentTabId = itemId;
     }
 
     // === TabHost ===
@@ -216,6 +244,35 @@ public class MainActivity extends AppCompatActivity implements TabHost {
     @Override
     public void requestLogout() {
         openLogin();
+    }
+
+    @Override
+    public void openSettings() {
+        if (settingsFragment == null) return;
+        swapVisibleFragmentTo(settingsFragment);
+        settingsOverlayShown = true;
+        // Leave currentTabId pointing at the tab we came FROM so the
+        // bottom nav still highlights the previous tab. Tapping any nav
+        // item (including the previous one) then dismisses the overlay
+        // via showTab(...), because sameTab is false while
+        // settingsOverlayShown is true.
+    }
+
+    @Override
+    public void closeSettings() {
+        if (!settingsOverlayShown) return;
+        // Return to whatever tab the user was on when they opened
+        // Settings. If currentTabId is unset (edge case), default to
+        // Profile because that's where the entry point lives.
+        int restoreId = currentTabId == 0 ? R.id.navProfile : currentTabId;
+        settingsOverlayShown = false;
+        if (bottomNav.getSelectedItemId() != restoreId) {
+            bottomNav.setSelectedItemId(restoreId);
+        } else {
+            // Same id: setSelectedItemId is a no-op, so route manually.
+            currentTabId = 0;
+            showTab(restoreId, null, false);
+        }
     }
 
     // === Helpers ===

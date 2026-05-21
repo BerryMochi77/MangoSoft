@@ -21,11 +21,14 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
 
+import android.content.Intent;
+
 import java.util.Locale;
 
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import dao.model.User;
+import moderation.AdminModerationService;
 
 /**
  * Settings tab: theme, language, time zone, and log out.
@@ -69,6 +72,11 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Back arrow — Settings is now overlaid on top of a normal tab
+        // (gear icon in Profile), so we provide an explicit way out.
+        view.findViewById(R.id.buttonSettingsClose)
+                .setOnClickListener(v -> host.closeSettings());
+
         // Theme
         textThemeCurrent = view.findViewById(R.id.textThemeCurrent);
         View rowTheme = view.findViewById(R.id.rowTheme);
@@ -94,13 +102,53 @@ public class SettingsFragment extends Fragment {
         view.findViewById(R.id.rowProfileVisibility).setOnClickListener(v -> showProfileVisibilityDialog());
         view.findViewById(R.id.rowLogout).setOnClickListener(v -> confirmLogout());
 
+        // Admin section — visible only to admin users
+        setupAdminSection(view);
+
         refreshLabels();
+    }
+
+    private void setupAdminSection(View view) {
+        View sectionAdmin = view.findViewById(R.id.sectionAdmin);
+        TextView textAdminPendingCount = view.findViewById(R.id.textAdminPendingCount);
+        boolean isAdmin = host.currentUser().role() == User.Role.Admin;
+        sectionAdmin.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+        if (isAdmin) {
+            view.findViewById(R.id.rowAdminDashboard).setOnClickListener(v -> openAdminDashboard());
+            view.findViewById(R.id.rowDataDashboard).setOnClickListener(v -> openDataDashboard());
+        }
+    }
+
+    private void openAdminDashboard() {
+        Intent intent = new Intent(requireContext(), AdminPostReportsActivity.class);
+        intent.putExtra(AuthManager.EXTRA_USER_ID,
+                host.currentUser().getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, true);
+        startActivity(intent);
+    }
+
+    private void openDataDashboard() {
+        Intent intent = new Intent(requireContext(), AdminAnalyticsDashboardActivity.class);
+        intent.putExtra(AuthManager.EXTRA_USER_ID,
+                host.currentUser().getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, true);
+        startActivity(intent);
     }
 
     @Override
     public void onResume() {
         super.onResume();
         if (textThemeCurrent != null) refreshLabels();
+        // Refresh pending-report count badge for admins
+        if (getView() != null && host.currentUser().role() == User.Role.Admin) {
+            TextView badge = getView().findViewById(R.id.textAdminPendingCount);
+            if (badge != null) {
+                int count = AdminModerationService.getInstance().getPendingReports().size();
+                badge.setText(count > 0
+                        ? getString(R.string.admin_pending_count, count)
+                        : "");
+            }
+        }
     }
 
     // ── Label refresh ─────────────────────────────────────────────────────────

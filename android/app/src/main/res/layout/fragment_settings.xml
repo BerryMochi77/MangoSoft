@@ -6,20 +6,41 @@
     android:layout_height="match_parent"
     tools:context=".SettingsFragment">
 
+    <!--
+        Back arrow that dismisses the Settings overlay and returns to
+        whichever bottom-nav tab the user was on (almost always Profile,
+        since that's where the gear icon lives).
+    -->
+    <ImageButton
+        android:id="@+id/buttonSettingsClose"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="20dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/back"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_arrow_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/text_primary" />
+
     <TextView
         android:id="@+id/textSettingsTitle"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
         android:layout_marginEnd="20dp"
+        android:gravity="center_vertical"
         android:text="@string/settings"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonSettingsClose"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/buttonSettingsClose"
+        app:layout_constraintTop_toTopOf="@+id/buttonSettingsClose" />
 
     <ScrollView
         android:layout_width="0dp"
@@ -37,6 +58,83 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
+
+            <!-- ── Admin section (shown only to admin users by SettingsFragment) ─ -->
+            <LinearLayout
+                android:id="@+id/sectionAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/settings_section_admin"
+                    android:textAllCaps="true"
+                    android:textColor="@color/warning"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="4dp">
+
+                    <LinearLayout
+                        android:id="@+id/rowAdminDashboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/admin_dashboard"
+                            android:textColor="@color/warning"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/textAdminPendingCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="12dp"
+                        android:background="@color/border" />
+
+                    <LinearLayout
+                        android:id="@+id/rowDataDashboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/data_dashboard"
+                            android:textColor="@color/warning"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"

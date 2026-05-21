@@ -35,6 +35,7 @@ import dao.model.Post;
 import dao.model.User;
 import hashtag.HashtagParser;
 import hashtag.HashtagService;
+import moderation.BanRepository;
 
 public class CreatePostActivity extends AppCompatActivity {
     private AuthManager authManager;
@@ -126,6 +127,12 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void publishPost() {
+        // Banned users may not create new posts.
+        if (BanRepository.getInstance().isBanned(currentUser.getUUID())) {
+            Toast.makeText(this, R.string.you_are_banned, Toast.LENGTH_LONG).show();
+            return;
+        }
+
         String cleanTitle = inputTitle.getText().toString().trim();
         if (cleanTitle.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();

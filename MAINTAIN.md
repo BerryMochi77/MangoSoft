@@ -19,8 +19,9 @@ android/
     src/main/java/com/example/comp2100miniproject/
       MainActivity.java        # 单 Activity 宿主 + BottomNavigationView
       TabHost.java             # Fragment 与宿主之间的接口
-      FeedFragment.java        # 4 个 Tab 各一个 Fragment
+      FeedFragment.java        # 顶层 Tab 各一个 Fragment
       TrendsFragment.java
+      MessagesFragment.java
       ProfileFragment.java
       SettingsFragment.java
       PostViewerActivity.java  # 深页面（点进帖子）
@@ -165,6 +166,71 @@ Read-only profile behavior:
 - It lists the target user's visible posts and visible replies using existing `PostDAO` data and `MessageDeletionRegistry`.
 - It does not edit `User`, `Post`, or `Message`, and does not create any new per-message state.
 
+## User relationships
+
+Following and friendship are user-to-user social relationships. They must not be stored on the `User` model.
+
+Core ownership:
+
+- `userrelation.UserRelationshipRegistry` lives in `android/social-core`.
+- Following is directional: user A can follow user B without B following A.
+- Friendship is mutual: adding a friend stores one normalized unordered pair.
+
+Android ownership:
+
+- `RelationshipStore` loads/saves relationship ids in app-local `SharedPreferences`.
+- `UserProfileActivity` shows `Follow` / `Following` and `Add friend` / `Friends` buttons only when viewing another user's profile.
+- Tapping the buttons updates `UserRelationshipRegistry`, persists the state, and refreshes the labels.
+
+How to use relationships elsewhere:
+
+```java
+RelationshipStore store = new RelationshipStore(context);
+boolean following = store.isFollowing(currentUserId, targetUserId);
+boolean friends = store.areFriends(currentUserId, targetUserId);
+```
+
+## Messages and mentions
+
+The Messages tab is the entry point for app notifications. `@` mentions in replies create mention notifications for the mentioned user.
+
+Core ownership:
+
+- `notification.MentionNotificationRegistry` lives in `android/social-core`.
+- Mention notifications are keyed by recipient user id and target message id.
+- The registry stores recipient, sender, post id, message id, timestamp, and preview text.
+- This is a sidecar registry; do not add notification fields to `Message`.
+
+Android ownership:
+
+- `PostViewerActivity` parses submitted reply text for `@DisplayName` / `@username` and records mention notifications after the reply is inserted.
+- `MessagesFragment` reads mention notifications for `host.currentUser()` and renders them as cards in the Messages tab.
+- Tapping a mention card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
+
+How to create a mention notification elsewhere:
+
+```java
+MentionNotificationRegistry.getInstance().addMention(
+        recipientUserId,
+        senderUserId,
+        postId,
+        messageId,
+        System.currentTimeMillis(),
+        previewText
+);
+```
+
+How to open a message notification target:
+
+```java
+Intent intent = new Intent(context, PostViewerActivity.class);
+intent.putExtra("post_index", postIndex);
+intent.putExtra(PostViewerActivity.EXTRA_TARGET_MESSAGE_ID, messageId.toString());
+intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+startActivity(intent);
+```
+
 How to add this navigation somewhere else:
 
 ```java
@@ -177,18 +243,21 @@ startActivity(intent);
 
 ## Composer format options
 
-Post creation and reply composition share a small "more options" composer menu. The entry point is a plus button:
+Post creation and reply composition use direct composer shortcuts rather than a centered dialog:
 
-- In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
-- In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
-- Reply-to-message dialogs also expose the same plus menu.
-- Current shortcut behavior is image-first: the plus button in `CreatePostActivity` and the bottom reply bar opens the Android image picker directly. Text emoji should be typed with the normal keyboard/IME instead of going through a custom composer menu.
+- In `CreatePostActivity`, the plus button opens Android Photo Picker directly.
+- In `PostViewerActivity`, the bottom reply composer is split into an input field plus a keyboard-adjacent toolbar.
+- `PostViewerActivity` declares `windowSoftInputMode="adjustResize|stateHidden"` and explicitly calls `InputMethodManager.showSoftInput(...)` when the reply field is focused, so tapping the text field requests the normal system keyboard instead of any app-owned overlay.
+- The reply image button opens Android Photo Picker directly. Text emoji should be typed with the normal keyboard/IME.
+- `ComposerActionSheet` owns the bottom sheet shell and action layout so the two composer entry points stay visually consistent.
 
 Current options:
 
 - Image attachment opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
 - Text emoji and stickers should stay keyboard-driven unless a future feature needs a richer media/sticker gallery.
-- The emoji/sticker picker is a flat grid. Saved stickers render as thumbnail-only cells.
+- Reply composer `@`: opens a bottom-sheet picker containing friends and followed users from `RelationshipStore`, then inserts an `@DisplayName` mention into the reply field.
+- The emoji/sticker picker is a flat bottom-sheet grid. Saved stickers render as thumbnail-only cells.
+- The post reaction `+` button expands extra emoji chips inline inside the current post reaction row. It should not open a centered dialog or bottom sheet.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
 - Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
 - Compact previews such as Profile -> My replies must call `ComposerFormatManager.previewText(...)` so internal image tokens appear as `[image]`, not as file paths.
@@ -200,13 +269,15 @@ Architecture:
 - `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
 - `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
 - Image saving uses Android `MediaStore`. On Android 10+ it writes to `Pictures/Social Moderation` using scoped storage; older devices use the manifest's `WRITE_EXTERNAL_STORAGE` permission limit.
+- `PostViewerActivity` collapses its post header from the comment list touch gesture instead of mutating layout inside `RecyclerView.onScrolled`. This keeps comment scrolling smooth: a downward-through-comments gesture animates the header to the compact state, and one large reverse gesture restores the full header with author text, views, tags, body, attachments, and reactions.
 
 How to add another format option:
 
 1. Add the option label in `strings.xml`.
-2. Add the entry point directly to the relevant composer button or screen; the old shared `showComposerMenu(...)` flow has been removed.
-3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
-4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
+2. Add a new action cell in `ComposerActionSheet`.
+3. Wire the callback from the relevant composer button or toolbar entry point.
+4. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
+5. Update `ComposerFormatManager` if the new format needs parsing or rendering.
 
 ## Demo content seeding
 
@@ -220,8 +291,6 @@ How to add another format option:
 - Feed cards use `ComposerFormatManager.bindContent(...)` for post body previews, so demo images and emoji are visible before opening the post detail page.
 - Demo engagement is seeded by `DemoEngagementSeeder` in the Android app layer. It adds view counts and post-level emoji reactions to seeded posts without changing `Post` or `Message`.
 - Trends keeps two modes: tapping a tag still filters posts by that tag, while the default entry state shows recommended posts sorted by a simple hot score: views plus weighted post reactions.
-- `Post.createdAt` records post publish time. New posts use the constructor timestamp automatically; demo posts are assigned stable demo times in `RandomContentGenerator`.
-- Feed supports Latest and Hot ordering. Latest sorts by `Post.createdAt`; Hot sorts through `PostEngagement.hotScore(...)` so Feed and Trends use the same scoring rule.
 
 ## Rounded media
 
@@ -253,12 +322,13 @@ sdk.dir=C\:\\Users\\52734\\AppData\\Local\\Android\\Sdk
 ## 顶层导航
 
 应用是**单 Activity + 多 Fragment** 结构。`MainActivity` 是唯一持有
-`BottomNavigationView` 的宿主，4 个 Tab 各对应一个 Fragment：
+`BottomNavigationView` 的宿主，顶层 Tab 各对应一个 Fragment：
 
 | Tab            | Fragment            | 职责                              |
 |----------------|---------------------|-----------------------------------|
 | `navFeed`      | `FeedFragment`      | 帖子列表 + 发帖 + 管理员审核入口 |
 | `navTrending`  | `TrendsFragment`    | Trending tags + 按 tag 过滤的内联结果 |
+| `navMessages`  | `MessagesFragment`  | 消息系统入口 + 后续私信/通知列表 |
 | `navProfile`   | `ProfileFragment`   | 个人资料、头像、我的帖子/回复    |
 | `navSettings`  | `SettingsFragment`  | 主题、登出                        |
 
@@ -324,8 +394,10 @@ SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
 - UI 入口：`SettingsFragment` 的 "Theme" 行，点开调
   `ThemeModeManager.showModeChooser(activity)`
 - 颜色资源：浅色 `res/values/colors.xml`，深色 `res/values-night/colors.xml`，
-  **同名** — layout 只引用 `@color/text_primary` 这类共享名，不要在 XML 里写
+  **同名** - layout 只引用 `@color/text_primary` 这类共享名，不要在 XML 里写
   死颜色
+- MangoSoft 品牌主色走 `@color/accent`。浅色主题使用鲜明芒果橘，深色主题使用更亮的琥珀色；按钮、底部导航选中态、checkbox、FAB、hashtag/chip 重点色都应继续引用 `accent`，不要重新引入蓝色主色。
+- `@color/surface` 和 `@color/card_surface` 保持暖白 / 暖黑中性色，避免大面积橘黄背景削弱可读性。
 - 增加模式：在 `ThemeModeManager.Mode` 加 enum 项 + 在 `values/strings.xml`
   加 label
 
@@ -388,6 +460,40 @@ Hackathon 2 brief 的硬约束：
 
 > 注：post 层级的 emoji 反应仍然走 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java)（key 是 post UUID），跟评论 thumbs-up/down 是两套独立机制——前者是帖子级别的情绪聚合，后者是评论级别的投票。
 
+## AI curator tab
+
+The middle bottom-nav tab (`navAi`, [`AiFragment`](android/app/src/main/java/com/example/comp2100miniproject/AiFragment.java)) is the Hackathon "new feature" deliverable. It has two halves:
+
+1. **Preferences editor** — the viewer writes a free-text description of what they care about. Saved per-user in [`AiUserPreferences`](android/app/src/main/java/com/example/comp2100miniproject/ai/AiUserPreferences.java) (a `SharedPreferences` wrapper keyed by user UUID).
+2. **Curate my feed** — sends every visible post **plus the saved preferences** to DeepSeek in a single batch. The model is instructed to treat the preferences as the *only* filter criterion — its own taste about post quality is explicitly suppressed. Posts the model flags as matching are sorted by score.
+
+Design pattern: **Strategy**. The UI talks to [`PostCurationStrategy`](android/app/src/main/java/com/example/comp2100miniproject/ai/PostCurationStrategy.java); [`AiPostCurationStrategy`](android/app/src/main/java/com/example/comp2100miniproject/ai/AiPostCurationStrategy.java) is the only implementation today. A future offline / keyword fallback can plug in by implementing the same interface and being injected in `AiFragment.onCreate`.
+
+Storage / state:
+
+- **No new fields on `Post` or `Message`.** Verdicts are per-Post and live only in the in-memory result list shown on this screen, satisfying the SOLID brief constraint.
+- Preferences are per-user state, persisted in `SharedPreferences` under file `ai_user_preferences`, key `prefs_for_<userId>`. Centralised through `AiUserPreferences` — do not read the prefs file directly elsewhere.
+- The Strategy interface lives in `app/` (not `social-core`) because the AI implementation depends on Android networking; the contract is small enough that moving it to social-core later is one rename.
+
+API key:
+
+- Hard-coded in [`ApiKeys.java`](android/app/src/main/java/com/example/comp2100miniproject/ai/ApiKeys.java) so teammates need **no per-developer setup** — clone, build, run.
+- This is a hackathon-only choice. The key is rotated immediately after grading.
+- To swap providers / models, edit `ApiKeys.DEEPSEEK_DEFAULT_MODEL` (or the URL constant). No call sites need to change.
+- To disable the feature, blank out `DEEPSEEK_API_KEY`. `AiPostCurationStrategy` fails fast with a clear error.
+
+Network:
+
+- Uses raw `HttpURLConnection` + `org.json` so no new gradle dependencies are introduced (teammate builds stay unaffected).
+- Single batch request per **Curate** tap. The model is told to return a JSON array; the parser is defensive (handles markdown fences, wrapper objects, prose).
+- Requires `INTERNET` in `AndroidManifest.xml` (already added).
+- Threading: background work runs on a single-thread `ExecutorService`; results are posted back to the main looper.
+
+How to add another curation strategy (e.g. an offline fallback):
+
+1. Implement `PostCurationStrategy.curate(posts, viewerHint, preferences, callback)`.
+2. In `AiFragment.onCreate`, branch on a runtime flag (network available / user preference) and instantiate the chosen strategy.
+
 ## Moderation 当前入口
 
 核心审核功能入口：
@@ -438,13 +544,16 @@ Login credential memory is intentionally split into two behaviors:
 - The login screen always remembers the last successful username in `SharedPreferences` and pre-fills it next time.
 - Password memory is opt-in only. The `Remember password` checkbox stores or clears the password while keeping the last username.
 - Do not store this state in `User` records; it is device-local UI convenience state owned by `LoginActivity`.
+- The app brand is MangoSoft. `activity_login.xml` renders the MangoSoft logo from `res/drawable-nodpi/mangosoft_logo.png`; `app_name` should stay aligned with that brand.
+- The launcher icon is provided by `res/drawable-nodpi/app_logo.png` and referenced from `AndroidManifest.xml` through `android:icon` and `android:roundIcon`.
+- Media saved to the gallery should use the `Pictures/MangoSoft` relative path so the device album name matches the visible brand.
 
 Post reactions are per-post, per-user emoji toggles:
 
 - Each emoji can be selected once per user. Tapping the same emoji again removes that user's reaction.
 - Selecting one emoji must not clear other selected emojis from the same user.
 - Selected reaction chips use a stronger accent border; unselected chips keep a quieter border so the selected state is visually obvious.
-- The `+` chip opens a focused emoji input. Choosing/typing an emoji adds it immediately and closes the dialog; do not add an extra Submit step.
+- The `+` chip expands extra emoji choices inline in the current post's reaction row. Tapping an inline emoji adds it immediately and collapses the picker.
 - `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.
 
 Threaded replies use one composer:
@@ -454,4 +563,7 @@ Threaded replies use one composer:
 - Tapping outside the bottom reply bar clears the reply target only when the input is empty; typed text keeps the target so accidental taps do not lose context.
 - Sending through the bottom reply bar records the parent in `MessageThreadRegistry`, then clears the reply target back to the post-level default.
 - Plain post replies keep the normal `Write a reply` hint and use a null parent id.
-- Thread indentation is visually capped at three levels with an 18dp step so nested replies keep enough width for content and owner action buttons.
+- Thread indentation is visually capped at three levels with a 32dp step so nested replies keep enough width for content and owner action buttons.
+- Comment threads are fully expanded by default in `PostViewerActivity`. Replies under each parent are ordered by `MessageReactionRegistry.likeCount(...)` descending and then timestamp ascending.
+- Tapping a parent comment's body (the content TextView or its attachment) collapses its direct replies, or re-expands them if already collapsed. Leaf comments ignore the tap. There is no separate expand / collapse button row.
+- `PostViewerActivity.expandedReplyLimits` is transient screen state: a missing entry means "show all", `0` means manually collapsed. It should not be persisted unless the product explicitly needs remembered thread expansion.

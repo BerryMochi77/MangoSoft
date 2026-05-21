@@ -92,7 +92,7 @@ public class AvatarManager {
 
         // Default avatar: render an emoji-on-coloured-circle bitmap whose
         // emoji and background colour are derived deterministically from
-        // the user's UUID. The four legacy drawable options (Blue / Green
+        // the user's UUID. The four legacy drawable options (Mango / Green
         // / Purple / Rose) are intentionally bypassed — they read as
         // robotic placeholders. Users can still upload their own via
         // Photo Picker (handled in the gallery branch above).
