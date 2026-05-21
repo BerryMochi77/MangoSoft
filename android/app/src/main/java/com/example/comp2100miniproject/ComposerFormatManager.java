@@ -68,6 +68,15 @@ public final class ComposerFormatManager {
     private ComposerFormatManager() {
     }
 
+    public interface EmojiSelectionListener {
+        void onEmojiSelected(String emoji);
+    }
+
+    private interface FormatSelectionListener {
+        void onEmojiSelected(String emoji);
+        void onStickerSelected(String imageRef);
+    }
+
     public static Uri copyImage(Context context, Uri sourceUri) {
         if (context == null || sourceUri == null) return null;
 
@@ -152,18 +161,50 @@ public final class ComposerFormatManager {
     }
 
     public static void showEmojiChooser(Context context, EditText input) {
+        showFormatChooser(context, true, new FormatSelectionListener() {
+            @Override
+            public void onEmojiSelected(String emoji) {
+                insertEmoji(input, emoji);
+            }
+
+            @Override
+            public void onStickerSelected(String imageRef) {
+                insertImageRef(input, imageRef);
+            }
+        });
+    }
+
+    public static void showEmojiChooser(Context context, EmojiSelectionListener listener) {
+        showFormatChooser(context, false, new FormatSelectionListener() {
+            @Override
+            public void onEmojiSelected(String emoji) {
+                if (listener != null) listener.onEmojiSelected(emoji);
+            }
+
+            @Override
+            public void onStickerSelected(String imageRef) {
+                // Post reactions are text emoji only; sticker images remain a composer feature.
+            }
+        });
+    }
+
+    private static void showFormatChooser(Context context,
+                                          boolean includeStickers,
+                                          FormatSelectionListener listener) {
         List<FormatOption> options = new ArrayList<>();
         for (String emoji : emojiOptions(context)) {
             options.add(new FormatOption(emoji, emoji, false));
         }
 
-        List<String> stickers = savedStickers(context);
-        for (int i = 0; i < stickers.size(); i++) {
-            options.add(new FormatOption(
-                    context.getString(R.string.sticker_label, i + 1),
-                    stickers.get(i),
-                    true
-            ));
+        if (includeStickers) {
+            List<String> stickers = savedStickers(context);
+            for (int i = 0; i < stickers.size(); i++) {
+                options.add(new FormatOption(
+                        context.getString(R.string.sticker_label, i + 1),
+                        stickers.get(i),
+                        true
+                ));
+            }
         }
 
         GridView grid = new GridView(context);
@@ -212,9 +253,9 @@ public final class ComposerFormatManager {
         grid.setOnItemClickListener((parent, view, position, id) -> {
             FormatOption option = options.get(position);
             if (option.imageRef) {
-                insertImageRef(input, option.value);
+                listener.onStickerSelected(option.value);
             } else {
-                insertEmoji(input, option.value);
+                listener.onEmojiSelected(option.value);
             }
             dialog.dismiss();
         });
@@ -478,6 +519,14 @@ public final class ComposerFormatManager {
                 .replaceAll("[image]")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    public static String textOnly(String rawContent) {
+        return stripImageTokens(rawContent);
+    }
+
+    public static boolean hasImage(String rawContent) {
+        return firstImageRef(rawContent) != null;
     }
 
     private static String stripImageTokens(String rawContent) {

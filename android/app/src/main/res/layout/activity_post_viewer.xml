@@ -174,16 +174,6 @@
                 app:chipSpacingHorizontal="6dp"
                 app:chipSpacingVertical="6dp"
                 app:singleLine="false" />
-
-        <com.google.android.material.chip.ChipGroup
-                android:id="@+id/emojiReactionTray"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:visibility="gone"
-                app:chipSpacingHorizontal="6dp"
-                app:chipSpacingVertical="6dp"
-                app:singleLine="false" />
     </LinearLayout>
 
     <LinearLayout

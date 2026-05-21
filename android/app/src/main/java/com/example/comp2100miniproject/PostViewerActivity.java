@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.transition.AutoTransition;
+import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -23,6 +25,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -59,36 +63,35 @@ import moderation.ModerationTools;
 import postview.PostViewService;
 
 public class PostViewerActivity extends AppCompatActivity {
+    private static final int HEADER_COLLAPSE_GESTURE_DP = 28;
+    private static final int HEADER_EXPAND_GESTURE_DP = 112;
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private FrozenUserManager frozenUserManager;
     private User currentUser;
     private Post post;
+    private ConstraintLayout rootLayout;
     private TextView textPostTitle;
     private TextView textPostAuthor;
     private TextView textPostEdited;
     private TextView textPostBody;
     private TextView textViewCount;
+    private View viewCountBar;
     private ImageView imagePostAttachment;
     private ChipGroup chipGroupPostHashtags;
     private ImageView imagePostAuthorAvatar;
     private RecyclerView recyclerMessages;
+    private LinearLayout postOwnerActions;
+    private LinearLayout reactionBar;
     /** Held so reaction taps can refresh exactly one row instead of the whole adapter. */
     private MessageAdapter messageAdapter;
     private EditText inputReply;
     private EditText activeComposerInput;
     private UUID activeReplyParentId;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
-    private static final String[] QUICK_REACTION_EMOJIS = {
-            "\uD83D\uDE00",
-            "\uD83E\uDD73",
-            "\uD83D\uDE05",
-            "\uD83D\uDE22",
-            "\uD83D\uDE2E",
-            "\uD83D\uDE4C",
-            "\uD83D\uDD25",
-            "\uD83C\uDF89"
-    };
+    private boolean postHeaderCollapsed;
+    private float headerGestureStartY;
+    private boolean headerGestureHandled;
 
     /**
      * Threaded (depth-first) list of currently-visible messages. Updated on
@@ -98,7 +101,6 @@ public class PostViewerActivity extends AppCompatActivity {
     private ArrayList<Message> threadedMessages = new ArrayList<>();
 
     private ChipGroup reactionChipGroup;
-    private ChipGroup emojiReactionTray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,11 +134,13 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
+        rootLayout = findViewById(R.id.rootLayout);
         textPostTitle = findViewById(R.id.textPostTitle);
         textPostAuthor = findViewById(R.id.textPostAuthor);
         textPostEdited = findViewById(R.id.textPostEdited);
         textPostBody = findViewById(R.id.textPostBody);
         textViewCount = findViewById(R.id.textViewCount);
+        viewCountBar = findViewById(R.id.viewCountBar);
         imagePostAttachment = findViewById(R.id.imagePostAttachment);
         chipGroupPostHashtags = findViewById(R.id.chipGroupPostHashtags);
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
@@ -149,7 +153,6 @@ public class PostViewerActivity extends AppCompatActivity {
         });
 
         reactionChipGroup = findViewById(R.id.reactionChipGroup);
-        emojiReactionTray = findViewById(R.id.emojiReactionTray);
 
         setupReactionButtons();
 
@@ -170,6 +173,10 @@ public class PostViewerActivity extends AppCompatActivity {
         // sync as loadMessages() rebuilds the list after edits/replies.
         recyclerMessages.addItemDecoration(
                 new ThreadConnectorDecoration(this, this::messageIdAt));
+        recyclerMessages.setOnTouchListener((view, event) -> {
+            handleHeaderGesture(event);
+            return false;
+        });
 
         ImageButton buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
@@ -179,7 +186,8 @@ public class PostViewerActivity extends AppCompatActivity {
         ImageButton buttonReplyMore = findViewById(R.id.buttonReplyMore);
         buttonReplyMore.setOnClickListener(v -> showComposerMenu(inputReply));
 
-        LinearLayout postOwnerActions = findViewById(R.id.postOwnerActions);
+        postOwnerActions = findViewById(R.id.postOwnerActions);
+        reactionBar = findViewById(R.id.reactionBar);
         boolean ownsPost = currentUser.getUUID().equals(post.poster);
         postOwnerActions.setVisibility(ownsPost ? View.VISIBLE : View.GONE);
         findViewById(R.id.buttonEditPost).setOnClickListener(v -> showEditPostDialog());
@@ -194,7 +202,7 @@ public class PostViewerActivity extends AppCompatActivity {
         renderPost();
         loadMessages();
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
@@ -219,8 +227,98 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void setupReactionButtons() {
-        setupEmojiReactionTray();
         updateReactionButtons();
+    }
+
+    private void handleHeaderGesture(MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            headerGestureStartY = event.getRawY();
+            headerGestureHandled = false;
+            return;
+        }
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            headerGestureHandled = false;
+            return;
+        }
+        if (action != MotionEvent.ACTION_MOVE || headerGestureHandled) return;
+
+        float drag = event.getRawY() - headerGestureStartY;
+        if (!postHeaderCollapsed && -drag >= dp(HEADER_COLLAPSE_GESTURE_DP)) {
+            setPostHeaderCollapsed(true, true);
+            headerGestureHandled = true;
+        } else if (postHeaderCollapsed && drag >= dp(HEADER_EXPAND_GESTURE_DP)) {
+            setPostHeaderCollapsed(false, true);
+            headerGestureHandled = true;
+        }
+    }
+
+    private void setPostHeaderCollapsed(boolean collapsed, boolean animate) {
+        if (postHeaderCollapsed == collapsed) return;
+        postHeaderCollapsed = collapsed;
+        applyPostHeaderCollapsedState(collapsed, animate);
+    }
+
+    private void applyPostHeaderCollapsedState(boolean collapsed, boolean animate) {
+        if (animate) {
+            AutoTransition transition = new AutoTransition();
+            transition.setDuration(180);
+            TransitionManager.beginDelayedTransition(rootLayout, transition);
+        }
+
+        int detailVisibility = collapsed ? View.GONE : View.VISIBLE;
+        textPostAuthor.setVisibility(detailVisibility);
+        viewCountBar.setVisibility(detailVisibility);
+        textPostEdited.setVisibility(!collapsed && post.isEdited() ? View.VISIBLE : View.GONE);
+        chipGroupPostHashtags.setVisibility(!collapsed && hasPostHashtags() ? View.VISIBLE : View.GONE);
+        textPostBody.setVisibility(!collapsed && hasPostBodyText() ? View.VISIBLE : View.GONE);
+        imagePostAttachment.setVisibility(!collapsed && ComposerFormatManager.hasImage(post.getBody())
+                ? View.VISIBLE : View.GONE);
+        reactionBar.setVisibility(detailVisibility);
+        postOwnerActions.setVisibility(!collapsed && currentUser.getUUID().equals(post.poster)
+                ? View.VISIBLE : View.GONE);
+
+        textPostTitle.setMaxLines(collapsed ? 1 : 2);
+        textPostTitle.setTextSize(collapsed ? 18f : 22f);
+
+        ConstraintSet constraints = new ConstraintSet();
+        constraints.clone(rootLayout);
+        if (collapsed) {
+            constraints.clear(R.id.imagePostAuthorAvatar, ConstraintSet.TOP);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.START);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
+
+            constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
+                    R.id.buttonBack, ConstraintSet.TOP);
+            constraints.connect(R.id.textPostTitle, ConstraintSet.START,
+                    R.id.imagePostAuthorAvatar, ConstraintSet.END, dp(10));
+            constraints.connect(R.id.textPostTitle, ConstraintSet.TOP,
+                    R.id.imagePostAuthorAvatar, ConstraintSet.TOP);
+            constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
+                    R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
+                    R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM, dp(10));
+        } else {
+            constraints.clear(R.id.imagePostAuthorAvatar, ConstraintSet.TOP);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.START);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
+            constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
+
+            constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
+                    R.id.textPostTitle, ConstraintSet.BOTTOM, dp(8));
+            constraints.connect(R.id.textPostTitle, ConstraintSet.START,
+                    R.id.buttonBack, ConstraintSet.END, dp(4));
+            constraints.connect(R.id.textPostTitle, ConstraintSet.TOP,
+                    R.id.buttonBack, ConstraintSet.TOP);
+            constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
+                    R.id.buttonBack, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
+                    R.id.postOwnerActions, ConstraintSet.BOTTOM, dp(14));
+        }
+        constraints.applyTo(rootLayout);
     }
 
     private void updateReactionButtons() {
@@ -242,7 +340,7 @@ public class PostViewerActivity extends AppCompatActivity {
 
         Chip addChip = reactionChip("+");
         addChip.setContentDescription(getString(R.string.custom_reaction_title));
-        addChip.setOnClickListener(v -> toggleEmojiReactionTray());
+        addChip.setOnClickListener(v -> showPostReactionEmojiChooser());
         reactionChipGroup.addView(addChip);
     }
 
@@ -260,23 +358,12 @@ public class PostViewerActivity extends AppCompatActivity {
         return chip;
     }
 
-    private void setupEmojiReactionTray() {
-        emojiReactionTray.removeAllViews();
-        for (String emoji : QUICK_REACTION_EMOJIS) {
-            Chip chip = reactionChip(emoji);
-            chip.setOnClickListener(v -> {
-                ReactionManager.getInstance().toggleReaction(
-                        post.getUUID(), currentUser.getUUID(), emoji);
-                emojiReactionTray.setVisibility(View.GONE);
-                updateReactionButtons();
-            });
-            emojiReactionTray.addView(chip);
-        }
-    }
-
-    private void toggleEmojiReactionTray() {
-        int nextVisibility = emojiReactionTray.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE;
-        emojiReactionTray.setVisibility(nextVisibility);
+    private void showPostReactionEmojiChooser() {
+        ComposerFormatManager.showEmojiChooser(this, emoji -> {
+            ReactionManager.getInstance().toggleReaction(
+                    post.getUUID(), currentUser.getUUID(), emoji);
+            updateReactionButtons();
+        });
     }
 
     private void renderPost() {
@@ -304,6 +391,9 @@ public class PostViewerActivity extends AppCompatActivity {
         renderHashtagChips();
         String body = post.getBody();
         ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
+        if (postHeaderCollapsed) {
+            applyPostHeaderCollapsedState(true, false);
+        }
     }
 
     private void renderHashtagChips() {
@@ -506,6 +596,15 @@ public class PostViewerActivity extends AppCompatActivity {
         );
     }
 
+    private boolean hasPostHashtags() {
+        java.util.List<String> tags = post.getHashtags();
+        return tags != null && !tags.isEmpty();
+    }
+
+    private boolean hasPostBodyText() {
+        return !ComposerFormatManager.textOnly(post.getBody()).trim().isEmpty();
+    }
+
     private void chooseComposerImage() {
         composerImageLauncher.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
@@ -666,5 +765,9 @@ public class PostViewerActivity extends AppCompatActivity {
         );
         int messageId = reported ? R.string.report_sent : R.string.report_failed;
         Toast.makeText(PostViewerActivity.this, messageId, Toast.LENGTH_SHORT).show();
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 }

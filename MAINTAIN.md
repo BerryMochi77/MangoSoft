@@ -189,6 +189,7 @@ Current options:
 - `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
 - `Add emoji`: opens a bottom-sheet emoji/sticker picker and inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
 - The emoji/sticker picker is a flat bottom-sheet grid. Saved stickers render as thumbnail-only cells.
+- The post reaction `+` button reuses the same bottom-sheet emoji picker shell through `ComposerFormatManager.showEmojiChooser(Context, EmojiSelectionListener)`, but it only offers text emojis because post reactions are stored as reaction labels, not message attachments.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
 - Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
 - Compact previews such as Profile -> My replies must call `ComposerFormatManager.previewText(...)` so internal image tokens appear as `[image]`, not as file paths.
@@ -200,6 +201,7 @@ Architecture:
 - `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
 - `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
 - Image saving uses Android `MediaStore`. On Android 10+ it writes to `Pictures/Social Moderation` using scoped storage; older devices use the manifest's `WRITE_EXTERNAL_STORAGE` permission limit.
+- `PostViewerActivity` collapses its post header from the comment list touch gesture instead of mutating layout inside `RecyclerView.onScrolled`. This keeps comment scrolling smooth: a downward-through-comments gesture animates the header to the compact state, and one large reverse gesture restores the full header with author text, views, tags, body, attachments, and reactions.
 
 How to add another format option:
 
@@ -442,7 +444,7 @@ Post reactions are per-post, per-user emoji toggles:
 
 - Each emoji can be selected once per user. Tapping the same emoji again removes that user's reaction.
 - Selecting one emoji must not clear other selected emojis from the same user.
-- The `+` chip expands a quick emoji tray directly on the post detail page; avoid adding an extra submit dialog for quick reactions.
+- The `+` chip opens the shared bottom-sheet emoji picker for quick reactions; avoid adding a separate centered dialog or an inline duplicate tray.
 - `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.
 
 Threaded replies use one composer:
