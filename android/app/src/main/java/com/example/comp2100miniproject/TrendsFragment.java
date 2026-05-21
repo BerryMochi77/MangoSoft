@@ -38,7 +38,17 @@ import hashtag.search.PostSearchStrategy;
  */
 public class TrendsFragment extends Fragment {
 
+    /**
+     * How many trending chips to show while collapsed. Kept small so the
+     * results list below dominates the screen by default; the rest are
+     * revealed by the "Show more" toggle.
+     */
+    private static final int COLLAPSED_TAG_LIMIT = 6;
+
     private final PostSearchStrategy searchStrategy = new HashtagSearchStrategy();
+
+    /** Whether the full trending-tag list is expanded. Collapsed by default. */
+    private boolean tagsExpanded = false;
 
     private TabHost host;
 
@@ -118,7 +128,19 @@ public class TrendsFragment extends Fragment {
         chipGroupTrending.removeAllViews();
         List<TagCount> trending = HashtagService.getInstance().getTrending();
 
-        for (TagCount tc : trending) {
+        if (trending.isEmpty()) {
+            Chip empty = new Chip(requireContext());
+            empty.setText(R.string.no_trending_yet);
+            empty.setEnabled(false);
+            chipGroupTrending.addView(empty);
+            return;
+        }
+
+        boolean collapsible = trending.size() > COLLAPSED_TAG_LIMIT;
+        int shown = (collapsible && !tagsExpanded) ? COLLAPSED_TAG_LIMIT : trending.size();
+
+        for (int i = 0; i < shown; i++) {
+            TagCount tc = trending.get(i);
             Chip chip = new Chip(requireContext());
             chip.setText(String.format("#%s - %d", tc.getTag(), tc.getCount()));
             chip.setClickable(true);
@@ -134,12 +156,29 @@ public class TrendsFragment extends Fragment {
             chipGroupTrending.addView(chip);
         }
 
-        if (trending.isEmpty()) {
-            Chip empty = new Chip(requireContext());
-            empty.setText(R.string.no_trending_yet);
-            empty.setEnabled(false);
-            chipGroupTrending.addView(empty);
+        if (collapsible) {
+            chipGroupTrending.addView(buildTagToggleChip(trending.size() - COLLAPSED_TAG_LIMIT));
         }
+    }
+
+    /** The "Show more (+N)" / "Show less" chip that expands or collapses the tag list. */
+    private Chip buildTagToggleChip(int hiddenCount) {
+        Chip toggle = new Chip(requireContext());
+        toggle.setText(tagsExpanded
+                ? getString(R.string.show_less_tags)
+                : getString(R.string.show_more_tags, hiddenCount));
+        toggle.setClickable(true);
+        toggle.setFocusable(true);
+        // Filled accent so the toggle reads as an action, not another hashtag.
+        toggle.setChipBackgroundColorResource(R.color.accent);
+        toggle.setTextColor(requireContext().getColor(R.color.on_accent));
+        toggle.setTextSize(12f);
+        toggle.setEnsureMinTouchTargetSize(false);
+        toggle.setOnClickListener(v -> {
+            tagsExpanded = !tagsExpanded;
+            loadTrending();
+        });
+        return toggle;
     }
 
     private void filterByTag(String tag) {
