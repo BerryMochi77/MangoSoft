@@ -162,7 +162,8 @@ public class TrendsFragment extends Fragment {
                     nextTag -> {
                         pendingTag = nextTag;
                         filterByTag(nextTag);
-                    }
+                    },
+                    this::openUserProfile
             ));
         }
     }
@@ -175,6 +176,19 @@ public class TrendsFragment extends Fragment {
         User user = host.currentUser();
         intent.putExtra(AuthManager.EXTRA_USER_ID, user.getUUID().toString());
         intent.putExtra(AuthManager.EXTRA_IS_ADMIN, user.role() == User.Role.Admin);
+        startActivity(intent);
+    }
+
+    private void openUserProfile(User user) {
+        if (user == null || host.currentUser().getUUID().equals(user.getUUID())) {
+            return;
+        }
+
+        Intent intent = new Intent(requireContext(), UserProfileActivity.class);
+        User currentUser = host.currentUser();
+        intent.putExtra(UserProfileActivity.EXTRA_PROFILE_USER_ID, user.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
         startActivity(intent);
     }
 

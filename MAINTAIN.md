@@ -144,23 +144,54 @@ ProfileBackgroundManager manager = new ProfileBackgroundManager(authManager);
 manager.displayBackground(user, imageView);
 ```
 
+## User profile navigation
+
+Users can open another user's read-only profile by tapping that user's avatar in the feed, trends results, or comment threads. Post detail also lets the author line open the same profile because the detail header does not include a separate avatar.
+
+Entry points:
+
+- `PostAdapter` exposes `OnUserClick` for post-card avatars.
+- `MessageAdapter` exposes `OnUserClick` for comment avatars.
+- `FeedFragment`, `TrendsFragment`, `PostViewerActivity`, and `ProfileFragment` route those callbacks to `UserProfileActivity`.
+- `UserProfileActivity` receives `UserProfileActivity.EXTRA_PROFILE_USER_ID` plus the current user extras from `AuthManager`.
+
+Read-only profile behavior:
+
+- `UserProfileActivity` uses `AvatarManager` and `ProfileBackgroundManager` to render the target user's current avatar/background.
+- It lists the target user's visible posts and visible replies using existing `PostDAO` data and `MessageDeletionRegistry`.
+- It does not edit `User`, `Post`, or `Message`, and does not create any new per-message state.
+
+How to add this navigation somewhere else:
+
+```java
+Intent intent = new Intent(context, UserProfileActivity.class);
+intent.putExtra(UserProfileActivity.EXTRA_PROFILE_USER_ID, targetUser.getUUID().toString());
+intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+startActivity(intent);
+```
+
 ## Composer format options
 
 Post creation and reply composition share a small "more options" composer menu. The entry point is a plus button:
 
-- In `FeedFragment`, the plus button is shown in the create-post dialog and inserts formatting into the post body.
+- In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
 - In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
 - Reply-to-message dialogs also expose the same plus menu.
 
 Current options:
 
 - `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
-- `Add emoji`: inserts the selected emoji at the cursor.
-- Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery`.
+- `Add emoji`: inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
+- The emoji/sticker picker is a flat grid. Saved stickers render as thumbnail-only cells.
+- Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
+- Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
+- Compact previews such as Profile -> My replies must call `ComposerFormatManager.previewText(...)` so internal image tokens appear as `[image]`, not as file paths.
 
 Architecture:
 
 - `ComposerFormatManager` owns the formatting tokens, image copy logic, and rendering helper.
+- `ComposerFormatManager` also owns saved emoji/sticker extraction and persistence. It stores emoji glyphs and image token refs in `SharedPreferences`, not per-message state.
 - `Post` and `Message` models are not modified. Rich content is encoded inside existing text fields and rendered by the Android UI layer.
 - `PostViewerActivity.renderPost` and `MessageAdapter.ViewHolder.display` call `ComposerFormatManager.bindContent(...)` so image tokens render as an `ImageView` while plain text remains in the `TextView`.
 - Image saving uses Android `MediaStore`. On Android 10+ it writes to `Pictures/Social Moderation` using scoped storage; older devices use the manifest's `WRITE_EXTERNAL_STORAGE` permission limit.
@@ -168,7 +199,7 @@ Architecture:
 How to add another format option:
 
 1. Add the option label in `strings.xml`.
-2. Add a branch in `showComposerMenu(...)` for both `FeedFragment` and `PostViewerActivity`.
+2. Add a branch in `showComposerMenu(...)` for both `CreatePostActivity` and `PostViewerActivity`.
 3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
 4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
 
@@ -182,6 +213,11 @@ How to add another format option:
 - Seeded posts and replies may include composer-format content such as emoji and `[[image:demo:*]]` image tokens. `ComposerFormatManager` resolves those demo image tokens to bundled drawable resources, so `social-core` still has no Android imports.
 - `RandomContentGenerator.repairSeededData()` runs on app entry to hide old generated replies that were accidentally assigned to non-demo users, and to backfill rich demo bodies onto old seeded posts.
 - Feed cards use `ComposerFormatManager.bindContent(...)` for post body previews, so demo images and emoji are visible before opening the post detail page.
+
+## Rounded media
+
+Use `RoundedImageView` for rectangular user-controlled media such as profile backgrounds and post/reply attachments. It clips the bitmap to an 8dp radius so media cards do not show square image corners against rounded UI surfaces. Keep `CircleAvatarImageView` only for avatars.
+`CircleAvatarImageView` draws a thin theme border around avatars so they remain legible on image backgrounds.
 
 当前已验证：
 

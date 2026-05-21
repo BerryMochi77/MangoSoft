@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.comp2100miniproject.AvatarManager;
+import com.example.comp2100miniproject.ComposerFormatManager;
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.auth.AuthManager;
 
@@ -63,7 +64,7 @@ public class ProfileReplyAdapter extends RecyclerView.Adapter<ProfileReplyAdapte
         }
 
         private String preview(String value) {
-            String clean = value == null ? "" : value.trim();
+            String clean = ComposerFormatManager.previewText(value);
             if (clean.length() <= 90) return clean;
             return clean.substring(0, 87) + "...";
         }

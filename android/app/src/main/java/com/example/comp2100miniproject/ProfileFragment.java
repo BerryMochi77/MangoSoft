@@ -423,7 +423,7 @@ public class ProfileFragment extends Fragment {
         textNoMyPosts.setVisibility(View.GONE);
         recyclerMyPosts.setVisibility(View.VISIBLE);
         recyclerMyPosts.setAdapter(new PostAdapter(requireContext(), pagePosts(),
-                (position, post) -> openPost(post.id), null));
+                (position, post) -> openPost(post.id), null, this::openUserProfile));
         updatePager(postsPage, myPosts.size(), textPostsPage, buttonPrevPosts, buttonNextPosts);
     }
 
@@ -485,6 +485,18 @@ public class ProfileFragment extends Fragment {
 
         Intent intent = new Intent(requireContext(), PostViewerActivity.class);
         intent.putExtra("post_index", index);
+        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+        startActivity(intent);
+    }
+
+    private void openUserProfile(User user) {
+        if (user == null || currentUser.getUUID().equals(user.getUUID())) {
+            return;
+        }
+
+        Intent intent = new Intent(requireContext(), UserProfileActivity.class);
+        intent.putExtra(UserProfileActivity.EXTRA_PROFILE_USER_ID, user.getUUID().toString());
         intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
         intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
         startActivity(intent);

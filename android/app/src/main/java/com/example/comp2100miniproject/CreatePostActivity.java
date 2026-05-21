@@ -145,19 +145,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void showEmojiChooser() {
-        String[] emojis = {
-                "\uD83D\uDE42",
-                "\uD83D\uDE02",
-                "\uD83D\uDE0D",
-                "\uD83D\uDC4D",
-                "\uD83D\uDD25",
-                "\uD83C\uDF80"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.add_emoji)
-                .setItems(emojis, (dialog, which) ->
-                        ComposerFormatManager.insertEmoji(inputBody, emojis[which]))
-                .show();
+        ComposerFormatManager.showEmojiChooser(this, inputBody);
     }
 
     private void publishPost() {

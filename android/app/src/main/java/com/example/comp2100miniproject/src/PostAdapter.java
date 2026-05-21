@@ -37,16 +37,33 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
         void onHashtagClick(String tag);
     }
 
+    /** Called when the user taps the author avatar on a post card. */
+    public interface OnUserClick {
+        void onUserClick(User user);
+    }
+
     private final List<Post> posts;
     private final OnPostClick listener;
     private final OnHashtagClick hashtagListener;
+    private final OnUserClick userClickListener;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
 
     public PostAdapter(Context context, List<Post> posts, OnPostClick listener, OnHashtagClick hashtagListener) {
+        this(context, posts, listener, hashtagListener, null);
+    }
+
+    public PostAdapter(
+            Context context,
+            List<Post> posts,
+            OnPostClick listener,
+            OnHashtagClick hashtagListener,
+            OnUserClick userClickListener
+    ) {
         this.posts = posts;
         this.listener = listener;
         this.hashtagListener = hashtagListener;
+        this.userClickListener = userClickListener;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
     }
@@ -72,15 +89,29 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             attachment = view.findViewById(R.id.imagePostItemAttachment);
         }
 
-        void display(Post post, AuthManager authManager, AvatarManager avatarManager, OnHashtagClick hashtagListener) {
+        void display(
+                Post post,
+                AuthManager authManager,
+                AvatarManager avatarManager,
+                OnHashtagClick hashtagListener,
+                OnUserClick userClickListener
+        ) {
             // The hashtags already render as chips below — keep them out of
             // the title to make it readable.
             title.setText(HashtagParser.stripTags(post.topic));
             User user = UserDAO.getInstance().getByUUID(post.poster);
             if (user != null) {
                 avatarManager.displayAvatar(user, avatar);
+                avatar.setOnClickListener(v -> {
+                    if (userClickListener != null) {
+                        userClickListener.onUserClick(user);
+                    }
+                });
+                avatar.setClickable(userClickListener != null);
             } else {
                 avatar.setImageResource(R.drawable.avatar_default_1);
+                avatar.setOnClickListener(null);
+                avatar.setClickable(false);
             }
 
             meta.setText(
@@ -167,7 +198,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.VH> {
             int position
     ) {
         Post post = posts.get(position);
-        holder.display(post, authManager, avatarManager, hashtagListener);
+        holder.display(post, authManager, avatarManager, hashtagListener, userClickListener);
         holder.itemView.setOnClickListener(
                 v -> listener.onClick(position, post)
         );

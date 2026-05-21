@@ -447,19 +447,7 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void showEmojiChooser(EditText input) {
-        String[] emojis = {
-                "\uD83D\uDE42",
-                "\uD83D\uDE02",
-                "\uD83D\uDE0D",
-                "\uD83D\uDC4D",
-                "\uD83D\uDD25",
-                "\uD83C\uDF80"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.add_emoji)
-                .setItems(emojis, (dialog, which) ->
-                        ComposerFormatManager.insertEmoji(input, emojis[which]))
-                .show();
+        ComposerFormatManager.showEmojiChooser(this, input);
     }
 
     private void showEditPostDialog() {

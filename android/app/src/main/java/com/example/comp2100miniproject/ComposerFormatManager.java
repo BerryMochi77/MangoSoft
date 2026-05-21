@@ -3,30 +3,42 @@ package com.example.comp2100miniproject;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,8 +46,21 @@ import java.util.regex.Pattern;
 public final class ComposerFormatManager {
     private static final String TAG = "ComposerFormatManager";
     private static final String ATTACHMENT_DIR = "composer_attachments";
+    private static final String PREFS = "composer_formats";
+    private static final String KEY_SAVED_EMOJIS = "saved_emojis";
+    private static final String KEY_SAVED_STICKERS = "saved_stickers";
     private static final String DEMO_IMAGE_PREFIX = "demo:";
     private static final Pattern IMAGE_TOKEN = Pattern.compile("\\[\\[image:([^\\]]+)\\]\\]");
+    private static final int MENU_SAVE_IMAGE_TO_GALLERY = 1;
+    private static final int MENU_SAVE_IMAGE_AS_STICKER = 2;
+    private static final String[] DEFAULT_EMOJIS = {
+            "\uD83D\uDE42",
+            "\uD83D\uDE02",
+            "\uD83D\uDE0D",
+            "\uD83D\uDC4D",
+            "\uD83D\uDD25",
+            "\uD83C\uDF89"
+    };
 
     private ComposerFormatManager() {
     }
@@ -69,7 +94,12 @@ public final class ComposerFormatManager {
 
     public static void insertImage(EditText input, Uri imageUri) {
         if (input == null || imageUri == null) return;
-        insertText(input, "\n" + imageToken(imageUri) + "\n");
+        insertImageRef(input, imageUri.toString());
+    }
+
+    public static void insertImageRef(EditText input, String imageRef) {
+        if (input == null || imageRef == null || imageRef.isEmpty()) return;
+        insertText(input, "\n[[image:" + imageRef + "]]\n");
     }
 
     public static String imageToken(Uri imageUri) {
@@ -88,9 +118,14 @@ public final class ComposerFormatManager {
 
         if (text.isEmpty()) {
             textView.setVisibility(TextView.GONE);
+            textView.setOnClickListener(null);
         } else {
             textView.setVisibility(TextView.VISIBLE);
             textView.setText(text);
+            List<String> emojis = extractEmojis(text);
+            textView.setOnClickListener(emojis.isEmpty()
+                    ? null
+                    : v -> showSaveEmojiChooser(textView.getContext(), emojis));
         }
 
         if (imageRef == null) {
@@ -102,6 +137,83 @@ public final class ComposerFormatManager {
             setImage(imageView, imageRef);
             imageView.setOnClickListener(v -> showImagePreview(imageView.getContext(), imageRef));
         }
+    }
+
+    public static String[] emojiOptions(Context context) {
+        Set<String> options = new LinkedHashSet<>();
+        for (String emoji : DEFAULT_EMOJIS) {
+            options.add(emoji);
+        }
+        options.addAll(savedEmojis(context));
+        return options.toArray(new String[0]);
+    }
+
+    public static void showEmojiChooser(Context context, EditText input) {
+        List<FormatOption> options = new ArrayList<>();
+        for (String emoji : emojiOptions(context)) {
+            options.add(new FormatOption(emoji, emoji, false));
+        }
+
+        List<String> stickers = savedStickers(context);
+        for (int i = 0; i < stickers.size(); i++) {
+            options.add(new FormatOption(
+                    context.getString(R.string.sticker_label, i + 1),
+                    stickers.get(i),
+                    true
+            ));
+        }
+
+        GridView grid = new GridView(context);
+        grid.setNumColumns(4);
+        grid.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
+        grid.setVerticalSpacing(dp(context, 10));
+        grid.setHorizontalSpacing(dp(context, 10));
+        grid.setPadding(dp(context, 18), dp(context, 10), dp(context, 18), dp(context, 10));
+        grid.setClipToPadding(false);
+        grid.setAdapter(new FormatOptionAdapter(context, options));
+
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setTitle(R.string.add_emoji)
+                .setView(grid)
+                .create();
+        grid.setOnItemClickListener((parent, view, position, id) -> {
+            FormatOption option = options.get(position);
+            if (option.imageRef) {
+                insertImageRef(input, option.value);
+            } else {
+                insertEmoji(input, option.value);
+            }
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    public static boolean saveEmoji(Context context, String emoji) {
+        if (context == null || emoji == null || emoji.isEmpty()) return false;
+
+        Set<String> saved = new LinkedHashSet<>(savedEmojis(context));
+        boolean added = saved.add(emoji);
+        if (!added) return true;
+
+        prefs(context)
+                .edit()
+                .putString(KEY_SAVED_EMOJIS, String.join("\n", saved))
+                .apply();
+        return true;
+    }
+
+    public static boolean saveSticker(Context context, String imageRef) {
+        if (context == null || imageRef == null || imageRef.isEmpty()) return false;
+
+        Set<String> saved = new LinkedHashSet<>(savedStickers(context));
+        boolean added = saved.add(imageRef);
+        if (!added) return true;
+
+        prefs(context)
+                .edit()
+                .putString(KEY_SAVED_STICKERS, String.join("\n", saved))
+                .apply();
+        return true;
     }
 
     public static void showImagePreview(Context context, Uri imageUri) {
@@ -150,16 +262,59 @@ public final class ComposerFormatManager {
 
     private static void showImageOptions(Context context, ImageButton anchor, String imageRef) {
         PopupMenu menu = new PopupMenu(context, anchor);
-        menu.getMenu().add(R.string.save_image_to_gallery);
+        menu.getMenu().add(0, MENU_SAVE_IMAGE_TO_GALLERY, 0, R.string.save_image_to_gallery);
+        menu.getMenu().add(0, MENU_SAVE_IMAGE_AS_STICKER, 1, R.string.save_image_as_emoji);
         menu.setOnMenuItemClickListener(item -> {
-            if (saveImageToGallery(context, imageRef)) {
-                Toast.makeText(context, R.string.image_saved_to_gallery, Toast.LENGTH_SHORT).show();
+            if (item.getItemId() == MENU_SAVE_IMAGE_AS_STICKER) {
+                if (saveSticker(context, imageRef)) {
+                    Toast.makeText(context, R.string.image_saved_as_emoji, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show();
+                if (saveImageToGallery(context, imageRef)) {
+                    Toast.makeText(context, R.string.image_saved_to_gallery, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, R.string.image_save_failed, Toast.LENGTH_SHORT).show();
+                }
             }
             return true;
         });
         menu.show();
+    }
+
+    private static void showSaveEmojiChooser(Context context, List<String> emojis) {
+        String[] options = emojis.toArray(new String[0]);
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.save_emoji_to_list)
+                .setItems(options, (dialog, which) -> showEmojiOptions(context, options[which]))
+                .show();
+    }
+
+    private static void showEmojiOptions(Context context, String emoji) {
+        String[] options = {
+                context.getString(R.string.save_emoji_to_list),
+                context.getString(R.string.save_emoji_to_gallery)
+        };
+
+        new AlertDialog.Builder(context)
+                .setTitle(emoji)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        if (saveEmoji(context, emoji)) {
+                            Toast.makeText(context, R.string.emoji_saved_to_list, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, R.string.emoji_save_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        if (saveEmojiToGallery(context, emoji)) {
+                            Toast.makeText(context, R.string.emoji_saved_to_gallery, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, R.string.emoji_save_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .show();
     }
 
     private static boolean saveImageToGallery(Context context, String imageRef) {
@@ -193,6 +348,47 @@ public final class ComposerFormatManager {
             }
         } catch (IOException | SecurityException e) {
             Log.w(TAG, "Failed to save image to gallery: " + imageRef, e);
+            resolver.delete(destUri, null, null);
+            return false;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear();
+            values.put(MediaStore.Images.Media.IS_PENDING, 0);
+            resolver.update(destUri, values, null, null);
+        }
+        return true;
+    }
+
+    private static boolean saveEmojiToGallery(Context context, String emoji) {
+        ContentResolver resolver = context.getContentResolver();
+        String fileName = "social_moderation_emoji_" + System.currentTimeMillis() + ".png";
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Social Moderation");
+            values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        }
+
+        Uri destUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        if (destUri == null) return false;
+
+        try (OutputStream out = resolver.openOutputStream(destUri)) {
+            if (out == null) return false;
+            Bitmap bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            canvas.drawColor(Color.WHITE);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTextSize(260f);
+            Paint.FontMetrics metrics = paint.getFontMetrics();
+            float y = 256f - (metrics.ascent + metrics.descent) / 2f;
+            canvas.drawText(emoji, 256f, y, paint);
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) return false;
+        } catch (IOException | SecurityException e) {
+            Log.w(TAG, "Failed to save emoji to gallery: " + emoji, e);
             resolver.delete(destUri, null, null);
             return false;
         }
@@ -243,9 +439,153 @@ public final class ComposerFormatManager {
         input.getText().replace(min, max, text);
     }
 
+    public static String previewText(String rawContent) {
+        if (rawContent == null) return "";
+        return IMAGE_TOKEN.matcher(rawContent)
+                .replaceAll("[image]")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
     private static String stripImageTokens(String rawContent) {
         if (rawContent == null) return "";
         return IMAGE_TOKEN.matcher(rawContent).replaceAll("").replaceAll("\\n{3,}", "\n\n");
+    }
+
+    private static List<String> extractEmojis(String content) {
+        ArrayList<String> emojis = new ArrayList<>();
+        if (content == null) return emojis;
+
+        for (int i = 0; i < content.length(); ) {
+            int codePoint = content.codePointAt(i);
+            int charCount = Character.charCount(codePoint);
+            if (isEmojiCodePoint(codePoint)) {
+                int end = i + charCount;
+                if (end < content.length() && content.codePointAt(end) == 0xFE0F) {
+                    end += Character.charCount(0xFE0F);
+                }
+                String emoji = content.substring(i, end);
+                if (!emojis.contains(emoji)) emojis.add(emoji);
+                i = end;
+            } else {
+                i += charCount;
+            }
+        }
+        return emojis;
+    }
+
+    private static boolean isEmojiCodePoint(int codePoint) {
+        return (codePoint >= 0x1F300 && codePoint <= 0x1FAFF)
+                || (codePoint >= 0x2600 && codePoint <= 0x27BF);
+    }
+
+    private static List<String> savedEmojis(Context context) {
+        ArrayList<String> emojis = new ArrayList<>();
+        if (context == null) return emojis;
+
+        String raw = prefs(context).getString(KEY_SAVED_EMOJIS, "");
+        if (raw == null || raw.isEmpty()) return emojis;
+        for (String emoji : raw.split("\\n")) {
+            if (!emoji.isEmpty() && !emojis.contains(emoji)) {
+                emojis.add(emoji);
+            }
+        }
+        return emojis;
+    }
+
+    private static List<String> savedStickers(Context context) {
+        ArrayList<String> stickers = new ArrayList<>();
+        if (context == null) return stickers;
+
+        String raw = prefs(context).getString(KEY_SAVED_STICKERS, "");
+        if (raw == null || raw.isEmpty()) return stickers;
+        for (String sticker : raw.split("\\n")) {
+            if (!sticker.isEmpty() && !stickers.contains(sticker)) {
+                stickers.add(sticker);
+            }
+        }
+        return stickers;
+    }
+
+    private static SharedPreferences prefs(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    private static class FormatOption {
+        final String label;
+        final String value;
+        final boolean imageRef;
+
+        FormatOption(String label, String value, boolean imageRef) {
+            this.label = label;
+            this.value = value;
+            this.imageRef = imageRef;
+        }
+    }
+
+    private static class FormatOptionAdapter extends BaseAdapter {
+        private final Context context;
+        private final List<FormatOption> options;
+
+        FormatOptionAdapter(Context context, List<FormatOption> options) {
+            this.context = context;
+            this.options = options;
+        }
+
+        @Override
+        public int getCount() {
+            return options.size();
+        }
+
+        @Override
+        public FormatOption getItem(int position) {
+            return options.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            FrameLayout cell;
+            if (convertView instanceof FrameLayout) {
+                cell = (FrameLayout) convertView;
+                cell.removeAllViews();
+            } else {
+                cell = new FrameLayout(context);
+                cell.setLayoutParams(new GridView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(context, 72)
+                ));
+                TypedArray attrs = context.obtainStyledAttributes(new int[]{android.R.attr.selectableItemBackground});
+                cell.setForeground(attrs.getDrawable(0));
+                attrs.recycle();
+            }
+
+            FormatOption option = getItem(position);
+            if (option == null) return cell;
+
+            if (option.imageRef) {
+                ImageView thumbnail = new ImageView(context);
+                FrameLayout.LayoutParams imageParams = new FrameLayout.LayoutParams(dp(context, 56), dp(context, 56));
+                imageParams.gravity = Gravity.CENTER;
+                thumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                setImage(thumbnail, option.value);
+                cell.addView(thumbnail, imageParams);
+            } else {
+                TextView emoji = new TextView(context);
+                emoji.setText(option.value);
+                emoji.setTextSize(28f);
+                emoji.setGravity(Gravity.CENTER);
+                cell.addView(emoji, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+            }
+            return cell;
+        }
     }
 
     private static String firstImageRef(String rawContent) {

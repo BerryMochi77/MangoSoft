@@ -43,12 +43,17 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         void onAction(Message message);
     }
 
+    public interface OnUserClick {
+        void onUserClick(User user);
+    }
+
     private final Message[] messages;
     private final UUID currentUserId;
     private final OnReportClick onReportClick;
     private final OnMessageActionClick onEditClick;
     private final OnMessageActionClick onDeleteClick;
     private final OnMessageActionClick onReplyClick;
+    private final OnUserClick onUserClick;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
 
@@ -61,12 +66,35 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             OnMessageActionClick onDeleteClick,
             OnMessageActionClick onReplyClick
     ) {
+        this(
+                context,
+                dataSet,
+                currentUserId,
+                onReportClick,
+                onEditClick,
+                onDeleteClick,
+                onReplyClick,
+                null
+        );
+    }
+
+    public MessageAdapter(
+            Context context,
+            ArrayList<Message> dataSet,
+            UUID currentUserId,
+            OnReportClick onReportClick,
+            OnMessageActionClick onEditClick,
+            OnMessageActionClick onDeleteClick,
+            OnMessageActionClick onReplyClick,
+            OnUserClick onUserClick
+    ) {
         messages = dataSet.toArray(new Message[0]);
         this.currentUserId = currentUserId;
         this.onReportClick = onReportClick;
         this.onEditClick = onEditClick;
         this.onDeleteClick = onDeleteClick;
         this.onReplyClick = onReplyClick;
+        this.onUserClick = onUserClick;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
     }
@@ -106,6 +134,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 OnMessageActionClick onEditClick,
                 OnMessageActionClick onDeleteClick,
                 OnMessageActionClick onReplyClick,
+                OnUserClick onUserClick,
                 AuthManager authManager,
                 AvatarManager avatarManager
         ) {
@@ -118,8 +147,16 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             User user = UserDAO.getInstance().getByUUID(message.poster());
             if (user != null) {
                 avatarManager.displayAvatar(user, avatar);
+                avatar.setOnClickListener(v -> {
+                    if (onUserClick != null) {
+                        onUserClick.onUserClick(user);
+                    }
+                });
+                avatar.setClickable(onUserClick != null);
             } else {
                 avatar.setImageResource(R.drawable.avatar_default_1);
+                avatar.setOnClickListener(null);
+                avatar.setClickable(false);
             }
             author.setText(user == null ? "Unknown user" : authManager.getDisplayName(user));
 
@@ -163,6 +200,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
                 onEditClick,
                 onDeleteClick,
                 onReplyClick,
+                onUserClick,
                 authManager,
                 avatarManager
         );
