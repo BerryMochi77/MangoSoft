@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -107,6 +108,9 @@ public class PostViewerActivity extends AppCompatActivity {
     private EditText activeComposerInput;
     private UUID activeReplyParentId;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
+    private FrameLayout replyAttachmentPreviewCard;
+    private ImageView imageReplyAttachmentPreview;
+    private Uri replyAttachmentUri;
     private boolean postHeaderCollapsed;
     private float headerGestureStartY;
     private boolean headerGestureHandled;
@@ -175,6 +179,8 @@ public class PostViewerActivity extends AppCompatActivity {
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
+        replyAttachmentPreviewCard = findViewById(R.id.replyAttachmentPreviewCard);
+        imageReplyAttachmentPreview = findViewById(R.id.imageReplyAttachmentPreview);
         inputReply.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 showKeyboard();
@@ -222,6 +228,9 @@ public class PostViewerActivity extends AppCompatActivity {
         });
         findViewById(R.id.buttonReplyEmoji).setVisibility(View.GONE);
         findViewById(R.id.buttonMoreFormats).setOnClickListener(v -> ComposerActionSheet.showMoreFormats(this));
+        findViewById(R.id.buttonRemoveReplyAttachment).setOnClickListener(v -> clearReplyAttachment());
+        imageReplyAttachmentPreview.setOnClickListener(v ->
+                ComposerFormatManager.showImagePreview(this, replyAttachmentUri));
 
         postOwnerActions = findViewById(R.id.postOwnerActions);
         reactionBar = findViewById(R.id.reactionBar);
@@ -683,6 +692,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private void addReply() {
         if (addReplyMessage(inputReply.getText().toString(), activeReplyParentId)) {
             inputReply.setText("");
+            clearReplyAttachment();
             clearReplyTarget();
         }
     }
@@ -694,6 +704,10 @@ public class PostViewerActivity extends AppCompatActivity {
      */
     private boolean addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
         String content = rawContent == null ? "" : rawContent.trim();
+        if (replyAttachmentUri != null) {
+            String imageToken = ComposerFormatManager.imageToken(replyAttachmentUri);
+            content = content.isEmpty() ? imageToken : content + "\n\n" + imageToken;
+        }
         if (content.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
             return false;
@@ -711,10 +725,41 @@ public class PostViewerActivity extends AppCompatActivity {
         if (parentMessageId != null) {
             MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
         }
+        notifyReplyRecipient(content, newId, parentMessageId, timestamp);
         notifyMentionedUsers(content, newId, timestamp);
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
         return true;
+    }
+
+    private void notifyReplyRecipient(String content, UUID messageId, UUID parentMessageId, long timestamp) {
+        UUID recipient = post.poster;
+        if (parentMessageId != null) {
+            Message parent = findMessage(parentMessageId);
+            if (parent != null) {
+                recipient = parent.poster();
+            }
+        }
+
+        if (recipient == null || recipient.equals(currentUser.getUUID())) return;
+        MentionNotificationRegistry.getInstance().addReply(
+                recipient,
+                currentUser.getUUID(),
+                post.getUUID(),
+                messageId,
+                timestamp,
+                ComposerFormatManager.previewText(content)
+        );
+    }
+
+    private Message findMessage(UUID messageId) {
+        if (messageId == null) return null;
+        Iterator<Message> messages = post.messages.getAll();
+        while (messages.hasNext()) {
+            Message message = messages.next();
+            if (message.id().equals(messageId)) return message;
+        }
+        return null;
     }
 
     private void notifyMentionedUsers(String content, UUID messageId, long timestamp) {
@@ -901,7 +946,7 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void insertSelectedImage(Uri uri) {
-        if (activeComposerInput == null || uri == null) return;
+        if (uri == null) return;
 
         Uri copied = ComposerFormatManager.copyImage(this, uri);
         if (copied == null) {
@@ -909,8 +954,24 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
-        ComposerFormatManager.insertImage(activeComposerInput, copied);
+        if (activeComposerInput == inputReply) {
+            replyAttachmentUri = copied;
+            imageReplyAttachmentPreview.setImageURI(copied);
+            replyAttachmentPreviewCard.setVisibility(View.VISIBLE);
+        } else {
+            ComposerFormatManager.insertImage(activeComposerInput, copied);
+        }
         Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void clearReplyAttachment() {
+        replyAttachmentUri = null;
+        if (imageReplyAttachmentPreview != null) {
+            imageReplyAttachmentPreview.setImageDrawable(null);
+        }
+        if (replyAttachmentPreviewCard != null) {
+            replyAttachmentPreviewCard.setVisibility(View.GONE);
+        }
     }
 
     private void showEmojiChooser(EditText input) {

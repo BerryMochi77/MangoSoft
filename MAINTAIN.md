@@ -192,20 +192,30 @@ boolean friends = store.areFriends(currentUserId, targetUserId);
 
 ## Messages and mentions
 
-The Messages tab is the entry point for app notifications. `@` mentions in replies create mention notifications for the mentioned user.
+The Messages tab is the entry point for app notifications. Reply and `@` mention
+notifications are grouped into separate folders so chat can later use the main
+message list without mixing notification types.
 
 Core ownership:
 
 - `notification.MentionNotificationRegistry` lives in `android/social-core`.
-- Mention notifications are keyed by recipient user id and target message id.
+- Mention and reply notifications are keyed by recipient user id and target message id.
 - The registry stores recipient, sender, post id, message id, timestamp, and preview text.
+- New notifications start unread. `MainActivity` reads `unreadCountFor(...)` to show the
+  Messages bottom-nav badge. The badge is capped by Material Components as `99+`.
+- Messages home shows a numbered red badge on each folder, but the number only counts unread
+  notifications inside that folder.
+- Opening a folder renders no-number red dots on the unread notification rows for that visit,
+  then marks that folder read and refreshes the bottom-nav badge. Read notifications remain
+  visible in the folder.
 - This is a sidecar registry; do not add notification fields to `Message`.
 
 Android ownership:
 
 - `PostViewerActivity` parses submitted reply text for `@DisplayName` / `@username` and records mention notifications after the reply is inserted.
-- `MessagesFragment` reads mention notifications for `host.currentUser()` and renders them as cards in the Messages tab.
-- Tapping a mention card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
+- `PostViewerActivity` also records reply notifications for the owner of the message being replied to.
+- `MessagesFragment` reads reply and mention notifications for `host.currentUser()` and renders them as foldered cards in the Messages tab.
+- Tapping a notification card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
 
 How to create a mention notification elsewhere:
 

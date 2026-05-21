@@ -286,6 +286,33 @@
                 android:paddingHorizontal="16dp"
                 android:singleLine="true" />
 
+        <FrameLayout
+                android:id="@+id/replyAttachmentPreviewCard"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_card"
+                android:visibility="gone">
+
+            <com.example.comp2100miniproject.RoundedImageView
+                    android:id="@+id/imageReplyAttachmentPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/attached_image"
+                    android:scaleType="centerCrop" />
+
+            <ImageButton
+                    android:id="@+id/buttonRemoveReplyAttachment"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="4dp"
+                    android:background="@drawable/bg_fab_circle"
+                    android:contentDescription="@string/remove_attached_image"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_close" />
+        </FrameLayout>
+
         <LinearLayout
                 android:id="@+id/composerToolbar"
                 android:layout_width="match_parent"
