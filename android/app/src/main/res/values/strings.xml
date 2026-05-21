@@ -252,4 +252,19 @@
     <string name="post_deleted_by_admin">Post has been deleted</string>
     <string name="author_banned">Author has been banned</string>
     <string name="you_are_banned">Your account has been banned from creating posts</string>
+    <!-- ── Admin Data Analytics Dashboard ───────────────────────────── -->
+    <string name="data_dashboard">Data Dashboard</string>
+    <string name="dash_system_overview">System Overview</string>
+    <string name="dash_total_users">Total users</string>
+    <string name="dash_total_posts">Total posts</string>
+    <string name="dash_total_replies">Total replies</string>
+    <string name="dash_posts_today">Posts today</string>
+    <string name="dash_pending_reports">Pending reports</string>
+    <string name="dash_most_viewed">Most viewed posts</string>
+    <string name="dash_most_reacted">Most liked posts</string>
+    <string name="dash_active_users">Active users</string>
+    <string name="dash_no_data">No data yet</string>
+    <string name="dash_views_format">%1$d views</string>
+    <string name="dash_reactions_format">%1$d likes</string>
+    <string name="dash_posts_format">%1$d posts</string>
 </resources>

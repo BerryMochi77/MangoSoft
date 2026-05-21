@@ -19,6 +19,8 @@ public class Post implements HasUUID {
 	private boolean deleted;
 	private List<String> hashtags;
 	private String body;
+	/** Epoch-millisecond timestamp of when this post object was created in memory. */
+	private final long createdAt;
 
 	public Post(UUID id, UUID poster, String topic) {
 		this.id = id;
@@ -27,6 +29,7 @@ public class Post implements HasUUID {
 		this.messages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
 		this.hashtags = new ArrayList<>();
 		this.body = "";
+		this.createdAt = System.currentTimeMillis();
 	}
 
 	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
@@ -53,6 +56,9 @@ public class Post implements HasUUID {
 	}
 
 	public UUID getUUID() { return id; }
+
+	/** Returns the epoch-ms timestamp when this post was created (in-memory). */
+	public long getCreatedAt() { return createdAt; }
 
 	/** Returns an unmodifiable view of this post's hashtags (no leading '#', all lowercase). */
 	public List<String> getHashtags() {

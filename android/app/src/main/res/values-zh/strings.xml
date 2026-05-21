@@ -224,4 +224,21 @@
     <string name="author_banned">作者已被封禁</string>
     <string name="you_are_banned">您的账号已被封禁，无法发布帖子</string>
 
+
+    <!-- ── Admin Data Analytics Dashboard ───────────────────────────── -->
+    <string name="data_dashboard">数据统计面板</string>
+    <string name="dash_system_overview">系统概览</string>
+    <string name="dash_total_users">总用户数</string>
+    <string name="dash_total_posts">总帖子数</string>
+    <string name="dash_total_replies">总评论数</string>
+    <string name="dash_posts_today">今日新增帖子</string>
+    <string name="dash_pending_reports">待处理举报数量</string>
+    <string name="dash_most_viewed">最多阅读帖子</string>
+    <string name="dash_most_reacted">最多点赞帖子</string>
+    <string name="dash_active_users">活跃用户排行</string>
+    <string name="dash_no_data">暂无数据</string>
+    <string name="dash_views_format">%1$d 次浏览</string>
+    <string name="dash_reactions_format">%1$d 次点赞</string>
+    <string name="dash_posts_format">%1$d 篇帖子</string>
+
 </resources>

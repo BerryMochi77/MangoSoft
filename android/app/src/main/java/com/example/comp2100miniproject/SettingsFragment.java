@@ -110,11 +110,20 @@ public class SettingsFragment extends Fragment {
         sectionAdmin.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
         if (isAdmin) {
             view.findViewById(R.id.rowAdminDashboard).setOnClickListener(v -> openAdminDashboard());
+            view.findViewById(R.id.rowDataDashboard).setOnClickListener(v -> openDataDashboard());
         }
     }
 
     private void openAdminDashboard() {
         Intent intent = new Intent(requireContext(), AdminPostReportsActivity.class);
+        intent.putExtra(AuthManager.EXTRA_USER_ID,
+                host.currentUser().getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, true);
+        startActivity(intent);
+    }
+
+    private void openDataDashboard() {
+        Intent intent = new Intent(requireContext(), AdminAnalyticsDashboardActivity.class);
         intent.putExtra(AuthManager.EXTRA_USER_ID,
                 host.currentUser().getUUID().toString());
         intent.putExtra(AuthManager.EXTRA_IS_ADMIN, true);

@@ -23,6 +23,9 @@
             android:name=".CreatePostActivity"
             android:exported="false" />
         <activity
+            android:name=".AdminAnalyticsDashboardActivity"
+            android:exported="false" />
+        <activity
             android:name=".AdminPostReportsActivity"
             android:exported="false" />
         <activity
