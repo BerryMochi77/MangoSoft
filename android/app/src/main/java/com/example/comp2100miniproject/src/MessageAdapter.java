@@ -20,6 +20,7 @@ import com.example.comp2100miniproject.AvatarManager;
 import com.example.comp2100miniproject.ComposerFormatManager;
 import com.example.comp2100miniproject.R;
 import com.example.comp2100miniproject.ThreadIndentView;
+import com.example.comp2100miniproject.UiFontManager;
 import com.example.comp2100miniproject.auth.AuthManager;
 
 import java.util.ArrayList;
@@ -202,6 +203,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
                 .inflate(R.layout.fragment_message, viewGroup, false);
+        UiFontManager.applyToViewTree(viewGroup.getContext(), view);
         return new ViewHolder(view);
     }
 
