@@ -27,6 +27,10 @@ public class RelationshipStore {
         return registry.isFollowing(follower, target);
     }
 
+    public Set<UUID> followingOf(UUID userId) {
+        return registry.followingOf(userId);
+    }
+
     public boolean toggleFollow(UUID follower, UUID target) {
         boolean following = registry.toggleFollow(follower, target);
         persistFollow(follower, target);
@@ -35,6 +39,10 @@ public class RelationshipStore {
 
     public boolean areFriends(UUID first, UUID second) {
         return registry.areFriends(first, second);
+    }
+
+    public Set<UUID> friendsOf(UUID userId) {
+        return registry.friendsOf(userId);
     }
 
     public boolean toggleFriend(UUID first, UUID second) {

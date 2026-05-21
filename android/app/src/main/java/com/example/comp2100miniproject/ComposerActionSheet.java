@@ -79,6 +79,45 @@ final class ComposerActionSheet {
         dialog.show();
     }
 
+    static void showMoreFormats(Context context) {
+        BottomSheetDialog dialog = new BottomSheetDialog(context);
+
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(context, 20), dp(context, 12), dp(context, 20), dp(context, 24));
+        root.setBackgroundColor(ContextCompat.getColor(context, R.color.surface));
+
+        LinearLayout header = new LinearLayout(context);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView title = new TextView(context);
+        title.setText(R.string.more_composer_options);
+        title.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+        title.setTextSize(18f);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        header.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        ImageButton close = new ImageButton(context);
+        close.setImageResource(R.drawable.ic_close);
+        close.setContentDescription(context.getString(R.string.cancel));
+        close.setBackgroundResource(android.R.color.transparent);
+        close.setPadding(dp(context, 10), dp(context, 10), dp(context, 10), dp(context, 10));
+        close.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary));
+        close.setOnClickListener(v -> dialog.dismiss());
+        header.addView(close, new LinearLayout.LayoutParams(dp(context, 44), dp(context, 44)));
+        root.addView(header);
+
+        View spacer = new View(context);
+        root.addView(spacer, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(context, 72)
+        ));
+
+        dialog.setContentView(root);
+        dialog.show();
+    }
+
     private static View actionButton(Context context,
                                      @DrawableRes int iconRes,
                                      @StringRes int labelRes,

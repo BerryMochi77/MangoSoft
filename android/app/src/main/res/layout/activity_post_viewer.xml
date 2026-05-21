@@ -227,40 +227,90 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
         <EditText
                 android:id="@+id/inputReply"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_card"
                 android:hint="@string/write_reply"
+                android:paddingHorizontal="16dp"
                 android:singleLine="true" />
 
-        <Button
-                android:id="@+id/buttonSendReply"
-                android:layout_width="86dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:text="@string/send"
-                android:textAllCaps="false" />
+        <LinearLayout
+                android:id="@+id/composerToolbar"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        <ImageButton
-                android:id="@+id/buttonReplyMore"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_fab_circle"
-                android:contentDescription="@string/more_composer_options"
-                android:foreground="?attr/selectableItemBackgroundBorderless"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_add_format"
-                app:tint="@android:color/white" />
+            <TextView
+                    android:id="@+id/buttonMentionUser"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/mention_people"
+                    android:gravity="center"
+                    android:text="\@"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:translationY="-1dp"
+                    android:includeFontPadding="false" />
+
+            <ImageButton
+                    android:id="@+id/buttonAttachImage"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/add_image"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_image"
+                    app:tint="@color/text_secondary" />
+
+            <ImageButton
+                    android:id="@+id/buttonReplyEmoji"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/add_emoji"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_emoji"
+                    app:tint="@color/text_secondary" />
+
+            <ImageButton
+                    android:id="@+id/buttonMoreFormats"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/more_composer_options"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_add_format"
+                    app:tint="@color/text_secondary" />
+
+            <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+            <Button
+                    android:id="@+id/buttonSendReply"
+                    android:layout_width="104dp"
+                    android:layout_height="44dp"
+                    android:text="@string/send"
+                    android:textAllCaps="false" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

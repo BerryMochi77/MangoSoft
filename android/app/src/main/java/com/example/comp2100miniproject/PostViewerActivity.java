@@ -37,6 +37,7 @@ import com.example.comp2100miniproject.auth.AuthManager;
 import com.example.comp2100miniproject.moderation.FrozenUserManager;
 import com.example.comp2100miniproject.src.MessageAdapter;
 import com.example.comp2100miniproject.src.ThreadConnectorDecoration;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
@@ -48,6 +49,8 @@ import messagestate.MessageThreadRegistry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -68,6 +71,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private FrozenUserManager frozenUserManager;
+    private RelationshipStore relationshipStore;
     private User currentUser;
     private Post post;
     private ConstraintLayout rootLayout;
@@ -115,6 +119,7 @@ public class PostViewerActivity extends AppCompatActivity {
         authManager = new AuthManager(this);
         avatarManager = new AvatarManager(authManager);
         frozenUserManager = new FrozenUserManager(this);
+        relationshipStore = new RelationshipStore(this);
         currentUser = authManager.getUser(readCurrentUserId());
         if (currentUser == null) {
             finish();
@@ -147,10 +152,13 @@ public class PostViewerActivity extends AppCompatActivity {
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
         inputReply.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus && inputReply.getText().toString().trim().isEmpty()) {
+            if (hasFocus) {
+                showKeyboard();
+            } else if (inputReply.getText().toString().trim().isEmpty()) {
                 clearReplyTarget();
             }
         });
+        inputReply.setOnClickListener(v -> showKeyboard());
 
         reactionChipGroup = findViewById(R.id.reactionChipGroup);
 
@@ -183,8 +191,13 @@ public class PostViewerActivity extends AppCompatActivity {
 
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
         buttonSendReply.setOnClickListener(v -> addReply());
-        ImageButton buttonReplyMore = findViewById(R.id.buttonReplyMore);
-        buttonReplyMore.setOnClickListener(v -> showComposerMenu(inputReply));
+        findViewById(R.id.buttonMentionUser).setOnClickListener(v -> showMentionChooser());
+        findViewById(R.id.buttonAttachImage).setOnClickListener(v -> {
+            activeComposerInput = inputReply;
+            chooseComposerImage();
+        });
+        findViewById(R.id.buttonReplyEmoji).setOnClickListener(v -> showEmojiChooser(inputReply));
+        findViewById(R.id.buttonMoreFormats).setOnClickListener(v -> ComposerActionSheet.showMoreFormats(this));
 
         postOwnerActions = findViewById(R.id.postOwnerActions);
         reactionBar = findViewById(R.id.reactionBar);
@@ -573,6 +586,7 @@ public class PostViewerActivity extends AppCompatActivity {
         String authorName = author == null ? "Unknown user" : authManager.getDisplayName(author);
         inputReply.setHint(getString(R.string.replying_to_hint, authorName));
         inputReply.requestFocus();
+        showKeyboard();
     }
 
     private void clearReplyTarget() {
@@ -587,6 +601,16 @@ public class PostViewerActivity extends AppCompatActivity {
         }
     }
 
+    private void showKeyboard() {
+        inputReply.post(() -> {
+            inputReply.requestFocus();
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(inputReply, InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
+    }
+
     private void showComposerMenu(EditText input) {
         activeComposerInput = input;
         ComposerActionSheet.show(
@@ -594,6 +618,83 @@ public class PostViewerActivity extends AppCompatActivity {
                 this::chooseComposerImage,
                 () -> showEmojiChooser(input)
         );
+    }
+
+    private void showMentionChooser() {
+        Map<UUID, User> candidates = mentionCandidates();
+        if (candidates.isEmpty()) {
+            Toast.makeText(this, R.string.no_mention_targets, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(12), dp(20), dp(24));
+        root.setBackgroundColor(getColor(R.color.surface));
+
+        TextView title = new TextView(this);
+        title.setText(R.string.mention_people);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(18f);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        root.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        for (User user : candidates.values()) {
+            TextView row = new TextView(this);
+            row.setText("@" + authManager.getDisplayName(user));
+            row.setTextColor(getColor(R.color.text_primary));
+            row.setTextSize(16f);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(4), 0, dp(4), 0);
+            row.setOnClickListener(v -> {
+                insertMention(user);
+                dialog.dismiss();
+            });
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(48)
+            );
+            rowParams.topMargin = dp(8);
+            root.addView(row, rowParams);
+        }
+
+        dialog.setContentView(root);
+        dialog.show();
+    }
+
+    private Map<UUID, User> mentionCandidates() {
+        Map<UUID, User> candidates = new LinkedHashMap<>();
+        addMentionCandidates(candidates, relationshipStore.friendsOf(currentUser.getUUID()));
+        addMentionCandidates(candidates, relationshipStore.followingOf(currentUser.getUUID()));
+        return candidates;
+    }
+
+    private void addMentionCandidates(Map<UUID, User> candidates, Set<UUID> ids) {
+        for (UUID id : ids) {
+            User user = UserDAO.getInstance().getByUUID(id);
+            if (user != null && !user.getUUID().equals(currentUser.getUUID())) {
+                candidates.put(user.getUUID(), user);
+            }
+        }
+    }
+
+    private void insertMention(User user) {
+        String name = authManager.getDisplayName(user).replaceAll("\\s+", "");
+        insertAtCursor(inputReply, "@" + name + " ");
+        inputReply.requestFocus();
+        showKeyboard();
+    }
+
+    private void insertAtCursor(EditText input, String value) {
+        int start = Math.max(input.getSelectionStart(), 0);
+        int end = Math.max(input.getSelectionEnd(), 0);
+        int min = Math.min(start, end);
+        int max = Math.max(start, end);
+        input.getText().replace(min, max, value);
     }
 
     private boolean hasPostHashtags() {

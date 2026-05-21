@@ -204,7 +204,8 @@ startActivity(intent);
 Post creation and reply composition share a small bottom composer action sheet. The entry point is a plus button:
 
 - In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
-- In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
+- In `PostViewerActivity`, the bottom reply composer is split into an input field plus a keyboard-adjacent toolbar.
+- `PostViewerActivity` declares `windowSoftInputMode="adjustResize|stateHidden"` and explicitly calls `InputMethodManager.showSoftInput(...)` when the reply field is focused, so tapping the text field requests the normal system keyboard instead of any app-owned overlay.
 - Reply-to-message dialogs also expose the same plus menu.
 - `ComposerActionSheet` owns the bottom sheet shell and action layout so the two composer entry points stay visually consistent.
 
@@ -212,6 +213,8 @@ Current options:
 
 - `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
 - `Add emoji`: opens a bottom-sheet emoji/sticker picker and inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
+- Reply composer `@`: opens a bottom-sheet picker containing friends and followed users from `RelationshipStore`, then inserts an `@DisplayName` mention into the reply field.
+- Reply composer `+`: opens an intentionally empty bottom action sheet for future file / format actions. Keep it wired through `ComposerActionSheet.showMoreFormats(...)` when adding new options.
 - The emoji/sticker picker is a flat bottom-sheet grid. Saved stickers render as thumbnail-only cells.
 - The post reaction `+` button reuses the same bottom-sheet emoji picker shell through `ComposerFormatManager.showEmojiChooser(Context, EmojiSelectionListener)`, but it only offers text emojis because post reactions are stored as reaction labels, not message attachments.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
