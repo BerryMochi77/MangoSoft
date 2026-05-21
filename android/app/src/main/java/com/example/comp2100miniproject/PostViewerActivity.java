@@ -132,6 +132,14 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private ChipGroup reactionChipGroup;
     private boolean reactionPickerVisible;
+    private static final String[] REACTION_PICKER_EMOJIS = {
+            "\uD83D\uDE00", "\uD83D\uDE01", "\uD83D\uDE05", "\uD83D\uDE06", "\uD83E\uDD23",
+            "\uD83D\uDE0D", "\uD83E\uDD70", "\uD83D\uDE0E", "\uD83E\uDD14", "\uD83D\uDE2D",
+            "\uD83D\uDE31", "\uD83D\uDE24", "\uD83D\uDE2E", "\uD83D\uDE34", "\uD83D\uDE4C",
+            "\uD83D\uDC4F", "\uD83D\uDD25", "\uD83C\uDF89", "\uD83D\uDCAF", "\uD83C\uDF1F",
+            "\uD83D\uDC40", "\uD83D\uDC4C", "\uD83E\uDD1D", "\uD83D\uDC4E", "\uD83D\uDC80",
+            "\uD83E\uDD21", "\uD83E\uDD73", "\uD83E\uDEE1", "\uD83D\uDC9C", "\uD83D\uDC99"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -403,18 +411,22 @@ public class PostViewerActivity extends AppCompatActivity {
         reactionChipGroup.addView(addChip);
 
         if (reactionPickerVisible) {
-            for (String emoji : ComposerFormatManager.emojiOptions(this)) {
-                if (options.contains(emoji)) continue;
-                Chip chip = reactionChip(emoji);
-                styleReactionChip(chip, false);
-                chip.setOnClickListener(v -> {
-                    ReactionManager.getInstance()
-                            .addUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
-                    reactionPickerVisible = false;
-                    updateReactionButtons();
-                });
-                reactionChipGroup.addView(chip);
-            }
+            addReactionPicker(options);
+        }
+    }
+
+    private void addReactionPicker(Set<String> existingOptions) {
+        for (String emoji : REACTION_PICKER_EMOJIS) {
+            if (existingOptions.contains(emoji)) continue;
+            Chip chip = reactionChip(emoji);
+            styleReactionChip(chip, false);
+            chip.setOnClickListener(v -> {
+                ReactionManager.getInstance()
+                        .addUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
+                reactionPickerVisible = false;
+                updateReactionButtons();
+            });
+            reactionChipGroup.addView(chip);
         }
     }
 
