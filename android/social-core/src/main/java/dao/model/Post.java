@@ -23,24 +23,23 @@ public class Post implements HasUUID {
 	private long createdAt;
 
 	public Post(UUID id, UUID poster, String topic) {
+		this(id, poster, topic, false, false, System.currentTimeMillis());
+	}
+
+	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
+		this(id, poster, topic, edited, deleted, System.currentTimeMillis());
+	}
+
+	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted, long createdAt) {
 		this.id = id;
 		this.poster = poster;
 		this.topic = topic;
 		this.messages = SortedDataFactory.makeSortedData(MessageComparator.getInstance());
 		this.hashtags = new ArrayList<>();
 		this.body = "";
-		this.createdAt = System.currentTimeMillis();
-	}
-
-	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted) {
-		this(id, poster, topic);
 		this.edited = edited;
 		this.deleted = deleted;
-	}
-
-	public Post(UUID id, UUID poster, String topic, boolean edited, boolean deleted, long createdAt) {
-		this(id, poster, topic, edited, deleted);
-		setCreatedAt(createdAt);
+		this.createdAt = createdAt;
 	}
 
 	public Post(UUID id) {

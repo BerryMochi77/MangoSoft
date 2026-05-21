@@ -159,6 +159,7 @@ public class AdminPostReportsActivity extends AppCompatActivity {
 
     private void performDeletePost(String reportId) {
         AdminModerationService.getInstance().deleteReportedPost(reportId, currentUser.getUUID());
+        AndroidPostStore.saveAll(this);
         Toast.makeText(this, R.string.post_deleted_by_admin, Toast.LENGTH_SHORT).show();
         loadReports();
     }

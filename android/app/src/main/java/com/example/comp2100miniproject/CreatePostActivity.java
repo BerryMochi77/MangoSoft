@@ -146,6 +146,7 @@ public class CreatePostActivity extends AppCompatActivity {
         post.setHashtags(tags);
         PostDAO.getInstance().add(post);
         HashtagService.getInstance().indexPost(post);
+        AndroidPostStore.saveAll(this);
         Toast.makeText(this, R.string.post_created, Toast.LENGTH_SHORT).show();
         finish();
     }

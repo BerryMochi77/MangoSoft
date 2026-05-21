@@ -10,6 +10,7 @@ import android.transition.AutoTransition;
 import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -97,11 +98,9 @@ public class PostViewerActivity extends AppCompatActivity {
     private ChipGroup chipGroupPostHashtags;
     private ImageView imagePostAuthorAvatar;
     private RecyclerView recyclerMessages;
-    private LinearLayout postOwnerActions;
     private LinearLayout reactionBar;
-    private Button buttonEditPost;
-    private Button buttonDeletePost;
-    private Button buttonReportPost;
+    private ImageButton buttonPostOverflow;
+    private ImageButton buttonBack;
     /** Held so reaction taps can refresh exactly one row instead of the whole adapter. */
     private MessageAdapter messageAdapter;
     private EditText inputReply;
@@ -216,7 +215,7 @@ public class PostViewerActivity extends AppCompatActivity {
             return false;
         });
 
-        ImageButton buttonBack = findViewById(R.id.buttonBack);
+        buttonBack = findViewById(R.id.buttonBack);
         buttonBack.setOnClickListener(v -> finish());
 
         Button buttonSendReply = findViewById(R.id.buttonSendReply);
@@ -232,25 +231,9 @@ public class PostViewerActivity extends AppCompatActivity {
         imageReplyAttachmentPreview.setOnClickListener(v ->
                 ComposerFormatManager.showImagePreview(this, replyAttachmentUri));
 
-        postOwnerActions = findViewById(R.id.postOwnerActions);
         reactionBar = findViewById(R.id.reactionBar);
-        buttonEditPost   = findViewById(R.id.buttonEditPost);
-        buttonDeletePost = findViewById(R.id.buttonDeletePost);
-        buttonReportPost = findViewById(R.id.buttonReportPost);
-
-        boolean ownsPost = currentUser.getUUID().equals(post.poster);
-        boolean isAdmin  = currentUser.role() == User.Role.Admin;
-        // Owners see Edit + Delete; regular non-owners see Report Post; admins see neither here
-        boolean canReport = !ownsPost && !isAdmin;
-        postOwnerActions.setVisibility(ownsPost || canReport ? View.VISIBLE : View.GONE);
-        buttonEditPost  .setVisibility(ownsPost   ? View.VISIBLE : View.GONE);
-        buttonDeletePost.setVisibility(ownsPost   ? View.VISIBLE : View.GONE);
-        buttonReportPost.setVisibility(canReport  ? View.VISIBLE : View.GONE);
-        updateReportButtonState();
-
-        buttonEditPost  .setOnClickListener(v -> showEditPostDialog());
-        buttonDeletePost.setOnClickListener(v -> confirmDeletePost());
-        buttonReportPost.setOnClickListener(v -> showReportPostDialog());
+        buttonPostOverflow = findViewById(R.id.buttonPostOverflow);
+        buttonPostOverflow.setOnClickListener(this::showPostOverflow);
 
         // Record one view per fresh open. savedInstanceState != null means the OS
         // recreated the activity, so do not count that again.
@@ -264,7 +247,14 @@ public class PostViewerActivity extends AppCompatActivity {
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            // Leave the top unpadded so the orange title bar draws behind the
+            // status bar (Reddit-style continuous band). The header content is
+            // pushed below the status icons via the back button's top margin.
+            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom);
+            ViewGroup.MarginLayoutParams backParams =
+                    (ViewGroup.MarginLayoutParams) buttonBack.getLayoutParams();
+            backParams.topMargin = systemBars.top + dp(12);
+            buttonBack.setLayoutParams(backParams);
             return insets;
         });
     }
@@ -335,18 +325,11 @@ public class PostViewerActivity extends AppCompatActivity {
         imagePostAttachment.setVisibility(!collapsed && ComposerFormatManager.hasImage(post.getBody())
                 ? View.VISIBLE : View.GONE);
         reactionBar.setVisibility(detailVisibility);
-        boolean isOwner  = currentUser.getUUID().equals(post.poster);
-        boolean isAdmin  = currentUser.role() == User.Role.Admin;
-        boolean canReport = !isOwner && !isAdmin;
-        postOwnerActions.setVisibility(!collapsed && (isOwner || canReport) ? View.VISIBLE : View.GONE);
-        if (buttonEditPost != null) {
-            buttonEditPost  .setVisibility(isOwner   ? View.VISIBLE : View.GONE);
-            buttonDeletePost.setVisibility(isOwner   ? View.VISIBLE : View.GONE);
-            buttonReportPost.setVisibility(canReport ? View.VISIBLE : View.GONE);
-        }
+        buttonPostOverflow.setVisibility(detailVisibility);
 
         textPostTitle.setMaxLines(collapsed ? 1 : 2);
         textPostTitle.setTextSize(collapsed ? 18f : 22f);
+        alignBackButtonToTitleFirstLine();
 
         ConstraintSet constraints = new ConstraintSet();
         constraints.clone(rootLayout);
@@ -355,6 +338,7 @@ public class PostViewerActivity extends AppCompatActivity {
             constraints.clear(R.id.textPostTitle, ConstraintSet.START);
             constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
             constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.postScrollView, ConstraintSet.TOP);
             constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
 
             constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
@@ -365,6 +349,8 @@ public class PostViewerActivity extends AppCompatActivity {
                     R.id.imagePostAuthorAvatar, ConstraintSet.TOP);
             constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
                     R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.postScrollView, ConstraintSet.TOP,
+                    R.id.textPostTitle, ConstraintSet.BOTTOM);
             constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
                     R.id.imagePostAuthorAvatar, ConstraintSet.BOTTOM, dp(10));
         } else {
@@ -372,6 +358,7 @@ public class PostViewerActivity extends AppCompatActivity {
             constraints.clear(R.id.textPostTitle, ConstraintSet.START);
             constraints.clear(R.id.textPostTitle, ConstraintSet.TOP);
             constraints.clear(R.id.textPostTitle, ConstraintSet.BOTTOM);
+            constraints.clear(R.id.postScrollView, ConstraintSet.TOP);
             constraints.clear(R.id.recyclerMessages, ConstraintSet.TOP);
 
             constraints.connect(R.id.imagePostAuthorAvatar, ConstraintSet.TOP,
@@ -380,10 +367,10 @@ public class PostViewerActivity extends AppCompatActivity {
                     R.id.buttonBack, ConstraintSet.END, dp(4));
             constraints.connect(R.id.textPostTitle, ConstraintSet.TOP,
                     R.id.buttonBack, ConstraintSet.TOP);
-            constraints.connect(R.id.textPostTitle, ConstraintSet.BOTTOM,
-                    R.id.buttonBack, ConstraintSet.BOTTOM);
+            constraints.connect(R.id.postScrollView, ConstraintSet.TOP,
+                    R.id.textPostTitle, ConstraintSet.BOTTOM);
             constraints.connect(R.id.recyclerMessages, ConstraintSet.TOP,
-                    R.id.postOwnerActions, ConstraintSet.BOTTOM, dp(14));
+                    R.id.reactionBar, ConstraintSet.BOTTOM, dp(14));
         }
         constraints.applyTo(rootLayout);
     }
@@ -469,7 +456,7 @@ public class PostViewerActivity extends AppCompatActivity {
             imagePostAuthorAvatar.setClickable(false);
             textPostAuthor.setClickable(false);
         }
-        textPostAuthor.setText(getString(R.string.posted_by, authorName(poster)));
+        textPostAuthor.setText(authorName(poster));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
         // View count is delegated entirely to PostViewService.
         int views = PostViewService.getInstance().getViewCount(post.id);
@@ -477,7 +464,7 @@ public class PostViewerActivity extends AppCompatActivity {
         renderHashtagChips();
         String body = post.getBody();
         ComposerFormatManager.bindContent(body, textPostBody, imagePostAttachment);
-        updateReportButtonState();
+        alignBackButtonToTitleFirstLine();
         if (postHeaderCollapsed) {
             applyPostHeaderCollapsedState(true, false);
         }
@@ -676,6 +663,66 @@ public class PostViewerActivity extends AppCompatActivity {
         popup.show();
     }
 
+    /**
+     * Top-right ⋮ menu for the whole post: Save / Unsave (everyone),
+     * Report (non-owner, non-admin), Edit / Delete (owner). Mirrors the
+     * per-comment overflow in {@link #showMessageOverflow}.
+     */
+    private void showPostOverflow(View anchor) {
+        boolean owner = currentUser.getUUID().equals(post.poster);
+        boolean admin = currentUser.role() == User.Role.Admin;
+        boolean canReport = !owner && !admin;
+        boolean saved = MessageBookmarkRegistry.getInstance()
+                .isBookmarked(currentUser.getUUID(), post.getUUID());
+
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.inflate(R.menu.post_overflow_menu);
+        popup.getMenu().findItem(R.id.menu_save_post).setVisible(!saved);
+        popup.getMenu().findItem(R.id.menu_unsave_post).setVisible(saved);
+        popup.getMenu().findItem(R.id.menu_report_post).setVisible(canReport);
+        popup.getMenu().findItem(R.id.menu_edit_post).setVisible(owner);
+        popup.getMenu().findItem(R.id.menu_delete_post).setVisible(owner);
+
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_save_post || id == R.id.menu_unsave_post) {
+                boolean nowSaved = MessageBookmarkRegistry.getInstance()
+                        .toggle(currentUser.getUUID(), post.getUUID());
+                Toast.makeText(this,
+                        nowSaved ? R.string.message_saved : R.string.message_unsaved,
+                        Toast.LENGTH_SHORT).show();
+                return true;
+            } else if (id == R.id.menu_report_post) {
+                showReportPostDialog();
+                return true;
+            } else if (id == R.id.menu_edit_post) {
+                showEditPostDialog();
+                return true;
+            } else if (id == R.id.menu_delete_post) {
+                confirmDeletePost();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    /**
+     * Vertically center the back arrow on the title's first text line. The
+     * title shares its top edge with the back button, but the arrow is
+     * centered inside a 44dp touch target and so reads as sitting below a
+     * single line of title text — this nudges it up to align.
+     */
+    private void alignBackButtonToTitleFirstLine() {
+        textPostTitle.post(() -> {
+            android.text.Layout layout = textPostTitle.getLayout();
+            if (layout == null) return;
+            int firstLineCenter = textPostTitle.getPaddingTop()
+                    + (layout.getLineTop(0) + layout.getLineBottom(0)) / 2;
+            buttonBack.setTranslationY(firstLineCenter - buttonBack.getHeight() / 2f);
+        });
+    }
+
     private int indexOfThreaded(UUID messageId) {
         for (int i = 0; i < adapterMessageIds.size(); i++) {
             if (messageId.equals(adapterMessageIds.get(i))) return i;
@@ -725,6 +772,7 @@ public class PostViewerActivity extends AppCompatActivity {
         if (parentMessageId != null) {
             MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
         }
+        AndroidPostStore.saveAll(this);
         notifyReplyRecipient(content, newId, parentMessageId, timestamp);
         notifyMentionedUsers(content, newId, timestamp);
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
@@ -1005,6 +1053,7 @@ public class PostViewerActivity extends AppCompatActivity {
         post.setHashtags(HashtagParser.extract(cleanTopic + " " + post.getBody()));
         post.setEdited(true);
         HashtagService.getInstance().indexPost(post);
+        AndroidPostStore.saveAll(this);
         renderPost();
         Toast.makeText(this, R.string.post_updated, Toast.LENGTH_SHORT).show();
     }
@@ -1015,6 +1064,8 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
                     post.setDeleted(true);
+                    HashtagService.getInstance().removePost(post);
+                    AndroidPostStore.saveAll(this);
                     Toast.makeText(this, R.string.post_deleted, Toast.LENGTH_SHORT).show();
                     finish();
                 })
@@ -1053,18 +1104,8 @@ public class PostViewerActivity extends AppCompatActivity {
                     Toast.makeText(this,
                             ok ? R.string.report_submitted : R.string.report_already_submitted,
                             Toast.LENGTH_SHORT).show();
-                    if (ok) updateReportButtonState();
                 })
                 .show();
-    }
-
-    /** Dim the Report button once the user has already submitted a report for this post. */
-    private void updateReportButtonState() {
-        if (buttonReportPost == null || post == null || currentUser == null) return;
-        boolean alreadyReported = PostReportRepository.getInstance()
-                .hasReported(post.id, currentUser.getUUID());
-        buttonReportPost.setAlpha(alreadyReported ? 0.45f : 1f);
-        buttonReportPost.setEnabled(!alreadyReported);
     }
 
     private void showEditReplyDialog(Message message) {
@@ -1092,6 +1133,7 @@ public class PostViewerActivity extends AppCompatActivity {
 
         // Per-message state lives in sidecars, not on Message itself.
         MessageEditRegistry.getInstance().recordEdit(message.id(), cleanContent);
+        AndroidPostStore.saveAll(this);
         Toast.makeText(this, R.string.reply_updated, Toast.LENGTH_SHORT).show();
         loadMessages();
     }
@@ -1102,6 +1144,7 @@ public class PostViewerActivity extends AppCompatActivity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
                     MessageDeletionRegistry.getInstance().markDeleted(message.id());
+                    AndroidPostStore.saveAll(this);
                     Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                     loadMessages();
                 })

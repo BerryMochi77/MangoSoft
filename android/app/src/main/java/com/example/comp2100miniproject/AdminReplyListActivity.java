@@ -224,6 +224,7 @@ public class AdminReplyListActivity extends AppCompatActivity {
                     hidden ? R.string.unhide_message : R.string.hide_message,
                     (d, w) -> {
                         rs.message.setHidden(!hidden); // existing mechanism — no Message.java change
+                        AndroidPostStore.saveAll(this);
                         Toast.makeText(this,
                                 hidden ? R.string.message_unhidden : R.string.message_hidden,
                                 Toast.LENGTH_SHORT).show();
@@ -232,6 +233,7 @@ public class AdminReplyListActivity extends AppCompatActivity {
             // Delete
             builder.setPositiveButton(R.string.dash_delete_reply, (d, w) -> {
                 MessageDeletionRegistry.getInstance().markDeleted(rs.message.id());
+                AndroidPostStore.saveAll(this);
                 Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                 loadList();
             });
@@ -255,10 +257,12 @@ public class AdminReplyListActivity extends AppCompatActivity {
                             hidden ? R.string.unhide_message : R.string.hide_message,
                             deleted ? null : (d, w) -> {
                                 rs.message.setHidden(!hidden);
+                                AndroidPostStore.saveAll(this);
                                 loadList();
                             })
                     .setPositiveButton(R.string.dash_delete_reply, deleted ? null : (d, w) -> {
                         MessageDeletionRegistry.getInstance().markDeleted(rs.message.id());
+                        AndroidPostStore.saveAll(this);
                         Toast.makeText(this, R.string.reply_deleted, Toast.LENGTH_SHORT).show();
                         loadList();
                     })

@@ -215,6 +215,7 @@ public class AdminPostListActivity extends AppCompatActivity {
         if (post != null) {
             post.setDeleted(true);
             HashtagService.getInstance().removePost(post);
+            AndroidPostStore.saveAll(this);
             Toast.makeText(this, R.string.post_deleted_by_admin, Toast.LENGTH_SHORT).show();
             loadList();
         }
