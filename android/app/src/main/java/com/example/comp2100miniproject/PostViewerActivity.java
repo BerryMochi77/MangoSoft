@@ -269,8 +269,16 @@ public class PostViewerActivity extends AppCompatActivity {
         User poster = UserDAO.getInstance().getByUUID(post.poster);
         if (poster != null) {
             avatarManager.displayAvatar(poster, imagePostAuthorAvatar);
+            imagePostAuthorAvatar.setOnClickListener(v -> openUserProfile(poster));
+            textPostAuthor.setOnClickListener(v -> openUserProfile(poster));
+            imagePostAuthorAvatar.setClickable(true);
+            textPostAuthor.setClickable(true);
         } else {
             imagePostAuthorAvatar.setImageResource(R.drawable.avatar_default_1);
+            imagePostAuthorAvatar.setOnClickListener(null);
+            textPostAuthor.setOnClickListener(null);
+            imagePostAuthorAvatar.setClickable(false);
+            textPostAuthor.setClickable(false);
         }
         textPostAuthor.setText(getString(R.string.posted_by, authorName(poster)));
         textPostEdited.setVisibility(post.isEdited() ? View.VISIBLE : View.GONE);
@@ -343,7 +351,8 @@ public class PostViewerActivity extends AppCompatActivity {
                 this::showReportDialog,
                 this::showEditReplyDialog,
                 this::confirmDeleteReply,
-                this::startReplyToMessage
+                this::startReplyToMessage,
+                this::openUserProfile
         ));
     }
 
@@ -546,6 +555,18 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private String authorName(User user) {
         return user == null ? "Unknown author" : authManager.getDisplayName(user);
+    }
+
+    private void openUserProfile(User user) {
+        if (user == null || currentUser.getUUID().equals(user.getUUID())) {
+            return;
+        }
+
+        Intent intent = new Intent(this, UserProfileActivity.class);
+        intent.putExtra(UserProfileActivity.EXTRA_PROFILE_USER_ID, user.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+        intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+        startActivity(intent);
     }
 
     private void showReportDialog(Message message) {
