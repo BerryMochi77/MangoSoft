@@ -2,12 +2,14 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="surface">#101318</color>
-    <color name="card_surface">#1A1D23</color>
-    <color name="border">#30343B</color>
-    <color name="text_primary">#F4F7FB</color>
-    <color name="text_secondary">#B8C0CC</color>
-    <color name="accent">#8AB4F8</color>
+    <color name="surface">#17110A</color>
+    <color name="card_surface">#221910</color>
+    <color name="border">#493624</color>
+    <color name="text_primary">#FFF8EF</color>
+    <color name="text_secondary">#D7C1A5</color>
+    <color name="accent">#FFB23F</color>
+    <color name="on_accent">#2F1600</color>
     <color name="warning">#FFB4AB</color>
     <color name="warning_soft">#442522</color>
+    <color name="chip_hashtag_bg">#3A2815</color>
 </resources>

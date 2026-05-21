@@ -395,8 +395,10 @@ SharedPreferences，进程启动时由 `SocialModerationApplication.onCreate`
 - UI 入口：`SettingsFragment` 的 "Theme" 行，点开调
   `ThemeModeManager.showModeChooser(activity)`
 - 颜色资源：浅色 `res/values/colors.xml`，深色 `res/values-night/colors.xml`，
-  **同名** — layout 只引用 `@color/text_primary` 这类共享名，不要在 XML 里写
+  **同名** - layout 只引用 `@color/text_primary` 这类共享名，不要在 XML 里写
   死颜色
+- MangoSoft 品牌主色走 `@color/accent`。浅色主题使用鲜明芒果橘，深色主题使用更亮的琥珀色；按钮、底部导航选中态、checkbox、FAB、hashtag/chip 重点色都应继续引用 `accent`，不要重新引入蓝色主色。
+- `@color/surface` 和 `@color/card_surface` 保持暖白 / 暖黑中性色，避免大面积橘黄背景削弱可读性。
 - 增加模式：在 `ThemeModeManager.Mode` 加 enum 项 + 在 `values/strings.xml`
   加 label
 
