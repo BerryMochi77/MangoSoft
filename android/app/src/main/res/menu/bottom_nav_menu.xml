@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_tab_trending"
         android:title="@string/nav_trending" />
     <item
+        android:id="@+id/navAi"
+        android:icon="@drawable/ic_tab_ai"
+        android:title="@string/nav_ai" />
+    <item
         android:id="@+id/navMessages"
         android:icon="@drawable/ic_tab_messages"
         android:title="@string/nav_messages" />
@@ -16,8 +20,11 @@
         android:id="@+id/navProfile"
         android:icon="@drawable/ic_tab_profile"
         android:title="@string/nav_profile" />
-    <item
-        android:id="@+id/navSettings"
-        android:icon="@drawable/ic_tab_settings"
-        android:title="@string/nav_settings" />
+    <!--
+        Settings was removed from the bottom bar because Material's
+        BottomNavigationView hard-caps visible items at 5 and we needed
+        the slot for the AI curator tab. Settings is now reachable from
+        the gear icon at the top-right of ProfileFragment, which calls
+        TabHost.openSettings().
+    -->
 </menu>

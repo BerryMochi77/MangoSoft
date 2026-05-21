@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sparkle / "magic" icon used for the AI curator tab. Two stars at
+    different sizes is a common visual idiom for "intelligent" or
+    "generative" features in modern mobile apps.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Large 4-point star -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,3 L11.6,7.4 L16,9 L11.6,10.6 L10,15 L8.4,10.6 L4,9 L8.4,7.4 Z" />
+    <!-- Smaller star to the upper-right -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M17,13 L17.9,15.1 L20,16 L17.9,16.9 L17,19 L16.1,16.9 L14,16 L16.1,15.1 Z" />
+</vector>

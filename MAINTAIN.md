@@ -459,6 +459,40 @@ Hackathon 2 brief 的硬约束：
 
 > 注：post 层级的 emoji 反应仍然走 [`ReactionManager`](android/app/src/main/java/com/example/comp2100miniproject/ReactionManager.java)（key 是 post UUID），跟评论 thumbs-up/down 是两套独立机制——前者是帖子级别的情绪聚合，后者是评论级别的投票。
 
+## AI curator tab
+
+The middle bottom-nav tab (`navAi`, [`AiFragment`](android/app/src/main/java/com/example/comp2100miniproject/AiFragment.java)) is the Hackathon "new feature" deliverable. It has two halves:
+
+1. **Preferences editor** — the viewer writes a free-text description of what they care about. Saved per-user in [`AiUserPreferences`](android/app/src/main/java/com/example/comp2100miniproject/ai/AiUserPreferences.java) (a `SharedPreferences` wrapper keyed by user UUID).
+2. **Curate my feed** — sends every visible post **plus the saved preferences** to DeepSeek in a single batch. The model is instructed to treat the preferences as the *only* filter criterion — its own taste about post quality is explicitly suppressed. Posts the model flags as matching are sorted by score.
+
+Design pattern: **Strategy**. The UI talks to [`PostCurationStrategy`](android/app/src/main/java/com/example/comp2100miniproject/ai/PostCurationStrategy.java); [`AiPostCurationStrategy`](android/app/src/main/java/com/example/comp2100miniproject/ai/AiPostCurationStrategy.java) is the only implementation today. A future offline / keyword fallback can plug in by implementing the same interface and being injected in `AiFragment.onCreate`.
+
+Storage / state:
+
+- **No new fields on `Post` or `Message`.** Verdicts are per-Post and live only in the in-memory result list shown on this screen, satisfying the SOLID brief constraint.
+- Preferences are per-user state, persisted in `SharedPreferences` under file `ai_user_preferences`, key `prefs_for_<userId>`. Centralised through `AiUserPreferences` — do not read the prefs file directly elsewhere.
+- The Strategy interface lives in `app/` (not `social-core`) because the AI implementation depends on Android networking; the contract is small enough that moving it to social-core later is one rename.
+
+API key:
+
+- Hard-coded in [`ApiKeys.java`](android/app/src/main/java/com/example/comp2100miniproject/ai/ApiKeys.java) so teammates need **no per-developer setup** — clone, build, run.
+- This is a hackathon-only choice. The key is rotated immediately after grading.
+- To swap providers / models, edit `ApiKeys.DEEPSEEK_DEFAULT_MODEL` (or the URL constant). No call sites need to change.
+- To disable the feature, blank out `DEEPSEEK_API_KEY`. `AiPostCurationStrategy` fails fast with a clear error.
+
+Network:
+
+- Uses raw `HttpURLConnection` + `org.json` so no new gradle dependencies are introduced (teammate builds stay unaffected).
+- Single batch request per **Curate** tap. The model is told to return a JSON array; the parser is defensive (handles markdown fences, wrapper objects, prose).
+- Requires `INTERNET` in `AndroidManifest.xml` (already added).
+- Threading: background work runs on a single-thread `ExecutorService`; results are posted back to the main looper.
+
+How to add another curation strategy (e.g. an offline fallback):
+
+1. Implement `PostCurationStrategy.curate(posts, viewerHint, preferences, callback)`.
+2. In `AiFragment.onCreate`, branch on a runtime flag (network available / user preference) and instantiate the chosen strategy.
+
 ## Moderation 当前入口
 
 核心审核功能入口：

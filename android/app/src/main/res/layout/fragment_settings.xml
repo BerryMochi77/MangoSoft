@@ -6,20 +6,41 @@
     android:layout_height="match_parent"
     tools:context=".SettingsFragment">
 
+    <!--
+        Back arrow that dismisses the Settings overlay and returns to
+        whichever bottom-nav tab the user was on (almost always Profile,
+        since that's where the gear icon lives).
+    -->
+    <ImageButton
+        android:id="@+id/buttonSettingsClose"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="20dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/back"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_arrow_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/text_primary" />
+
     <TextView
         android:id="@+id/textSettingsTitle"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
         android:layout_marginEnd="20dp"
+        android:gravity="center_vertical"
         android:text="@string/settings"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonSettingsClose"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/buttonSettingsClose"
+        app:layout_constraintTop_toTopOf="@+id/buttonSettingsClose" />
 
     <ScrollView
         android:layout_width="0dp"

@@ -6,6 +6,9 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
+    <!-- Required so AiPostCurationStrategy can reach api.deepseek.com over HTTPS. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".SocialModerationApplication"
         android:allowBackup="true"

@@ -72,6 +72,11 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Back arrow — Settings is now overlaid on top of a normal tab
+        // (gear icon in Profile), so we provide an explicit way out.
+        view.findViewById(R.id.buttonSettingsClose)
+                .setOnClickListener(v -> host.closeSettings());
+
         // Theme
         textThemeCurrent = view.findViewById(R.id.textThemeCurrent);
         View rowTheme = view.findViewById(R.id.rowTheme);
