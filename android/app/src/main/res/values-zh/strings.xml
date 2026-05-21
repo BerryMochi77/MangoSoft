@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Chinese (Simplified) translations for the Social Moderation app.
+  Chinese (Simplified) translations for the MangoSoft app.
   Covers every visible UI string so switching to Chinese in Settings
   fully localises the UI without an app rebuild.
 
@@ -10,10 +10,10 @@
 <resources>
 
     <!-- ── App name ──────────────────────────────────────────────────────── -->
-    <string name="app_name">社交审核</string>
+    <string name="app_name">MangoSoft</string>
 
     <!-- ── Login screen ──────────────────────────────────────────────────── -->
-    <string name="login_subtitle">登录以查看帖子和举报消息</string>
+    <string name="login_subtitle">登录 MangoSoft 以查看帖子和举报消息</string>
     <string name="username">用户名</string>
     <string name="password">密码</string>
     <string name="login">登录</string>

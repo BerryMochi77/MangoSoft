@@ -399,7 +399,7 @@ public final class ComposerFormatManager {
         values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
         values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Social Moderation");
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MangoSoft");
             values.put(MediaStore.Images.Media.IS_PENDING, 1);
         }
 
@@ -442,7 +442,7 @@ public final class ComposerFormatManager {
         values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
         values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Social Moderation");
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MangoSoft");
             values.put(MediaStore.Images.Media.IS_PENDING, 1);
         }
 
