@@ -554,8 +554,8 @@ Login credential memory is intentionally split into two behaviors:
 - The login screen always remembers the last successful username in `SharedPreferences` and pre-fills it next time.
 - Password memory is opt-in only. The `Remember password` checkbox stores or clears the password while keeping the last username.
 - Do not store this state in `User` records; it is device-local UI convenience state owned by `LoginActivity`.
-- The app brand is MangoSoft. `activity_login.xml` renders the MangoSoft logo from `res/drawable-nodpi/mangosoft_logo.png`; `app_name` should stay aligned with that brand.
-- The launcher icon is provided by `res/drawable-nodpi/app_logo.png` and referenced from `AndroidManifest.xml` through `android:icon` and `android:roundIcon`.
+- The app brand is MangoSoft. `activity_login.xml` renders the small mango icon from `res/drawable-nodpi/app_logo.png`; `app_name` should stay aligned with that brand.
+- The launcher icon is also provided by `res/drawable-nodpi/app_logo.png` and referenced from `AndroidManifest.xml` through `android:icon` and `android:roundIcon`.
 - Media saved to the gallery should use the `Pictures/MangoSoft` relative path so the device album name matches the visible brand.
 
 Post reactions are per-post, per-user emoji toggles:
