@@ -6,13 +6,19 @@
     android:layout_height="match_parent"
     tools:context=".FeedFragment">
 
+    <!--
+        Title and search icon share the same 40 dp height so their top and
+        bottom edges line up exactly. The title is anchored to the icon's
+        top/bottom rather than to parent so the two stay aligned regardless
+        of future marginTop tweaks on the icon.
+    -->
     <TextView
         android:id="@+id/textViewTitle"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
         android:layout_marginEnd="12dp"
+        android:gravity="center_vertical"
         android:text="@string/post_feed"
         android:textColor="@color/text_primary"
         android:textSize="24sp"
@@ -37,19 +43,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:tint="@color/text_primary" />
 
-    <TextView
-        android:id="@+id/textCurrentUser"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginEnd="20dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonSearchToggle" />
-
     <EditText
         android:id="@+id/inputSearchPosts"
         android:layout_width="0dp"
@@ -64,7 +57,7 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textCurrentUser" />
+        app:layout_constraintTop_toBottomOf="@+id/buttonSearchToggle" />
 
     <Button
         android:id="@+id/buttonAdminReports"

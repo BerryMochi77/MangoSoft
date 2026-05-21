@@ -68,9 +68,6 @@ public class FeedFragment extends Fragment {
         authManager = new AuthManager(requireContext());
         User currentUser = host.currentUser();
 
-        TextView textCurrentUser = view.findViewById(R.id.textCurrentUser);
-        textCurrentUser.setText(getString(R.string.signed_in_as, authManager.getDisplayName(currentUser)));
-
         Button buttonAdminReports = view.findViewById(R.id.buttonAdminReports);
         buttonAdminReports.setVisibility(currentUser.role() == User.Role.Admin ? View.VISIBLE : View.GONE);
         buttonAdminReports.setOnClickListener(v -> {
