@@ -97,18 +97,33 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
+            <ImageButton
+                    android:id="@+id/buttonPostOverflow"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/message_options"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_more_vertical"
+                    app:layout_constraintBottom_toBottomOf="@+id/imagePostAuthorAvatar"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@+id/imagePostAuthorAvatar"
+                    app:tint="@color/text_secondary" />
+
             <TextView
                     android:id="@+id/textPostAuthor"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:layout_marginTop="8dp"
-                    android:layout_marginEnd="20dp"
+                    android:layout_marginEnd="12dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/buttonPostOverflow"
                     app:layout_constraintStart_toEndOf="@+id/imagePostAuthorAvatar"
                     app:layout_constraintTop_toTopOf="parent" />
 
@@ -220,48 +235,6 @@
                         app:singleLine="false" />
             </LinearLayout>
 
-            <LinearLayout
-                    android:id="@+id/postOwnerActions"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginEnd="20dp"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:visibility="gone"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/reactionBar">
-
-                <Button
-                        android:id="@+id/buttonEditPost"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_weight="1"
-                        android:text="@string/edit"
-                        android:textAllCaps="false" />
-
-                <Button
-                        android:id="@+id/buttonDeletePost"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="@string/delete"
-                        android:textAllCaps="false" />
-
-                <Button
-                        android:id="@+id/buttonReportPost"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_weight="1"
-                        android:text="@string/report_post"
-                        android:textAllCaps="false"
-                        android:textColor="@color/warning"
-                        android:visibility="gone" />
-            </LinearLayout>
-
             <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerMessages"
                     android:layout_width="0dp"
@@ -271,7 +244,7 @@
                     android:overScrollMode="never"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/postOwnerActions" />
+                    app:layout_constraintTop_toBottomOf="@+id/reactionBar" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 

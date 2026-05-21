@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Post-level overflow menu. Items are toggled visible/invisible by
+    PostViewerActivity based on ownership and saved state, mirroring the
+    per-comment message_overflow_menu.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_save_post"
+        android:title="@string/save_message" />
+    <item
+        android:id="@+id/menu_unsave_post"
+        android:title="@string/unsave_message" />
+    <item
+        android:id="@+id/menu_report_post"
+        android:title="@string/report_post" />
+    <item
+        android:id="@+id/menu_edit_post"
+        android:title="@string/edit" />
+    <item
+        android:id="@+id/menu_delete_post"
+        android:title="@string/delete" />
+</menu>
