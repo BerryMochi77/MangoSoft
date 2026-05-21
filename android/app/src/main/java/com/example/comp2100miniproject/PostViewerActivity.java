@@ -46,10 +46,13 @@ import messagestate.MessageDeletionRegistry;
 import messagestate.MessageEditRegistry;
 import messagestate.MessageReactionRegistry;
 import messagestate.MessageThreadRegistry;
+import notification.MentionNotificationRegistry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -69,6 +72,7 @@ import moderation.PostReportRepository;
 import postview.PostViewService;
 
 public class PostViewerActivity extends AppCompatActivity {
+    public static final String EXTRA_TARGET_MESSAGE_ID = "target_message_id";
     private static final int HEADER_COLLAPSE_GESTURE_DP = 28;
     private static final int HEADER_EXPAND_GESTURE_DP = 112;
     private AuthManager authManager;
@@ -233,6 +237,7 @@ public class PostViewerActivity extends AppCompatActivity {
 
         renderPost();
         loadMessages();
+        scrollToTargetMessage(getIntent().getStringExtra(EXTRA_TARGET_MESSAGE_ID));
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -592,19 +597,81 @@ public class PostViewerActivity extends AppCompatActivity {
         }
 
         UUID newId = UUID.randomUUID();
+        long timestamp = System.currentTimeMillis();
         post.messages.insert(new Message(
                 newId,
                 currentUser.getUUID(),
                 post.getUUID(),
-                System.currentTimeMillis(),
+                timestamp,
                 content
         ));
         if (parentMessageId != null) {
             MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
         }
+        notifyMentionedUsers(content, newId, timestamp);
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
         return true;
+    }
+
+    private void notifyMentionedUsers(String content, UUID messageId, long timestamp) {
+        String preview = ComposerFormatManager.previewText(content);
+        for (UUID recipient : mentionedRecipients(content)) {
+            MentionNotificationRegistry.getInstance().addMention(
+                    recipient,
+                    currentUser.getUUID(),
+                    post.getUUID(),
+                    messageId,
+                    timestamp,
+                    preview
+            );
+        }
+    }
+
+    private Set<UUID> mentionedRecipients(String content) {
+        Set<UUID> recipients = new LinkedHashSet<>();
+        if (content == null || content.isEmpty()) return recipients;
+
+        String lower = content.toLowerCase(Locale.ROOT);
+        Iterator<User> users = UserDAO.getInstance().getAll();
+        while (users.hasNext()) {
+            User user = users.next();
+            if (user == null || user.getUUID().equals(currentUser.getUUID())) continue;
+
+            for (String alias : mentionAliases(user)) {
+                if (!alias.isEmpty() && lower.contains("@" + alias.toLowerCase(Locale.ROOT))) {
+                    recipients.add(user.getUUID());
+                    break;
+                }
+            }
+        }
+        return recipients;
+    }
+
+    private ArrayList<String> mentionAliases(User user) {
+        ArrayList<String> aliases = new ArrayList<>();
+        aliases.add(authManager.getDisplayName(user).replaceAll("\\s+", ""));
+        if (user.username() != null) {
+            aliases.add(user.username().replaceAll("\\s+", ""));
+        }
+        return aliases;
+    }
+
+    private void scrollToTargetMessage(String messageIdText) {
+        if (messageIdText == null || messageIdText.isEmpty()) return;
+        try {
+            UUID messageId = UUID.fromString(messageIdText);
+            recyclerMessages.postDelayed(() -> {
+                int index = indexOfThreaded(messageId);
+                if (index >= 0) {
+                    recyclerMessages.smoothScrollToPosition(index);
+                } else {
+                    Toast.makeText(this, R.string.message_not_found, Toast.LENGTH_SHORT).show();
+                }
+            }, 250);
+        } catch (IllegalArgumentException ignored) {
+            Toast.makeText(this, R.string.message_not_found, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void startReplyToMessage(Message parent) {

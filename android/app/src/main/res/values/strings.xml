@@ -119,6 +119,7 @@
     <string name="user_posts_private">This user has hidden their posts.</string>
     <string name="user_replies_private">This user has hidden their replies.</string>
     <string name="post_not_found">Post not found</string>
+    <string name="message_not_found">Message not found</string>
     <string name="post_deleted_unavailable">This post has been deleted. Refreshing the list.</string>
     <string name="new_post">New post</string>
     <string name="post_title_hint">Post title</string>
@@ -164,6 +165,12 @@
     <string name="reply_updated">Reply updated</string>
     <string name="edited_label">[edited]</string>
     <string name="trending">Trending</string>
+    <string name="messages">Messages</string>
+    <string name="messages_empty_title">No messages yet</string>
+    <string name="messages_empty_body">Private conversations and notifications will appear here.</string>
+    <string name="mention_notification_title">%1$s mentioned you</string>
+    <string name="mention_notification_body">%1$s</string>
+    <string name="unknown_user">Unknown user</string>
     <string name="trending_tags">Trending Tags</string>
     <string name="trending_tags_title">Trending Tags</string>
     <string name="posts_tagged_with">Posts tagged with %1$s</string>
@@ -179,6 +186,7 @@
     <string name="publish_post">Publish post</string>
     <string name="nav_feed">Feed</string>
     <string name="nav_trending">Trends</string>
+    <string name="nav_messages">Messages</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_settings">Settings</string>
     <string name="settings_section_account">Account</string>

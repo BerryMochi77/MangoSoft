@@ -19,8 +19,9 @@ android/
     src/main/java/com/example/comp2100miniproject/
       MainActivity.java        # 单 Activity 宿主 + BottomNavigationView
       TabHost.java             # Fragment 与宿主之间的接口
-      FeedFragment.java        # 4 个 Tab 各一个 Fragment
+      FeedFragment.java        # 顶层 Tab 各一个 Fragment
       TrendsFragment.java
+      MessagesFragment.java
       ProfileFragment.java
       SettingsFragment.java
       PostViewerActivity.java  # 深页面（点进帖子）
@@ -189,6 +190,47 @@ boolean following = store.isFollowing(currentUserId, targetUserId);
 boolean friends = store.areFriends(currentUserId, targetUserId);
 ```
 
+## Messages and mentions
+
+The Messages tab is the entry point for app notifications. `@` mentions in replies create mention notifications for the mentioned user.
+
+Core ownership:
+
+- `notification.MentionNotificationRegistry` lives in `android/social-core`.
+- Mention notifications are keyed by recipient user id and target message id.
+- The registry stores recipient, sender, post id, message id, timestamp, and preview text.
+- This is a sidecar registry; do not add notification fields to `Message`.
+
+Android ownership:
+
+- `PostViewerActivity` parses submitted reply text for `@DisplayName` / `@username` and records mention notifications after the reply is inserted.
+- `MessagesFragment` reads mention notifications for `host.currentUser()` and renders them as cards in the Messages tab.
+- Tapping a mention card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
+
+How to create a mention notification elsewhere:
+
+```java
+MentionNotificationRegistry.getInstance().addMention(
+        recipientUserId,
+        senderUserId,
+        postId,
+        messageId,
+        System.currentTimeMillis(),
+        previewText
+);
+```
+
+How to open a message notification target:
+
+```java
+Intent intent = new Intent(context, PostViewerActivity.class);
+intent.putExtra("post_index", postIndex);
+intent.putExtra(PostViewerActivity.EXTRA_TARGET_MESSAGE_ID, messageId.toString());
+intent.putExtra(AuthManager.EXTRA_USER_ID, currentUser.getUUID().toString());
+intent.putExtra(AuthManager.EXTRA_IS_ADMIN, currentUser.role() == User.Role.Admin);
+startActivity(intent);
+```
+
 How to add this navigation somewhere else:
 
 ```java
@@ -281,12 +323,13 @@ sdk.dir=C\:\\Users\\52734\\AppData\\Local\\Android\\Sdk
 ## 顶层导航
 
 应用是**单 Activity + 多 Fragment** 结构。`MainActivity` 是唯一持有
-`BottomNavigationView` 的宿主，4 个 Tab 各对应一个 Fragment：
+`BottomNavigationView` 的宿主，顶层 Tab 各对应一个 Fragment：
 
 | Tab            | Fragment            | 职责                              |
 |----------------|---------------------|-----------------------------------|
 | `navFeed`      | `FeedFragment`      | 帖子列表 + 发帖 + 管理员审核入口 |
 | `navTrending`  | `TrendsFragment`    | Trending tags + 按 tag 过滤的内联结果 |
+| `navMessages`  | `MessagesFragment`  | 消息系统入口 + 后续私信/通知列表 |
 | `navProfile`   | `ProfileFragment`   | 个人资料、头像、我的帖子/回复    |
 | `navSettings`  | `SettingsFragment`  | 主题、登出                        |
 
