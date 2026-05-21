@@ -14,7 +14,7 @@
         android:adjustViewBounds="true"
         android:contentDescription="@string/app_name"
         android:scaleType="fitCenter"
-        android:src="@drawable/app_logo"
+        android:src="@drawable/mangosoft_logo"
         app:layout_constraintBottom_toTopOf="@+id/loginCard"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
