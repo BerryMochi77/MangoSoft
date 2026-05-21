@@ -499,21 +499,11 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void showComposerMenu(EditText input) {
         activeComposerInput = input;
-        String[] options = {
-                getString(R.string.add_image),
-                getString(R.string.add_emoji)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.more_composer_options)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        chooseComposerImage();
-                    } else if (which == 1) {
-                        showEmojiChooser(input);
-                    }
-                })
-                .show();
+        ComposerActionSheet.show(
+                this,
+                this::chooseComposerImage,
+                () -> showEmojiChooser(input)
+        );
     }
 
     private void chooseComposerImage() {

@@ -15,7 +15,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -100,21 +99,11 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void showComposerMenu() {
-        String[] options = {
-                getString(R.string.add_image),
-                getString(R.string.add_emoji)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.more_composer_options)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        chooseComposerImage();
-                    } else if (which == 1) {
-                        showEmojiChooser();
-                    }
-                })
-                .show();
+        ComposerActionSheet.show(
+                this,
+                this::chooseComposerImage,
+                this::showEmojiChooser
+        );
     }
 
     private void chooseComposerImage() {

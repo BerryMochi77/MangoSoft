@@ -24,11 +24,14 @@ import android.widget.FrameLayout;
 import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -172,10 +175,40 @@ public final class ComposerFormatManager {
         grid.setClipToPadding(false);
         grid.setAdapter(new FormatOptionAdapter(context, options));
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setTitle(R.string.add_emoji)
-                .setView(grid)
-                .create();
+        BottomSheetDialog dialog = new BottomSheetDialog(context);
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(context, 20), dp(context, 12), dp(context, 20), dp(context, 24));
+        root.setBackgroundColor(context.getColor(R.color.surface));
+
+        LinearLayout header = new LinearLayout(context);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView title = new TextView(context);
+        title.setText(R.string.add_emoji);
+        title.setTextColor(context.getColor(R.color.text_primary));
+        title.setTextSize(18f);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        header.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        ImageButton close = new ImageButton(context);
+        close.setImageResource(R.drawable.ic_close);
+        close.setContentDescription(context.getString(R.string.cancel));
+        close.setBackgroundColor(Color.TRANSPARENT);
+        close.setColorFilter(context.getColor(R.color.text_secondary));
+        close.setPadding(dp(context, 10), dp(context, 10), dp(context, 10), dp(context, 10));
+        close.setOnClickListener(v -> dialog.dismiss());
+        header.addView(close, new LinearLayout.LayoutParams(dp(context, 44), dp(context, 44)));
+
+        root.addView(header);
+        LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(context, 320)
+        );
+        gridParams.topMargin = dp(context, 8);
+        root.addView(grid, gridParams);
+        dialog.setContentView(root);
         grid.setOnItemClickListener((parent, view, position, id) -> {
             FormatOption option = options.get(position);
             if (option.imageRef) {

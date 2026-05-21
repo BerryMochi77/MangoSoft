@@ -177,17 +177,18 @@ startActivity(intent);
 
 ## Composer format options
 
-Post creation and reply composition share a small "more options" composer menu. The entry point is a plus button:
+Post creation and reply composition share a small bottom composer action sheet. The entry point is a plus button:
 
 - In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
 - In `PostViewerActivity`, the plus button sits to the right of `Send` in the bottom reply bar.
 - Reply-to-message dialogs also expose the same plus menu.
+- `ComposerActionSheet` owns the bottom sheet shell and action layout so the two composer entry points stay visually consistent.
 
 Current options:
 
 - `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
-- `Add emoji`: inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
-- The emoji/sticker picker is a flat grid. Saved stickers render as thumbnail-only cells.
+- `Add emoji`: opens a bottom-sheet emoji/sticker picker and inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
+- The emoji/sticker picker is a flat bottom-sheet grid. Saved stickers render as thumbnail-only cells.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
 - Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
 - Compact previews such as Profile -> My replies must call `ComposerFormatManager.previewText(...)` so internal image tokens appear as `[image]`, not as file paths.
@@ -203,9 +204,10 @@ Architecture:
 How to add another format option:
 
 1. Add the option label in `strings.xml`.
-2. Add a branch in `showComposerMenu(...)` for both `CreatePostActivity` and `PostViewerActivity`.
-3. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
-4. Update `ComposerFormatManager` if the new format needs parsing or rendering.
+2. Add a new action cell in `ComposerActionSheet`.
+3. Wire the callback from both `CreatePostActivity.showComposerMenu(...)` and `PostViewerActivity.showComposerMenu(...)`.
+4. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
+5. Update `ComposerFormatManager` if the new format needs parsing or rendering.
 
 ## Demo content seeding
 
