@@ -87,7 +87,7 @@ public class CreatePostActivity extends AppCompatActivity {
         ImageButton buttonRemoveAttachment = findViewById(R.id.buttonRemoveAttachment);
         buttonBack.setOnClickListener(v -> finish());
         buttonPublish.setOnClickListener(v -> publishPost());
-        buttonComposerOptions.setOnClickListener(v -> showComposerMenu());
+        buttonComposerOptions.setOnClickListener(v -> chooseComposerImage());
         buttonRemoveAttachment.setOnClickListener(v -> clearAttachmentPreview());
         imageAttachmentPreview.setOnClickListener(v ->
                 ComposerFormatManager.showImagePreview(this, attachedImageUri));
@@ -97,14 +97,6 @@ public class CreatePostActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-    }
-
-    private void showComposerMenu() {
-        ComposerActionSheet.show(
-                this,
-                this::chooseComposerImage,
-                this::showEmojiChooser
-        );
     }
 
     private void chooseComposerImage() {
@@ -132,10 +124,6 @@ public class CreatePostActivity extends AppCompatActivity {
         attachedImageUri = null;
         imageAttachmentPreview.setImageDrawable(null);
         attachmentPreviewCard.setVisibility(View.GONE);
-    }
-
-    private void showEmojiChooser() {
-        ComposerFormatManager.showEmojiChooser(this, inputBody);
     }
 
     private void publishPost() {

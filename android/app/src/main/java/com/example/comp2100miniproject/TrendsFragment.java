@@ -31,7 +31,6 @@ import hashtag.HashtagService;
 import hashtag.TagCount;
 import hashtag.search.HashtagSearchStrategy;
 import hashtag.search.PostSearchStrategy;
-import postview.PostViewService;
 
 /**
  * Trends tab: trending hashtag chips, plus an inline results list when a tag is selected.
@@ -211,9 +210,7 @@ public class TrendsFragment extends Fragment {
     }
 
     private int hotScore(Post post) {
-        int views = PostViewService.getInstance().getViewCount(post.id);
-        int reactions = ReactionManager.getInstance().getTotalReactionCount(post.id);
-        return views + reactions * 4;
+        return PostEngagement.hotScore(post);
     }
 
     private void openPost(Post post) {

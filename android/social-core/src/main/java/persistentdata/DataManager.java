@@ -43,7 +43,7 @@ public class DataManager {
 			IO, new CSVFormattedFactory(new CSVFormat(4)), new UserSerializer(), "users");
 
 	private final DataPipeline<Post, String[]> postPipeline = new DataPipeline<>(
-			IO, new CSVFormattedFactory(new CSVFormat(5)), new PostSerializer(), "posts");
+			IO, new CSVFormattedFactory(new CSVFormat(6)), new PostSerializer(), "posts");
 
 	private final DataPipeline<Message, String[]> messagePipeline = new DataPipeline<>(
 			IO, new CSVFormattedFactory(new CSVFormat(8)), new MessageSerializer(), "messages");

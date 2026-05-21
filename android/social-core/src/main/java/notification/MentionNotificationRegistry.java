@@ -9,13 +9,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Sidecar notification store for @ mentions. Mention state is intentionally
+ * Sidecar notification store for replies and @ mentions. Notification state is intentionally
  * separate from Message so the domain model remains unchanged.
  */
 public class MentionNotificationRegistry {
     private static MentionNotificationRegistry instance;
 
-    private final Map<UUID, LinkedHashMap<UUID, MentionNotification>> byRecipient =
+    private final Map<UUID, LinkedHashMap<UUID, MentionNotification>> mentionsByRecipient =
+            new LinkedHashMap<>();
+    private final Map<UUID, LinkedHashMap<UUID, MentionNotification>> repliesByRecipient =
             new LinkedHashMap<>();
 
     private MentionNotificationRegistry() {
@@ -34,11 +36,37 @@ public class MentionNotificationRegistry {
                               String preview) {
         if (recipient == null || sender == null || post == null || message == null) return false;
 
+        return add(NotificationType.MENTION, mentionsByRecipient,
+                recipient, sender, post, message, timestamp, preview);
+    }
+
+    public boolean addReply(UUID recipient,
+                            UUID sender,
+                            UUID post,
+                            UUID message,
+                            long timestamp,
+                            String preview) {
+        return add(NotificationType.REPLY, repliesByRecipient,
+                recipient, sender, post, message, timestamp, preview);
+    }
+
+    private boolean add(NotificationType type,
+                        Map<UUID, LinkedHashMap<UUID, MentionNotification>> target,
+                        UUID recipient,
+                        UUID sender,
+                        UUID post,
+                        UUID message,
+                        long timestamp,
+                        String preview) {
+        if (recipient == null || sender == null || post == null || message == null) return false;
+        if (recipient.equals(sender)) return false;
+
         LinkedHashMap<UUID, MentionNotification> notifications =
-                byRecipient.computeIfAbsent(recipient, ignored -> new LinkedHashMap<>());
+                target.computeIfAbsent(recipient, ignored -> new LinkedHashMap<>());
         if (notifications.containsKey(message)) return false;
 
         notifications.put(message, new MentionNotification(
+                type,
                 UUID.randomUUID(),
                 recipient,
                 sender,
@@ -51,7 +79,34 @@ public class MentionNotificationRegistry {
     }
 
     public List<MentionNotification> mentionsFor(UUID recipient) {
-        LinkedHashMap<UUID, MentionNotification> notifications = byRecipient.get(recipient);
+        return notificationsFor(mentionsByRecipient, recipient);
+    }
+
+    public List<MentionNotification> repliesFor(UUID recipient) {
+        return notificationsFor(repliesByRecipient, recipient);
+    }
+
+    public int unreadCountFor(UUID recipient) {
+        return unreadCount(mentionsByRecipient, recipient) + unreadCount(repliesByRecipient, recipient);
+    }
+
+    public void markAllRead(UUID recipient) {
+        markAllRead(mentionsByRecipient, recipient);
+        markAllRead(repliesByRecipient, recipient);
+    }
+
+    public void markRepliesRead(UUID recipient) {
+        markAllRead(repliesByRecipient, recipient);
+    }
+
+    public void markMentionsRead(UUID recipient) {
+        markAllRead(mentionsByRecipient, recipient);
+    }
+
+    private List<MentionNotification> notificationsFor(
+            Map<UUID, LinkedHashMap<UUID, MentionNotification>> target,
+            UUID recipient) {
+        LinkedHashMap<UUID, MentionNotification> notifications = target.get(recipient);
         if (notifications == null || notifications.isEmpty()) return Collections.emptyList();
 
         ArrayList<MentionNotification> result = new ArrayList<>(notifications.values());
@@ -59,9 +114,36 @@ public class MentionNotificationRegistry {
         return Collections.unmodifiableList(result);
     }
 
+    private int unreadCount(Map<UUID, LinkedHashMap<UUID, MentionNotification>> target,
+                            UUID recipient) {
+        LinkedHashMap<UUID, MentionNotification> notifications = target.get(recipient);
+        if (notifications == null || notifications.isEmpty()) return 0;
+
+        int count = 0;
+        for (MentionNotification notification : notifications.values()) {
+            if (!notification.isRead()) count++;
+        }
+        return count;
+    }
+
+    private void markAllRead(Map<UUID, LinkedHashMap<UUID, MentionNotification>> target,
+                             UUID recipient) {
+        LinkedHashMap<UUID, MentionNotification> notifications = target.get(recipient);
+        if (notifications == null || notifications.isEmpty()) return;
+
+        for (MentionNotification notification : notifications.values()) {
+            notification.markRead();
+        }
+    }
+
     public void removeForMessage(UUID message) {
         if (message == null) return;
-        Iterator<LinkedHashMap<UUID, MentionNotification>> it = byRecipient.values().iterator();
+        removeFrom(mentionsByRecipient, message);
+        removeFrom(repliesByRecipient, message);
+    }
+
+    private void removeFrom(Map<UUID, LinkedHashMap<UUID, MentionNotification>> target, UUID message) {
+        Iterator<LinkedHashMap<UUID, MentionNotification>> it = target.values().iterator();
         while (it.hasNext()) {
             LinkedHashMap<UUID, MentionNotification> notifications = it.next();
             notifications.remove(message);
@@ -70,10 +152,17 @@ public class MentionNotificationRegistry {
     }
 
     public void clear() {
-        byRecipient.clear();
+        mentionsByRecipient.clear();
+        repliesByRecipient.clear();
+    }
+
+    public enum NotificationType {
+        REPLY,
+        MENTION
     }
 
     public static final class MentionNotification {
+        private final NotificationType type;
         private final UUID id;
         private final UUID recipient;
         private final UUID sender;
@@ -81,14 +170,17 @@ public class MentionNotificationRegistry {
         private final UUID message;
         private final long timestamp;
         private final String preview;
+        private boolean read;
 
-        private MentionNotification(UUID id,
+        private MentionNotification(NotificationType type,
+                                    UUID id,
                                     UUID recipient,
                                     UUID sender,
                                     UUID post,
                                     UUID message,
                                     long timestamp,
                                     String preview) {
+            this.type = type;
             this.id = id;
             this.recipient = recipient;
             this.sender = sender;
@@ -96,6 +188,10 @@ public class MentionNotificationRegistry {
             this.message = message;
             this.timestamp = timestamp;
             this.preview = preview;
+        }
+
+        public NotificationType type() {
+            return type;
         }
 
         public UUID id() {
@@ -124,6 +220,14 @@ public class MentionNotificationRegistry {
 
         public String preview() {
             return preview;
+        }
+
+        public boolean isRead() {
+            return read;
+        }
+
+        private void markRead() {
+            read = true;
         }
     }
 }

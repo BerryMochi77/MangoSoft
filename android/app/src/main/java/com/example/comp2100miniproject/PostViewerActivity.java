@@ -2,6 +2,7 @@ package com.example.comp2100miniproject;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -105,6 +107,9 @@ public class PostViewerActivity extends AppCompatActivity {
     private EditText activeComposerInput;
     private UUID activeReplyParentId;
     private ActivityResultLauncher<PickVisualMediaRequest> composerImageLauncher;
+    private FrameLayout replyAttachmentPreviewCard;
+    private ImageView imageReplyAttachmentPreview;
+    private Uri replyAttachmentUri;
     private boolean postHeaderCollapsed;
     private float headerGestureStartY;
     private boolean headerGestureHandled;
@@ -126,6 +131,15 @@ public class PostViewerActivity extends AppCompatActivity {
     private final Map<UUID, Integer> expandedReplyLimits = new HashMap<>();
 
     private ChipGroup reactionChipGroup;
+    private boolean reactionPickerVisible;
+    private static final String[] REACTION_PICKER_EMOJIS = {
+            "\uD83D\uDE00", "\uD83D\uDE01", "\uD83D\uDE05", "\uD83D\uDE06", "\uD83E\uDD23",
+            "\uD83D\uDE0D", "\uD83E\uDD70", "\uD83D\uDE0E", "\uD83E\uDD14", "\uD83D\uDE2D",
+            "\uD83D\uDE31", "\uD83D\uDE24", "\uD83D\uDE2E", "\uD83D\uDE34", "\uD83D\uDE4C",
+            "\uD83D\uDC4F", "\uD83D\uDD25", "\uD83C\uDF89", "\uD83D\uDCAF", "\uD83C\uDF1F",
+            "\uD83D\uDC40", "\uD83D\uDC4C", "\uD83E\uDD1D", "\uD83D\uDC4E", "\uD83D\uDC80",
+            "\uD83E\uDD21", "\uD83E\uDD73", "\uD83E\uDEE1", "\uD83D\uDC9C", "\uD83D\uDC99"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,6 +186,8 @@ public class PostViewerActivity extends AppCompatActivity {
         imagePostAuthorAvatar = findViewById(R.id.imagePostAuthorAvatar);
         recyclerMessages = findViewById(R.id.recyclerMessages);
         inputReply = findViewById(R.id.inputReply);
+        replyAttachmentPreviewCard = findViewById(R.id.replyAttachmentPreviewCard);
+        imageReplyAttachmentPreview = findViewById(R.id.imageReplyAttachmentPreview);
         inputReply.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 showKeyboard();
@@ -217,8 +233,11 @@ public class PostViewerActivity extends AppCompatActivity {
             activeComposerInput = inputReply;
             chooseComposerImage();
         });
-        findViewById(R.id.buttonReplyEmoji).setOnClickListener(v -> showEmojiChooser(inputReply));
+        findViewById(R.id.buttonReplyEmoji).setVisibility(View.GONE);
         findViewById(R.id.buttonMoreFormats).setOnClickListener(v -> ComposerActionSheet.showMoreFormats(this));
+        findViewById(R.id.buttonRemoveReplyAttachment).setOnClickListener(v -> clearReplyAttachment());
+        imageReplyAttachmentPreview.setOnClickListener(v ->
+                ComposerFormatManager.showImagePreview(this, replyAttachmentUri));
 
         reactionBar = findViewById(R.id.reactionBar);
         buttonPostOverflow = findViewById(R.id.buttonPostOverflow);
@@ -374,6 +393,7 @@ public class PostViewerActivity extends AppCompatActivity {
             boolean selected = manager.hasUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
             chip.setChecked(selected);
             chip.setAlpha(selected ? 1f : 0.82f);
+            styleReactionChip(chip, selected);
             chip.setOnClickListener(v -> {
                 manager.toggleReaction(post.getUUID(), currentUser.getUUID(), emoji);
                 updateReactionButtons();
@@ -382,9 +402,32 @@ public class PostViewerActivity extends AppCompatActivity {
         }
 
         Chip addChip = reactionChip("+");
+        styleReactionChip(addChip, reactionPickerVisible);
         addChip.setContentDescription(getString(R.string.custom_reaction_title));
-        addChip.setOnClickListener(v -> showPostReactionEmojiChooser());
+        addChip.setOnClickListener(v -> {
+            reactionPickerVisible = !reactionPickerVisible;
+            updateReactionButtons();
+        });
         reactionChipGroup.addView(addChip);
+
+        if (reactionPickerVisible) {
+            addReactionPicker(options);
+        }
+    }
+
+    private void addReactionPicker(Set<String> existingOptions) {
+        for (String emoji : REACTION_PICKER_EMOJIS) {
+            if (existingOptions.contains(emoji)) continue;
+            Chip chip = reactionChip(emoji);
+            styleReactionChip(chip, false);
+            chip.setOnClickListener(v -> {
+                ReactionManager.getInstance()
+                        .addUserReaction(post.getUUID(), currentUser.getUUID(), emoji);
+                reactionPickerVisible = false;
+                updateReactionButtons();
+            });
+            reactionChipGroup.addView(chip);
+        }
     }
 
     private Chip reactionChip(String text) {
@@ -401,12 +444,11 @@ public class PostViewerActivity extends AppCompatActivity {
         return chip;
     }
 
-    private void showPostReactionEmojiChooser() {
-        ComposerFormatManager.showEmojiChooser(this, emoji -> {
-            ReactionManager.getInstance().toggleReaction(
-                    post.getUUID(), currentUser.getUUID(), emoji);
-            updateReactionButtons();
-        });
+    private void styleReactionChip(Chip chip, boolean selected) {
+        float density = getResources().getDisplayMetrics().density;
+        chip.setChipStrokeColor(ColorStateList.valueOf(
+                getColor(selected ? R.color.accent : R.color.border)));
+        chip.setChipStrokeWidth((selected ? 2f : 1f) * density);
     }
 
     private void renderPost() {
@@ -718,6 +760,7 @@ public class PostViewerActivity extends AppCompatActivity {
     private void addReply() {
         if (addReplyMessage(inputReply.getText().toString(), activeReplyParentId)) {
             inputReply.setText("");
+            clearReplyAttachment();
             clearReplyTarget();
         }
     }
@@ -729,6 +772,10 @@ public class PostViewerActivity extends AppCompatActivity {
      */
     private boolean addReplyMessage(String rawContent, java.util.UUID parentMessageId) {
         String content = rawContent == null ? "" : rawContent.trim();
+        if (replyAttachmentUri != null) {
+            String imageToken = ComposerFormatManager.imageToken(replyAttachmentUri);
+            content = content.isEmpty() ? imageToken : content + "\n\n" + imageToken;
+        }
         if (content.isEmpty()) {
             Toast.makeText(this, R.string.empty_content, Toast.LENGTH_SHORT).show();
             return false;
@@ -747,10 +794,41 @@ public class PostViewerActivity extends AppCompatActivity {
             MessageThreadRegistry.getInstance().setParent(newId, parentMessageId);
         }
         AndroidPostStore.saveAll(this);
+        notifyReplyRecipient(content, newId, parentMessageId, timestamp);
         notifyMentionedUsers(content, newId, timestamp);
         Toast.makeText(this, R.string.reply_sent, Toast.LENGTH_SHORT).show();
         loadMessages();
         return true;
+    }
+
+    private void notifyReplyRecipient(String content, UUID messageId, UUID parentMessageId, long timestamp) {
+        UUID recipient = post.poster;
+        if (parentMessageId != null) {
+            Message parent = findMessage(parentMessageId);
+            if (parent != null) {
+                recipient = parent.poster();
+            }
+        }
+
+        if (recipient == null || recipient.equals(currentUser.getUUID())) return;
+        MentionNotificationRegistry.getInstance().addReply(
+                recipient,
+                currentUser.getUUID(),
+                post.getUUID(),
+                messageId,
+                timestamp,
+                ComposerFormatManager.previewText(content)
+        );
+    }
+
+    private Message findMessage(UUID messageId) {
+        if (messageId == null) return null;
+        Iterator<Message> messages = post.messages.getAll();
+        while (messages.hasNext()) {
+            Message message = messages.next();
+            if (message.id().equals(messageId)) return message;
+        }
+        return null;
     }
 
     private void notifyMentionedUsers(String content, UUID messageId, long timestamp) {
@@ -842,15 +920,6 @@ public class PostViewerActivity extends AppCompatActivity {
                 imm.showSoftInput(inputReply, InputMethodManager.SHOW_IMPLICIT);
             }
         });
-    }
-
-    private void showComposerMenu(EditText input) {
-        activeComposerInput = input;
-        ComposerActionSheet.show(
-                this,
-                this::chooseComposerImage,
-                () -> showEmojiChooser(input)
-        );
     }
 
     private void showMentionChooser() {
@@ -946,7 +1015,7 @@ public class PostViewerActivity extends AppCompatActivity {
     }
 
     private void insertSelectedImage(Uri uri) {
-        if (activeComposerInput == null || uri == null) return;
+        if (uri == null) return;
 
         Uri copied = ComposerFormatManager.copyImage(this, uri);
         if (copied == null) {
@@ -954,8 +1023,24 @@ public class PostViewerActivity extends AppCompatActivity {
             return;
         }
 
-        ComposerFormatManager.insertImage(activeComposerInput, copied);
+        if (activeComposerInput == inputReply) {
+            replyAttachmentUri = copied;
+            imageReplyAttachmentPreview.setImageURI(copied);
+            replyAttachmentPreviewCard.setVisibility(View.VISIBLE);
+        } else {
+            ComposerFormatManager.insertImage(activeComposerInput, copied);
+        }
         Toast.makeText(this, R.string.image_attached, Toast.LENGTH_SHORT).show();
+    }
+
+    private void clearReplyAttachment() {
+        replyAttachmentUri = null;
+        if (imageReplyAttachmentPreview != null) {
+            imageReplyAttachmentPreview.setImageDrawable(null);
+        }
+        if (replyAttachmentPreviewCard != null) {
+            replyAttachmentPreviewCard.setVisibility(View.GONE);
+        }
     }
 
     private void showEmojiChooser(EditText input) {

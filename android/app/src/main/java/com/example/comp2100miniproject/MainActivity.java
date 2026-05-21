@@ -15,6 +15,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.comp2100miniproject.auth.AuthManager;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.UUID;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import dao.PostDAO;
 import dao.RandomContentGenerator;
 import dao.model.User;
+import notification.MentionNotificationRegistry;
 
 /**
  * Single-Activity host for the bottom-nav tabs. Tab taps swap the
@@ -114,6 +116,13 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         });
 
         handleTrendsIntent(getIntent());
+        refreshMessagesNotificationState();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshMessagesNotificationState();
     }
 
     @Override
@@ -204,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         swapVisibleFragmentTo(target);
         settingsOverlayShown = false;
         currentTabId = itemId;
+        refreshMessagesNotificationState();
     }
 
     private void swapVisibleFragmentTo(Fragment target) {
@@ -277,6 +287,11 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         }
     }
 
+    @Override
+    public void refreshNotificationBadges() {
+        updateMessagesBadge();
+    }
+
     // === Helpers ===
 
     private UUID readCurrentUserId() {
@@ -294,5 +309,32 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void updateMessagesBadge() {
+        if (bottomNav == null || currentUser == null) return;
+
+        int unreadCount = notificationCount();
+        if (unreadCount <= 0) {
+            bottomNav.removeBadge(R.id.navMessages);
+            return;
+        }
+
+        BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.navMessages);
+        badge.setVisible(true);
+        badge.setNumber(unreadCount);
+        badge.setMaxCharacterCount(3);
+        badge.setBackgroundColor(getColor(R.color.warning));
+        badge.setBadgeTextColor(getColor(android.R.color.white));
+    }
+
+    private int notificationCount() {
+        UUID userId = currentUser.getUUID();
+        MentionNotificationRegistry registry = MentionNotificationRegistry.getInstance();
+        return registry.unreadCountFor(userId);
+    }
+
+    private void refreshMessagesNotificationState() {
+        updateMessagesBadge();
     }
 }

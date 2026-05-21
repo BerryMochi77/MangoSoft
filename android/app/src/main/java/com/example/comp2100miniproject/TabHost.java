@@ -30,4 +30,7 @@ public interface TabHost {
 
     /** Dismiss SettingsFragment and return to the most recent tab. */
     void closeSettings();
+
+    /** Refresh notification badges after a child page marks messages as read. */
+    void refreshNotificationBadges();
 }

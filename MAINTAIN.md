@@ -192,20 +192,30 @@ boolean friends = store.areFriends(currentUserId, targetUserId);
 
 ## Messages and mentions
 
-The Messages tab is the entry point for app notifications. `@` mentions in replies create mention notifications for the mentioned user.
+The Messages tab is the entry point for app notifications. Reply and `@` mention
+notifications are grouped into separate folders so chat can later use the main
+message list without mixing notification types.
 
 Core ownership:
 
 - `notification.MentionNotificationRegistry` lives in `android/social-core`.
-- Mention notifications are keyed by recipient user id and target message id.
+- Mention and reply notifications are keyed by recipient user id and target message id.
 - The registry stores recipient, sender, post id, message id, timestamp, and preview text.
+- New notifications start unread. `MainActivity` reads `unreadCountFor(...)` to show the
+  Messages bottom-nav badge. The badge is capped by Material Components as `99+`.
+- Messages home shows a numbered red badge on each folder, but the number only counts unread
+  notifications inside that folder.
+- Opening a folder renders no-number red dots on the unread notification rows for that visit,
+  then marks that folder read and refreshes the bottom-nav badge. Read notifications remain
+  visible in the folder.
 - This is a sidecar registry; do not add notification fields to `Message`.
 
 Android ownership:
 
 - `PostViewerActivity` parses submitted reply text for `@DisplayName` / `@username` and records mention notifications after the reply is inserted.
-- `MessagesFragment` reads mention notifications for `host.currentUser()` and renders them as cards in the Messages tab.
-- Tapping a mention card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
+- `PostViewerActivity` also records reply notifications for the owner of the message being replied to.
+- `MessagesFragment` reads reply and mention notifications for `host.currentUser()` and renders them as foldered cards in the Messages tab.
+- Tapping a notification card opens `PostViewerActivity` with `PostViewerActivity.EXTRA_TARGET_MESSAGE_ID`; the detail screen then scrolls toward the matching reply.
 
 How to create a mention notification elsewhere:
 
@@ -243,22 +253,21 @@ startActivity(intent);
 
 ## Composer format options
 
-Post creation and reply composition share a small bottom composer action sheet. The entry point is a plus button:
+Post creation and reply composition use direct composer shortcuts rather than a centered dialog:
 
-- In `CreatePostActivity`, the plus button inserts formatting into the post body or attaches a preview image.
+- In `CreatePostActivity`, the plus button opens Android Photo Picker directly.
 - In `PostViewerActivity`, the bottom reply composer is split into an input field plus a keyboard-adjacent toolbar.
 - `PostViewerActivity` declares `windowSoftInputMode="adjustResize|stateHidden"` and explicitly calls `InputMethodManager.showSoftInput(...)` when the reply field is focused, so tapping the text field requests the normal system keyboard instead of any app-owned overlay.
-- Reply-to-message dialogs also expose the same plus menu.
+- The reply image button opens Android Photo Picker directly. Text emoji should be typed with the normal keyboard/IME.
 - `ComposerActionSheet` owns the bottom sheet shell and action layout so the two composer entry points stay visually consistent.
 
 Current options:
 
-- `Add image`: opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
-- `Add emoji`: opens a bottom-sheet emoji/sticker picker and inserts the selected emoji or saved sticker at the cursor. The picker includes defaults, saved text emojis, and images saved as stickers.
+- Image attachment opens Android Photo Picker, copies the selected image into app-private storage, and inserts an internal `[[image:file-uri]]` token into the text.
+- Text emoji and stickers should stay keyboard-driven unless a future feature needs a richer media/sticker gallery.
 - Reply composer `@`: opens a bottom-sheet picker containing friends and followed users from `RelationshipStore`, then inserts an `@DisplayName` mention into the reply field.
-- Reply composer `+`: opens an intentionally empty bottom action sheet for future file / format actions. Keep it wired through `ComposerActionSheet.showMoreFormats(...)` when adding new options.
 - The emoji/sticker picker is a flat bottom-sheet grid. Saved stickers render as thumbnail-only cells.
-- The post reaction `+` button reuses the same bottom-sheet emoji picker shell through `ComposerFormatManager.showEmojiChooser(Context, EmojiSelectionListener)`, but it only offers text emojis because post reactions are stored as reaction labels, not message attachments.
+- The post reaction `+` button expands extra emoji chips inline inside the current post reaction row. It should not open a centered dialog or bottom sheet.
 - Tapping a rendered image opens a full-screen preview. The preview has a top-right overflow menu with `Save image to gallery` and `Save image as emoji`.
 - Tapping text that contains emojis opens a small chooser. A text emoji can be saved to the app emoji list or rendered as an image and saved to the gallery.
 - Compact previews such as Profile -> My replies must call `ComposerFormatManager.previewText(...)` so internal image tokens appear as `[image]`, not as file paths.
@@ -276,7 +285,7 @@ How to add another format option:
 
 1. Add the option label in `strings.xml`.
 2. Add a new action cell in `ComposerActionSheet`.
-3. Wire the callback from both `CreatePostActivity.showComposerMenu(...)` and `PostViewerActivity.showComposerMenu(...)`.
+3. Wire the callback from the relevant composer button or toolbar entry point.
 4. Keep storage either inside existing text tokens or in a sidecar registry if it becomes separate per-message state.
 5. Update `ComposerFormatManager` if the new format needs parsing or rendering.
 
@@ -546,13 +555,15 @@ Login credential memory is intentionally split into two behaviors:
 - Password memory is opt-in only. The `Remember password` checkbox stores or clears the password while keeping the last username.
 - Do not store this state in `User` records; it is device-local UI convenience state owned by `LoginActivity`.
 - The app brand is MangoSoft. `activity_login.xml` renders the MangoSoft logo from `res/drawable-nodpi/mangosoft_logo.png`; `app_name` should stay aligned with that brand.
+- The launcher icon is provided by `res/drawable-nodpi/app_logo.png` and referenced from `AndroidManifest.xml` through `android:icon` and `android:roundIcon`.
 - Media saved to the gallery should use the `Pictures/MangoSoft` relative path so the device album name matches the visible brand.
 
 Post reactions are per-post, per-user emoji toggles:
 
 - Each emoji can be selected once per user. Tapping the same emoji again removes that user's reaction.
 - Selecting one emoji must not clear other selected emojis from the same user.
-- The `+` chip opens the shared bottom-sheet emoji picker for quick reactions; avoid adding a separate centered dialog or an inline duplicate tray.
+- Selected reaction chips use a stronger accent border; unselected chips keep a quieter border so the selected state is visually obvious.
+- The `+` chip expands extra emoji choices inline in the current post's reaction row. Tapping an inline emoji adds it immediately and collapses the picker.
 - `ReactionManager` currently lives in the Android app module as historical post-level state. If reactions become persistent or per-message later, move that logic into a social-core sidecar registry instead of adding fields to `Post` or `Message`.
 
 Threaded replies use one composer:
