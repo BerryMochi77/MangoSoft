@@ -78,7 +78,6 @@ public class PostViewerActivity extends AppCompatActivity {
     public static final String EXTRA_TARGET_MESSAGE_ID = "target_message_id";
     private static final int HEADER_COLLAPSE_GESTURE_DP = 28;
     private static final int HEADER_EXPAND_GESTURE_DP = 112;
-    private static final int REPLIES_PER_EXPANSION = 3;
     private AuthManager authManager;
     private AvatarManager avatarManager;
     private FrozenUserManager frozenUserManager;
@@ -118,6 +117,13 @@ public class PostViewerActivity extends AppCompatActivity {
      */
     private ArrayList<Message> threadedMessages = new ArrayList<>();
     private ArrayList<UUID> adapterMessageIds = new ArrayList<>();
+    /** Parent message id -> number of direct replies. Populated each {@link #loadMessages()}. */
+    private final Map<UUID, Integer> messageChildCount = new HashMap<>();
+    /**
+     * Parent message id -> explicitly set visible-reply count. A missing
+     * entry means "show all" — replies are expanded by default and the
+     * user collapses by tapping the parent's body.
+     */
     private final Map<UUID, Integer> expandedReplyLimits = new HashMap<>();
 
     private ChipGroup reactionChipGroup;
@@ -493,7 +499,7 @@ public class PostViewerActivity extends AppCompatActivity {
             timeSorted.add(it.next());
         }
 
-        List<MessageAdapter.ThreadListItem> displayItems = buildThreadDisplayItems(timeSorted);
+        List<Message> displayItems = buildThreadDisplayItems(timeSorted);
 
         messageAdapter = new MessageAdapter(
                 this,
@@ -503,13 +509,12 @@ public class PostViewerActivity extends AppCompatActivity {
                 this::handleMessageReaction,
                 this::showMessageOverflow,
                 this::openUserProfile,
-                this::expandReplyThread,
-                this::collapseReplyThread
+                this::toggleReplyThread
         );
         recyclerMessages.setAdapter(messageAdapter);
     }
 
-    private List<MessageAdapter.ThreadListItem> buildThreadDisplayItems(List<Message> timeSorted) {
+    private List<Message> buildThreadDisplayItems(List<Message> timeSorted) {
         MessageThreadRegistry threads = MessageThreadRegistry.getInstance();
         Set<UUID> present = new LinkedHashSet<>();
         for (Message message : timeSorted) {
@@ -536,7 +541,12 @@ public class PostViewerActivity extends AppCompatActivity {
             children.sort(byPopularity);
         }
 
-        ArrayList<MessageAdapter.ThreadListItem> items = new ArrayList<>();
+        messageChildCount.clear();
+        for (Map.Entry<UUID, List<Message>> entry : childrenByParent.entrySet()) {
+            messageChildCount.put(entry.getKey(), entry.getValue().size());
+        }
+
+        ArrayList<Message> items = new ArrayList<>();
         threadedMessages = new ArrayList<>();
         adapterMessageIds = new ArrayList<>();
         for (Message root : roots) {
@@ -547,40 +557,35 @@ public class PostViewerActivity extends AppCompatActivity {
 
     private void appendThreadItems(Message message,
                                    Map<UUID, List<Message>> childrenByParent,
-                                   List<MessageAdapter.ThreadListItem> items) {
-        items.add(MessageAdapter.ThreadListItem.message(message));
+                                   List<Message> items) {
+        items.add(message);
         threadedMessages.add(message);
         adapterMessageIds.add(message.id());
 
         List<Message> children = childrenByParent.get(message.id());
         if (children == null || children.isEmpty()) return;
 
-        int visible = Math.min(expandedReplyLimits.getOrDefault(message.id(), 0), children.size());
+        int visible = Math.min(
+                expandedReplyLimits.getOrDefault(message.id(), children.size()),
+                children.size());
         for (int i = 0; i < visible; i++) {
             appendThreadItems(children.get(i), childrenByParent, items);
         }
-
-        int remaining = children.size() - visible;
-        items.add(MessageAdapter.ThreadListItem.control(
-                new MessageAdapter.ThreadControlItem(
-                        message.id(),
-                        children.size(),
-                        visible,
-                        remaining
-                )
-        ));
-        adapterMessageIds.add(null);
     }
 
-    private void expandReplyThread(MessageAdapter.ThreadControlItem item) {
-        int current = expandedReplyLimits.getOrDefault(item.parentMessageId(), 0);
-        int next = Math.min(item.totalReplies(), current + REPLIES_PER_EXPANSION);
-        expandedReplyLimits.put(item.parentMessageId(), next);
-        loadMessages();
-    }
-
-    private void collapseReplyThread(MessageAdapter.ThreadControlItem item) {
-        expandedReplyLimits.remove(item.parentMessageId());
+    /**
+     * Tap on a parent comment's body collapses its visible replies, or
+     * re-expands them if already collapsed. Leaf comments do nothing.
+     */
+    private void toggleReplyThread(Message message) {
+        Integer total = messageChildCount.get(message.id());
+        if (total == null || total == 0) return;
+        int visible = expandedReplyLimits.getOrDefault(message.id(), total);
+        if (visible > 0) {
+            expandedReplyLimits.put(message.id(), 0);
+        } else {
+            expandedReplyLimits.remove(message.id());
+        }
         loadMessages();
     }
 

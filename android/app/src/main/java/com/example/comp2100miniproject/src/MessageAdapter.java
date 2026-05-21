@@ -34,12 +34,10 @@ import messagestate.MessageEditRegistry;
 import messagestate.MessageReactionRegistry;
 import messagestate.MessageThreadRegistry;
 
-public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
 
     /** Cap visual nesting so deep threads do not slide off the screen on a phone. */
     private static final int MAX_VISUAL_DEPTH = 3;
-    private static final int VIEW_TYPE_MESSAGE = 0;
-    private static final int VIEW_TYPE_THREAD_CONTROL = 1;
 
     public interface OnMessageActionClick {
         void onAction(Message message);
@@ -47,10 +45,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public interface OnUserClick {
         void onUserClick(User user);
-    }
-
-    public interface OnThreadControlClick {
-        void onAction(ThreadControlItem item);
     }
 
     /** Thumbs-up / thumbs-down tap. Direction is the one the user pressed. */
@@ -67,14 +61,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void onOverflow(Message message, View anchor);
     }
 
-    private final List<ThreadListItem> items;
+    private final List<Message> items;
     private final UUID currentUserId;
     private final OnMessageActionClick onReplyClick;
     private final OnReactionClick onReactionClick;
     private final OnOverflowClick onOverflowClick;
     private final OnUserClick onUserClick;
-    private final OnThreadControlClick onExpandThreadClick;
-    private final OnThreadControlClick onCollapseThreadClick;
+    private final OnMessageActionClick onContentClick;
     private final AuthManager authManager;
     private final AvatarManager avatarManager;
     private final int accentColor;
@@ -82,42 +75,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public MessageAdapter(
             Context context,
-            ArrayList<Message> dataSet,
+            List<Message> items,
             UUID currentUserId,
             OnMessageActionClick onReplyClick,
             OnReactionClick onReactionClick,
             OnOverflowClick onOverflowClick,
             OnUserClick onUserClick,
-            OnThreadControlClick onExpandThreadClick,
-            OnThreadControlClick onCollapseThreadClick
-    ) {
-        items = new ArrayList<>();
-        for (Message message : dataSet) {
-            items.add(ThreadListItem.message(message));
-        }
-        this.currentUserId = currentUserId;
-        this.onReplyClick = onReplyClick;
-        this.onReactionClick = onReactionClick;
-        this.onOverflowClick = onOverflowClick;
-        this.onUserClick = onUserClick;
-        this.onExpandThreadClick = onExpandThreadClick;
-        this.onCollapseThreadClick = onCollapseThreadClick;
-        this.authManager = new AuthManager(context);
-        this.avatarManager = new AvatarManager(authManager);
-        this.accentColor = ContextCompat.getColor(context, R.color.accent);
-        this.neutralColor = ContextCompat.getColor(context, R.color.text_secondary);
-    }
-
-    public MessageAdapter(
-            Context context,
-            List<ThreadListItem> items,
-            UUID currentUserId,
-            OnMessageActionClick onReplyClick,
-            OnReactionClick onReactionClick,
-            OnOverflowClick onOverflowClick,
-            OnUserClick onUserClick,
-            OnThreadControlClick onExpandThreadClick,
-            OnThreadControlClick onCollapseThreadClick
+            OnMessageActionClick onContentClick
     ) {
         this.items = new ArrayList<>(items);
         this.currentUserId = currentUserId;
@@ -125,79 +89,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.onReactionClick = onReactionClick;
         this.onOverflowClick = onOverflowClick;
         this.onUserClick = onUserClick;
-        this.onExpandThreadClick = onExpandThreadClick;
-        this.onCollapseThreadClick = onCollapseThreadClick;
+        this.onContentClick = onContentClick;
         this.authManager = new AuthManager(context);
         this.avatarManager = new AvatarManager(authManager);
         this.accentColor = ContextCompat.getColor(context, R.color.accent);
         this.neutralColor = ContextCompat.getColor(context, R.color.text_secondary);
-    }
-
-    public static final class ThreadListItem {
-        private final Message message;
-        private final ThreadControlItem control;
-
-        private ThreadListItem(Message message, ThreadControlItem control) {
-            this.message = message;
-            this.control = control;
-        }
-
-        public static ThreadListItem message(Message message) {
-            return new ThreadListItem(message, null);
-        }
-
-        public static ThreadListItem control(ThreadControlItem control) {
-            return new ThreadListItem(null, control);
-        }
-
-        public boolean isControl() {
-            return control != null;
-        }
-
-        public Message message() {
-            return message;
-        }
-
-        public ThreadControlItem control() {
-            return control;
-        }
-    }
-
-    public static final class ThreadControlItem {
-        private final UUID parentMessageId;
-        private final int totalReplies;
-        private final int visibleReplies;
-        private final int remainingReplies;
-
-        public ThreadControlItem(UUID parentMessageId,
-                                 int totalReplies,
-                                 int visibleReplies,
-                                 int remainingReplies) {
-            this.parentMessageId = parentMessageId;
-            this.totalReplies = totalReplies;
-            this.visibleReplies = visibleReplies;
-            this.remainingReplies = remainingReplies;
-        }
-
-        public UUID parentMessageId() {
-            return parentMessageId;
-        }
-
-        public int totalReplies() {
-            return totalReplies;
-        }
-
-        public int visibleReplies() {
-            return visibleReplies;
-        }
-
-        public int remainingReplies() {
-            return remainingReplies;
-        }
-
-        public boolean hasVisibleReplies() {
-            return visibleReplies > 0;
-        }
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -241,11 +137,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 OnReactionClick onReactionClick,
                 OnOverflowClick onOverflowClick,
                 OnUserClick onUserClick,
+                OnMessageActionClick onContentClick,
                 AuthManager authManager,
                 AvatarManager avatarManager,
                 int accentColor,
-                int neutralColor,
-                boolean followedByThreadControl
+                int neutralColor
         ) {
             // Thread lines on the left mark nesting depth.
             int depth = MessageThreadRegistry.getInstance().depthOf(message.id());
@@ -287,7 +183,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     onReactionClick.onReaction(message, MessageReactionRegistry.Direction.DISLIKE));
             commentButton.setOnClickListener(v -> onReplyClick.onAction(message));
             overflowButton.setOnClickListener(v -> onOverflowClick.onOverflow(message, v));
-            divider.setVisibility(followedByThreadControl ? View.GONE : View.VISIBLE);
+            if (onContentClick != null) {
+                View.OnClickListener toggle = v -> onContentClick.onAction(message);
+                content.setOnClickListener(toggle);
+                attachment.setOnClickListener(toggle);
+            } else {
+                content.setOnClickListener(null);
+                content.setClickable(false);
+                attachment.setOnClickListener(null);
+                attachment.setClickable(false);
+            }
+            divider.setVisibility(View.VISIBLE);
         }
 
         /** Sync the like / dislike icon tints and counts with the registry. */
@@ -310,96 +216,34 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    public static class ControlViewHolder extends RecyclerView.ViewHolder {
-        private final TextView expandButton;
-        private final TextView collapseButton;
-
-        public ControlViewHolder(View view) {
-            super(view);
-            expandButton = view.findViewById(R.id.buttonExpandReplies);
-            collapseButton = view.findViewById(R.id.buttonCollapseReplies);
-        }
-
-        public void display(ThreadControlItem item,
-                            OnThreadControlClick onExpandThreadClick,
-                            OnThreadControlClick onCollapseThreadClick) {
-            Context context = itemView.getContext();
-            if (item.remainingReplies() > 0) {
-                expandButton.setVisibility(View.VISIBLE);
-                int label = item.hasVisibleReplies()
-                        ? R.string.expand_more_replies
-                        : R.string.expand_replies;
-                if (item.hasVisibleReplies()) {
-                    expandButton.setText(label);
-                } else {
-                    expandButton.setText(context.getString(label, item.totalReplies()));
-                }
-                expandButton.setOnClickListener(v -> onExpandThreadClick.onAction(item));
-            } else {
-                expandButton.setVisibility(View.GONE);
-                expandButton.setOnClickListener(null);
-            }
-
-            collapseButton.setVisibility(item.hasVisibleReplies() ? View.VISIBLE : View.GONE);
-            collapseButton.setOnClickListener(item.hasVisibleReplies()
-                    ? v -> onCollapseThreadClick.onAction(item)
-                    : null);
-        }
-    }
-
     @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        int layout = viewType == VIEW_TYPE_THREAD_CONTROL
-                ? R.layout.item_comment_thread_control
-                : R.layout.fragment_message;
-        View view = LayoutInflater.from(viewGroup.getContext()).inflate(layout, viewGroup, false);
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+        View view = LayoutInflater.from(viewGroup.getContext())
+                .inflate(R.layout.fragment_message, viewGroup, false);
         UiFontManager.applyToViewTree(viewGroup.getContext(), view);
-        if (viewType == VIEW_TYPE_THREAD_CONTROL) {
-            return new ControlViewHolder(view);
-        }
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        ThreadListItem item = items.get(position);
-        if (item.isControl()) {
-            ((ControlViewHolder) holder).display(
-                    item.control(),
-                    onExpandThreadClick,
-                    onCollapseThreadClick
-            );
-            return;
-        }
-
-        ((ViewHolder) holder).display(
-                item.message(),
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        holder.display(
+                items.get(position),
                 currentUserId,
                 onReplyClick,
                 onReactionClick,
                 onOverflowClick,
                 onUserClick,
+                onContentClick,
                 authManager,
                 avatarManager,
                 accentColor,
-                neutralColor,
-                hasThreadControlAfter(position)
+                neutralColor
         );
     }
 
     @Override
     public int getItemCount() {
         return items.size();
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-        return items.get(position).isControl() ? VIEW_TYPE_THREAD_CONTROL : VIEW_TYPE_MESSAGE;
-    }
-
-    private boolean hasThreadControlAfter(int position) {
-        int next = position + 1;
-        return next < items.size() && items.get(next).isControl();
     }
 }

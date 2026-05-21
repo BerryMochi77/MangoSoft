@@ -21,7 +21,7 @@ import androidx.annotation.Nullable;
  */
 public class ThreadIndentView extends View {
 
-    private static final float INDENT_PER_LEVEL_DP = 18f;
+    private static final float INDENT_PER_LEVEL_DP = 32f;
     private static final float LEADING_PAD_DP = 14f;
 
     private int depth = 0;

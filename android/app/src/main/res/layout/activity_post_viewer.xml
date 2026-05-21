@@ -1,4 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Post detail screen.
+
+    Layout strategy:
+      • Back button + title pinned at the top so navigation chrome
+        never scrolls out of reach.
+      • Everything between the title row and the reply bar lives inside
+        a NestedScrollView so long post bodies (and long threads) can
+        actually be reached on a phone. Previously the body + post
+        actions + messages list were all direct ConstraintLayout
+        children, so a very long body pushed the messages list (and
+        eventually itself) underneath the fixed reply bar with no way
+        to scroll. PostViewerActivity's existing "swipe-up to collapse
+        header" gesture still works — its touch handler runs before
+        the scroll view sees the event.
+      • The inner ConstraintLayout uses wrap_content height. Each child
+        is anchored top_toBottomOf the previous one, so it behaves like
+        a vertical chain. recyclerMessages is wrap_content with nested
+        scrolling disabled — the outer NestedScrollView handles all
+        vertical scrolling.
+      • Reply bar stays pinned to the bottom.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
                                                    xmlns:app="http://schemas.android.com/apk/res-auto"
                                                    xmlns:tools="http://schemas.android.com/tools"
@@ -39,197 +61,209 @@
             app:layout_constraintStart_toEndOf="@+id/buttonBack"
             app:layout_constraintTop_toTopOf="@+id/buttonBack" />
 
-    <TextView
-            android:id="@+id/textPostAuthor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="20dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/imagePostAuthorAvatar"
-            app:layout_constraintTop_toBottomOf="@+id/textPostTitle" />
-
-    <com.example.comp2100miniproject.CircleAvatarImageView
-            android:id="@+id/imagePostAuthorAvatar"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="8dp"
-            android:contentDescription="@string/profile_avatar"
-            android:src="@drawable/avatar_default_1"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textPostTitle" />
-
-    <!-- View-count bar: eye icon + "N views". Sits just below the author line. -->
-    <LinearLayout
-            android:id="@+id/viewCountBar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="20dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/textPostAuthor"
-            app:layout_constraintTop_toBottomOf="@+id/textPostAuthor">
-
-        <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:contentDescription="@string/view_count_icon_desc"
-                android:src="@drawable/ic_eye"
-                app:tint="@color/text_secondary" />
-
-        <TextView
-                android:id="@+id/textViewCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
-
-    </LinearLayout>
-
-    <TextView
-            android:id="@+id/textPostEdited"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="20dp"
-            android:text="@string/edited_label"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/textPostAuthor"
-            app:layout_constraintTop_toBottomOf="@+id/viewCountBar" />
-
-    <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroupPostHashtags"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="20dp"
-            android:visibility="gone"
-            app:chipSpacingHorizontal="4dp"
-            app:chipSpacingVertical="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textPostEdited" />
-
-    <TextView
-            android:id="@+id/textPostBody"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/chipGroupPostHashtags" />
-
-    <com.example.comp2100miniproject.RoundedImageView
-            android:id="@+id/imagePostAttachment"
-            android:layout_width="0dp"
-            android:layout_height="180dp"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:adjustViewBounds="true"
-            android:background="@drawable/bg_card"
-            android:contentDescription="@string/attached_image"
-            android:scaleType="centerCrop"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textPostBody" />
-
-    <LinearLayout
-            android:id="@+id/reactionBar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginEnd="20dp"
-            android:orientation="vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/imagePostAttachment">
-
-        <com.google.android.material.chip.ChipGroup
-                android:id="@+id/reactionChipGroup"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:chipSpacingHorizontal="6dp"
-                app:chipSpacingVertical="6dp"
-                app:singleLine="false" />
-    </LinearLayout>
-
-    <LinearLayout
-            android:id="@+id/postOwnerActions"
-            android:layout_width="0dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="20dp"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/reactionBar">
-
-        <Button
-                android:id="@+id/buttonEditPost"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:text="@string/edit"
-                android:textAllCaps="false" />
-
-        <Button
-                android:id="@+id/buttonDeletePost"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="@string/delete"
-                android:textAllCaps="false" />
-
-        <!-- Report button: only visible for non-owner, non-admin users -->
-        <Button
-                android:id="@+id/buttonReportPost"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:text="@string/report_post"
-                android:textAllCaps="false"
-                android:textColor="@color/warning"
-                android:visibility="gone" />
-    </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerMessages"
+    <androidx.core.widget.NestedScrollView
+            android:id="@+id/postScrollView"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginTop="14dp"
             android:clipToPadding="false"
             android:paddingBottom="12dp"
             app:layout_constraintBottom_toTopOf="@+id/replyBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/postOwnerActions" />
+            app:layout_constraintTop_toBottomOf="@+id/buttonBack">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            <com.example.comp2100miniproject.CircleAvatarImageView
+                    android:id="@+id/imagePostAuthorAvatar"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="8dp"
+                    android:contentDescription="@string/profile_avatar"
+                    android:src="@drawable/avatar_default_1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                    android:id="@+id/textPostAuthor"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="20dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/imagePostAuthorAvatar"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                    android:id="@+id/viewCountBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="20dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/textPostAuthor"
+                    app:layout_constraintTop_toBottomOf="@+id/textPostAuthor">
+
+                <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:contentDescription="@string/view_count_icon_desc"
+                        android:src="@drawable/ic_eye"
+                        app:tint="@color/text_secondary" />
+
+                <TextView
+                        android:id="@+id/textViewCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                    android:id="@+id/textPostEdited"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="20dp"
+                    android:text="@string/edited_label"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/textPostAuthor"
+                    app:layout_constraintTop_toBottomOf="@+id/viewCountBar" />
+
+            <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupPostHashtags"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="20dp"
+                    android:visibility="gone"
+                    app:chipSpacingHorizontal="4dp"
+                    app:chipSpacingVertical="4dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textPostEdited" />
+
+            <TextView
+                    android:id="@+id/textPostBody"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="20dp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/chipGroupPostHashtags" />
+
+            <com.example.comp2100miniproject.RoundedImageView
+                    android:id="@+id/imagePostAttachment"
+                    android:layout_width="0dp"
+                    android:layout_height="180dp"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="20dp"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/bg_card"
+                    android:contentDescription="@string/attached_image"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textPostBody" />
+
+            <LinearLayout
+                    android:id="@+id/reactionBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginEnd="20dp"
+                    android:orientation="vertical"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/imagePostAttachment">
+
+                <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/reactionChipGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="6dp"
+                        app:chipSpacingVertical="6dp"
+                        app:singleLine="false" />
+            </LinearLayout>
+
+            <LinearLayout
+                    android:id="@+id/postOwnerActions"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="20dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/reactionBar">
+
+                <Button
+                        android:id="@+id/buttonEditPost"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/edit"
+                        android:textAllCaps="false" />
+
+                <Button
+                        android:id="@+id/buttonDeletePost"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/delete"
+                        android:textAllCaps="false" />
+
+                <Button
+                        android:id="@+id/buttonReportPost"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="@string/report_post"
+                        android:textAllCaps="false"
+                        android:textColor="@color/warning"
+                        android:visibility="gone" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerMessages"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/postOwnerActions" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <LinearLayout
             android:id="@+id/replyBar"

@@ -562,8 +562,7 @@ Threaded replies use one composer:
 - Tapping outside the bottom reply bar clears the reply target only when the input is empty; typed text keeps the target so accidental taps do not lose context.
 - Sending through the bottom reply bar records the parent in `MessageThreadRegistry`, then clears the reply target back to the post-level default.
 - Plain post replies keep the normal `Write a reply` hint and use a null parent id.
-- Thread indentation is visually capped at three levels with an 18dp step so nested replies keep enough width for content and owner action buttons.
-- Comment threads are collapsed by default in `PostViewerActivity`. A top-level comment with replies shows an expand row instead of rendering every child immediately.
-- Expanding a thread reveals replies in batches of three, ordered by `MessageReactionRegistry.likeCount(...)` descending and then timestamp ascending.
-- The expand / collapse row is represented by `MessageAdapter.ThreadControlItem`, not by fake `Message` objects. Keep this control UI in the adapter layer; do not add collapsed/expanded state to `Message`.
-- `PostViewerActivity.expandedReplyLimits` is transient screen state. It should not be persisted unless the product explicitly needs remembered thread expansion.
+- Thread indentation is visually capped at three levels with a 32dp step so nested replies keep enough width for content and owner action buttons.
+- Comment threads are fully expanded by default in `PostViewerActivity`. Replies under each parent are ordered by `MessageReactionRegistry.likeCount(...)` descending and then timestamp ascending.
+- Tapping a parent comment's body (the content TextView or its attachment) collapses its direct replies, or re-expands them if already collapsed. Leaf comments ignore the tap. There is no separate expand / collapse button row.
+- `PostViewerActivity.expandedReplyLimits` is transient screen state: a missing entry means "show all", `0` means manually collapsed. It should not be persisted unless the product explicitly needs remembered thread expansion.
