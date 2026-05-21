@@ -24,7 +24,7 @@ import dao.RandomContentGenerator;
 import dao.model.User;
 
 /**
- * Single-Activity host for the four bottom-nav tabs. Tab taps swap the
+ * Single-Activity host for the bottom-nav tabs. Tab taps swap the
  * visible Fragment via show/hide so each tab keeps its scroll position and
  * internal state — no "enter / exit" Activity transitions, no rebuilt UI.
  *
@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
     private static final String TAG_FEED = "tab_feed";
     private static final String TAG_TRENDS = "tab_trends";
+    private static final String TAG_MESSAGES = "tab_messages";
     private static final String TAG_PROFILE = "tab_profile";
     private static final String TAG_SETTINGS = "tab_settings";
 
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
     private FeedFragment feedFragment;
     private TrendsFragment trendsFragment;
+    private MessagesFragment messagesFragment;
     private ProfileFragment profileFragment;
     private SettingsFragment settingsFragment;
 
@@ -137,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
         feedFragment = (FeedFragment) fm.findFragmentByTag(TAG_FEED);
         trendsFragment = (TrendsFragment) fm.findFragmentByTag(TAG_TRENDS);
+        messagesFragment = (MessagesFragment) fm.findFragmentByTag(TAG_MESSAGES);
         profileFragment = (ProfileFragment) fm.findFragmentByTag(TAG_PROFILE);
         settingsFragment = (SettingsFragment) fm.findFragmentByTag(TAG_SETTINGS);
 
@@ -147,15 +150,18 @@ public class MainActivity extends AppCompatActivity implements TabHost {
 
         feedFragment = new FeedFragment();
         trendsFragment = new TrendsFragment();
+        messagesFragment = new MessagesFragment();
         profileFragment = new ProfileFragment();
         settingsFragment = new SettingsFragment();
 
         FragmentTransaction tx = fm.beginTransaction();
         tx.add(R.id.fragmentContainer, feedFragment, TAG_FEED);
         tx.add(R.id.fragmentContainer, trendsFragment, TAG_TRENDS);
+        tx.add(R.id.fragmentContainer, messagesFragment, TAG_MESSAGES);
         tx.add(R.id.fragmentContainer, profileFragment, TAG_PROFILE);
         tx.add(R.id.fragmentContainer, settingsFragment, TAG_SETTINGS);
         tx.hide(trendsFragment);
+        tx.hide(messagesFragment);
         tx.hide(profileFragment);
         tx.hide(settingsFragment);
         tx.commit();
@@ -171,6 +177,8 @@ public class MainActivity extends AppCompatActivity implements TabHost {
             if (trendsFragment != null && (forceTrendsFilter || trendsTag != null)) {
                 trendsFragment.applyTagFilter(trendsTag);
             }
+        } else if (itemId == R.id.navMessages) {
+            target = messagesFragment;
         } else if (itemId == R.id.navProfile) {
             target = profileFragment;
         } else if (itemId == R.id.navSettings) {
@@ -186,7 +194,13 @@ public class MainActivity extends AppCompatActivity implements TabHost {
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction tx = fm.beginTransaction();
         tx.setReorderingAllowed(true);
-        for (Fragment f : new Fragment[]{feedFragment, trendsFragment, profileFragment, settingsFragment}) {
+        for (Fragment f : new Fragment[]{
+                feedFragment,
+                trendsFragment,
+                messagesFragment,
+                profileFragment,
+                settingsFragment
+        }) {
             if (f == null) continue;
             if (f == target) tx.show(f);
             else tx.hide(f);
