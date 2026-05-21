@@ -192,6 +192,8 @@
     <string name="no_results">No posts found with this tag.</string>
     <string name="no_recommended_posts">No recommendations yet.</string>
     <string name="no_trending_yet">No tags yet</string>
+    <string name="show_more_tags">Show more (+%1$d)</string>
+    <string name="show_less_tags">Show less</string>
     <string name="post_body_hint">Post content (optional, hashtags supported)</string>
     <string name="post_body_label">Post content</string>
     <string name="post_tags_label">Tags</string>
